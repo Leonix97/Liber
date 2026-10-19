@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Liberaciones">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Liberaciones CQC</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e3a5f'/%3E%3Cpath d='M26 52l16 16 32-34' stroke='%23fff' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e3a5f'/%3E%3Cpath d='M26 52l16 16 32-34' stroke='%23fff' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#f3f4f6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       display:flex;justify-content:center;align-items:flex-start;
+       padding:max(16px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+  #app{width:100%;max-width:520px}
+  .card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .hdr{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:14px;padding:20px 24px;margin-bottom:16px;color:#fff}
+  .hdr .k{font-size:11px;font-weight:700;letter-spacing:2px;opacity:.7;margin-bottom:4px}
+  .hdr .t{font-size:20px;font-weight:800}
+  .fld{margin-bottom:16px}
+  label{display:block;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+  input[type=text]{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;font-size:15px;
+       outline:none;background:#fff;color:#111827;font-family:inherit}
+  input:focus{border-color:#2563eb}
+  input.up{text-transform:uppercase}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>input{flex:1;min-width:0}
+  .dash{color:#6b7280;font-weight:700}
+
+  /* filas de botones */
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opts button{flex:1 1 auto;min-width:calc(33.333% - 6px);padding:11px 10px;border-radius:9px;
+       border:1.5px solid #d1d5db;background:#fff;color:#374151;font-weight:600;font-size:13.5px;
+       cursor:pointer;font-family:inherit;white-space:normal;line-height:1.25;text-align:center}
+  .opts button:active{transform:scale(.98)}
+  .opts button.on{border-color:#2563eb;background:#2563eb;color:#fff}
+  .opts.wide button{flex:1 1 100%;min-width:0;text-align:left;padding:13px 14px;font-size:14px}
+  .opts.half button{min-width:calc(50% - 4px)}
+
+  .info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:9px 12px;margin-bottom:16px;font-size:13px;color:#0369a1}
+  .info b{font-weight:700}
+  .sinbtn{padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;
+       font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit}
+  .sinbtn.on{border-color:#2563eb;background:#2563eb;color:#fff}
+  input:disabled{background:#f3f4f6;color:#9ca3af}
+  .out-t{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+  pre{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:13px;
+      line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;color:#1e293b;margin:0}
+  .btns{display:flex;gap:8px;margin-top:14px}
+  .btns button{padding:12px 14px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;flex:1;font-family:inherit}
+  .b-pri{background:#2563eb;color:#fff}
+  .b-ok{background:#16a34a;color:#fff}
+  .b-sec{background:#fff;color:#374151;border:1.5px solid #d1d5db!important}
+  .hint{text-align:center;font-size:12px;color:#9ca3af;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+
+/* ═══════════════ CONSTANTES ═══════════════ */
+var TIPO = {
+  RELLENO:    "ACEPTACIÓN DE CAPA DE RELLENO",
+  SUBDRENES:  "INSTALACIÓN DE SUBDRENES",
+  SIST_SUBD:  "ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE",
+  FUNDACION:  "ACEPTACIÓN DE TERRENO DE FUNDACIÓN",
+  EVALUACION: "EVALUACIÓN DE MATERIAL",
+  OVERLINER:  "ACEPTACIÓN DE COLOCACIÓN DE OVERLINER"
+};
+var EST = {
+  PAD_2D:       "PAD DE LIXIVIACIÓN 2 FASE 2D SECTOR NORTE",
+  INTERLIFT:    "CONSTRUCCIÓN DE INTERLIFT PAD 2D",
+  PAD_2E:       "PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR SUR",
+  PAD_2E_N:     "PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR NORTE",
+  TAJO:         "RELLENO INTERNO SUR - TAJO CHALARINA",
+  COMPENSACION: "MATERIAL DE COMPENSACIÓN",
+  PAD_2F:       "PAD DE LIXIVIACIÓN 2 FASE 2F"
+};
+var MAT = {
+  RELLENO_ESTRUCTURAL: "RELLENO ESTRUCTURAL",
+  SUELO_BP:            "SUELO DE BAJA PERMEABILIDAD",
+  SOBRERREV:           "SOBRERREVESTIMIENTO",
+  RELLENO_CONTROLADO:  "RELLENO CONTROLADO",
+  APILAMIENTO:         "RELLENO MASIVO DE APILAMIENTO",
+  RIPIOS:              "RELLENO DE RIPIOS"
+};
+var SUBTIPO = { TOTAL:"SUBDREN TOTAL", FUND_TUB:"FUNDACIÓN Y TUBERÍA", SOLO_FUND:"SOLO FUNDACIÓN" };
+var DIAM_DOBLE = "100 y 450";
+var DEFAULT_PROC = ["PROPIO","CA-01"];
+var PROC_SUELO_BP = ["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"];
+
+var BP_TIPO = {
+  ZANJA:"ZANJA DE ANCLAJE", BERMA:"BERMA PERIMETRAL", BANQUETA:"BANQUETA",
+  PLATAFORMA:"PLATAFORMA", BERMA_IL:"BERMA"
+};
+var BP_PAD = [BP_TIPO.ZANJA, BP_TIPO.BERMA, BP_TIPO.BANQUETA];
+var BP_INTERLIFT = [BP_TIPO.PLATAFORMA, BP_TIPO.BERMA_IL];
+
+/* etiqueta corta para los botones de estructura */
+var EST_CORTA = {};
+EST_CORTA[EST.PAD_2D]       = "PAD 2D NORTE";
+EST_CORTA[EST.INTERLIFT]    = "INTERLIFT PAD 2D";
+EST_CORTA[EST.PAD_2E]       = "PAD 2E SUR";
+EST_CORTA[EST.PAD_2E_N]     = "PAD 2E NORTE";
+EST_CORTA[EST.TAJO]         = "TAJO CHALARINA";
+EST_CORTA[EST.COMPENSACION] = "MAT. COMPENSACIÓN";
+EST_CORTA[EST.PAD_2F]       = "PAD 2F";
+
+/* etiqueta corta para los botones de tipo de liberación */
+var TIPO_CORTO = {};
+TIPO_CORTO[TIPO.RELLENO]    = "CAPA DE RELLENO";
+TIPO_CORTO[TIPO.SUBDRENES]  = "INSTALACIÓN DE SUBDRENES";
+TIPO_CORTO[TIPO.SIST_SUBD]  = "SISTEMA DE SUBDRENAJE";
+TIPO_CORTO[TIPO.FUNDACION]  = "TERRENO DE FUNDACIÓN";
+TIPO_CORTO[TIPO.EVALUACION] = "EVALUACIÓN DE MATERIAL";
+TIPO_CORTO[TIPO.OVERLINER]  = "COLOCACIÓN DE OVERLINER";
+
+/* ═══════════════ CONFIGURACIÓN ═══════════════ */
+var DATA = {};
+DATA[EST.PAD_2D] = {
+  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
+  bpTipos: BP_PAD,
+  materiales:(function(){var m={};
+    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
+    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
+    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
+    return m;})()
+};
+DATA[EST.INTERLIFT] = {
+  tiposLiberacion:[TIPO.RELLENO],
+  bpTipos: BP_INTERLIFT,
+  interlift: true,
+  materiales:(function(){var m={};
+    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
+    return m;})()
+};
+DATA[EST.PAD_2E] = {
+  tiposLiberacion:[TIPO.RELLENO,TIPO.FUNDACION,TIPO.OVERLINER],
+  bpTipos: BP_PAD,
+  materiales:(function(){var m={};
+    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
+    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
+    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
+    return m;})()
+};
+DATA[EST.PAD_2E_N] = {
+  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
+  bpTipos: BP_PAD,
+  materiales:(function(){var m={};
+    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
+    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
+    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
+    return m;})()
+};
+DATA[EST.TAJO] = {
+  tiposLiberacion:[TIPO.RELLENO,TIPO.SIST_SUBD],
+  procOpcionesDefault:["TAJO 5E","TAJO 4B","CANTERA 6"],
+  materiales:(function(){var m={};
+    m[MAT.RELLENO_CONTROLADO]={espesor:"1 m",cotaRef:"RELLENO CONTROLADO"};
+    m[MAT.APILAMIENTO]={espesor:null,cotaApilamiento:true};
+    return m;})()
+};
+DATA[EST.COMPENSACION] = {
+  tiposLiberacion:[TIPO.RELLENO],
+  materiales:(function(){var m={};
+    m[MAT.RIPIOS]={espesor:"1 m",procFija:"CANTERA CA-01",cotaRef:"RELLENO DE RIPIOS"};
+    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
+    return m;})()
+};
+DATA[EST.PAD_2F] = {
+  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
+  bpTipos: BP_PAD,
+  materiales:(function(){var m={};
+    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m"};
+    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
+    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
+    return m;})()
+};
+
+var LINEAS = {
+  "100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],
+  "300":["TB-PD-P-300-01","TB-PD-P-300-02"]
+};
+var SUPERVISORES = ["Dick Delgado","Gustavo Sánchez","Jaison Chavez","Kelly Rodriguez","Leonardo Tafur"];
+var MATERIALES_EVAL = ["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"];
+var COTAS_BASE = {
+  "RELLENO DE RIPIOS":{base:2573,capaBase:9,espesorM:1},
+  "RELLENO CONTROLADO":{base:2773,capaBase:26,espesorM:1},
+  "RELLENO ESTRUCTURAL_2E":{base:2810.5,capaBase:15,espesorM:0.5}
+};
+
+/* ═══════════════ CÁLCULOS ═══════════════ */
+function espesorApilamiento(c){ return (c-6)%3===2?4:3; }
+function cotaDesdeApilamiento(capa){ var c=2773; for(var i=7;i<=capa;i++) c+=espesorApilamiento(i); return c; }
+function calcularCota(matCfg,capaNum){
+  if(isNaN(capaNum)) return "";
+  if(matCfg&&matCfg.cotaApilamiento) return capaNum<6?"":String(cotaDesdeApilamiento(capaNum));
+  var ref = matCfg&&matCfg.cotaRef?COTAS_BASE[matCfg.cotaRef]:null;
+  if(!ref) return "";
+  return String(ref.base+(capaNum-ref.capaBase)*ref.espesorM);
+}
+function progLongitud(prog){
+  if(!prog) return "";
+  function est(s){ var p=s.trim().split("+"); return p.length===2?parseFloat(p[0])*1000+parseFloat(p[1]):parseFloat(s); }
+  var parts=prog.split(" - ");
+  if(parts.length!==2) return "";
+  var a=est(parts[0]), b=est(parts[1]);
+  if(isNaN(a)||isNaN(b)) return "";
+  return Math.abs(b-a).toFixed(2);
+}
+
+function derive(f,estructura,tipo){
+  var estData = estructura?DATA[estructura]:null;
+  var matData = estData&&f.material?estData.materiales[f.material]:null;
+  var isApilamiento = f.material===MAT.APILAMIENTO;
+  var isSobreRev = f.material===MAT.SOBRERREV;
+  var isSueloBP = f.material===MAT.SUELO_BP;
+  var isInterlift = !!(estData&&estData.interlift);
+  var bpTipos = (estData&&estData.bpTipos)?estData.bpTipos:null;
+
+  var showZanja = isSueloBP && !!bpTipos && tipo===TIPO.RELLENO;
+  var bp = f.bpTipo||"";
+  var esZanja     = showZanja && bp===BP_TIPO.ZANJA;
+  var esBerma     = showZanja && /BERMA/.test(bp);
+  var esBanqueta  = showZanja && bp===BP_TIPO.BANQUETA;
+  var esPlataforma= showZanja && bp===BP_TIPO.PLATAFORMA;
+
+  var showParcial = estructura===EST.COMPENSACION && f.material===MAT.RIPIOS && tipo===TIPO.RELLENO;
+  var esParcial = showParcial && f.parcial==="SÍ";
+
+  var capasBPMode = (esZanja||esBerma) && !isInterlift;   // desplegable 1..N
+  var capasBPOpts = esBerma?["1","2","3","4"]:["1","2","3"];
+  var capaLibre   = esBerma && isInterlift;               // capa numérica libre
+  var capaFija = (isSobreRev||isSueloBP) && !capasBPMode && !capaLibre;
+
+  var espesorManualNeeded = !!matData && matData.espesor===null && !isApilamiento;
+  var espesorAuto = (isApilamiento && f.capa && !isNaN(parseInt(f.capa,10)))
+      ? espesorApilamiento(parseInt(f.capa,10))+" m" : (matData&&matData.espesor!=null?matData.espesor:"");
+  var espesor = espesorManualNeeded ? (f.espesorM||"") : espesorAuto;
+
+  var procFija = matData&&matData.procFija?matData.procFija:null;
+  var showProc = !isApilamiento;
+  var procFinal = isApilamiento?null:(procFija||f.procedencia);
+  var procOpciones = (matData&&matData.procOpciones) || (estData&&estData.procOpcionesDefault) || DEFAULT_PROC;
+  var showSiguiente = !showProc || !!procFija || !!f.procedencia;
+
+  var capaFinal = capaFija?"UNICA":(capasBPMode?f.capasBP:f.capa);
+  var cotaVar = isSobreRev || isSueloBP;
+  var cotaFinal = cotaVar?"VARIABLE":f.cota;
+  var bpSimple = isSueloBP && !esZanja && tipo===TIPO.RELLENO;
+  var showProgRell = esZanja || (isSueloBP && tipo===TIPO.RELLENO && f.progFillBP==="SÍ");
+
+  var esSoloFund = f.subtipo===SUBTIPO.SOLO_FUND;
+  var esFundTub = f.subtipo===SUBTIPO.FUND_TUB;
+  var isSist = tipo===TIPO.SIST_SUBD;
+  var esDoble = isSist && f.tuberia===DIAM_DOBLE;
+  var gravaLabel = esFundTub?"FUNDACIÓN":(isSist?"GRAVA Y GEOTEXTIL":"GRAVA");
+  var tubLabel = f.tuberia===DIAM_DOBLE?"Ø100/450 mm":"Ø"+f.tuberia+"mm";
+  var tuberiaOpciones = isSist?["100","450",DIAM_DOBLE]:["100","300"];
+  var fundCotasOk = f.cotasFill!=="SÍ" || (!!f.cotaSup && !!f.cotaInf);
+  var fundProgOk = f.progFill!=="SÍ" || !!f.progFund;
+  var subLongTub = progLongitud(f.progresiva);
+  var sup = f.supervisor?f.supervisor.toUpperCase():"";
+
+  return {matData:matData,isApilamiento:isApilamiento,isSobreRev:isSobreRev,isSueloBP:isSueloBP,
+    isInterlift:isInterlift,bpTipos:bpTipos,showZanja:showZanja,
+    esZanja:esZanja,esBerma:esBerma,esBanqueta:esBanqueta,esPlataforma:esPlataforma,
+    capasBPMode:capasBPMode,capasBPOpts:capasBPOpts,capaLibre:capaLibre,
+    showParcial:showParcial,esParcial:esParcial,capaFija:capaFija,
+    espesorManualNeeded:espesorManualNeeded,espesor:espesor,procFija:procFija,showProc:showProc,
+    procFinal:procFinal,procOpciones:procOpciones,showSiguiente:showSiguiente,capaFinal:capaFinal,
+    cotaFinal:cotaFinal,cotaVar:cotaVar,bpSimple:bpSimple,showProgRell:showProgRell,
+    esSoloFund:esSoloFund,esFundTub:esFundTub,esDoble:esDoble,gravaLabel:gravaLabel,
+    tubLabel:tubLabel,tuberiaOpciones:tuberiaOpciones,fundCotasOk:fundCotasOk,fundProgOk:fundProgOk,
+    subLongTub:subLongTub,sup:sup};
+}
+
+/* ═══════════════ ESQUEMAS ═══════════════ */
+function supervisorField(visible){
+  return {id:"supervisor",type:"select",label:"Supervisor CQC",
+    options:function(){return SUPERVISORES;},visible:visible};
+}
+
+var SCHEMAS = {};
+
+SCHEMAS[TIPO.RELLENO] = {
+  fields:[
+    {id:"material",type:"select",label:"Material",
+     options:function(ctx){return Object.keys(DATA[ctx.estructura].materiales);},
+     afterChange:function(val,next,env){
+       var md = env.estructura?DATA[env.estructura].materiales[val]:null;
+       next.espesorM = (val===MAT.SUELO_BP)?"0.3 m":"";
+       next.procedencia="";next.protocolo="";next.bpTipo="";next.progresiva="";
+       next.parcial="NO";next.parcialTexto="";next.nroEnsayoChk="NO";next.nroEnsayo="";next.capasBP="";
+       next.detalleRell="";next.sinDetalleRell="";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
+       next.capa=(md&&md.capaDefault)||"";next.cota=(md&&md.cotaDefault)||"";next.ensayo="SÍ";
+       return next;}},
+    {id:"bpTipo",type:"btns",label:"Tipo de estructura",
+     options:function(ctx){return ctx.d.bpTipos||[];},
+     visible:function(ctx){return ctx.d.showZanja;},
+     required:function(ctx){return ctx.d.showZanja;},
+     afterChange:function(val,next){
+       next.capa="";next.capasBP="";next.progresiva="";next.progFillBP="NO";
+       next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="";
+       if(val===BP_TIPO.ZANJA){ next.espesorM="0.2 m"; next.ensayo=""; }
+       else if(val===BP_TIPO.BERMA){ next.espesorM="0.3 m"; next.ensayo=""; }
+       else { next.espesorM="0.3 m"; next.ensayo="SÍ"; }
+       return next;}},
+    {id:"bermaPos",type:"btns",label:"Ubicación de banqueta",
+     options:function(){return ["INFERIOR","INTERMEDIA","SUPERIOR"];},
+     visible:function(ctx){return ctx.d.esBanqueta;},
+     required:function(ctx){return ctx.d.esBanqueta;},
+     valid:function(ctx){return !ctx.d.esBanqueta || !!ctx.f.bermaPos || !!ctx.f.detalleBerma;}},
+    {id:"detalleBerma",type:"text",label:"Otro detalle (opcional)",placeholder:"Ej: TRAMO NORTE",
+     visible:function(ctx){return ctx.d.esBanqueta;},required:function(){return false;}},
+    {id:"detalleRell",type:"detalleOpc",sinId:"sinDetalleRell",label:"Detalle adicional",placeholder:"Ej: TRAMO NORTE",
+     visible:function(ctx){return ctx.d.showZanja && !!ctx.f.bpTipo && !ctx.d.esBanqueta;},
+     valid:function(){return true;}},
+    {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",
+     visible:function(ctx){return ctx.d.showParcial;},
+     afterChange:function(val,next){ next.parcialTexto = val==="SÍ"?"HOMBRO":""; next.ensayo = val==="SÍ"?"NO":"SÍ"; return next;}},
+    {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
+     visible:function(ctx){return ctx.d.esParcial;},required:function(ctx){return ctx.d.esParcial;}},
+    {id:"capa",type:"number",label:"Capa",placeholder:"Ej: 9",
+     visible:function(ctx){return !!ctx.f.material && !ctx.d.capasBPMode && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
+     info:function(ctx){return ctx.d.capaFija?{label:"Capa",value:"UNICA"}:null;},
+     valid:function(ctx){return !!ctx.d.capaFinal;},
+     afterChange:function(val,next,env){
+       var md = env.estructura?DATA[env.estructura].materiales[next.material]:null;
+       var cf = next.material===MAT.SOBRERREV||next.material===MAT.SUELO_BP;
+       if(!cf){ var a=calcularCota(md,parseFloat(val)); if(a) next.cota=a; }
+       return next;}},
+    {id:"capasBP",type:"btns",label:"N° de capas",
+     options:function(ctx){return ctx.d.capasBPOpts;},
+     visible:function(ctx){return ctx.d.capasBPMode;},
+     required:function(ctx){return ctx.d.capasBPMode;},
+     afterChange:function(val,next){
+       if(/BERMA/.test(next.bpTipo||"")) next.ensayo = (val==="2"||val==="4")?"SÍ":"NO";
+       else next.ensayo = val==="1"?"NO":"SÍ";
+       return next;}},
+    {id:"espesorM",type:"text",label:"Espesor",placeholder:"Ej: 0.3 m",
+     visible:function(ctx){return !!ctx.f.material && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
+     info:function(ctx){return ctx.d.espesorManualNeeded?null:{label:"Espesor asignado",value:ctx.d.espesor};},
+     valid:function(ctx){return !!ctx.d.espesor;}},
+    {id:"procedencia",type:"select",label:"Procedencia",
+     options:function(ctx){return ctx.d.procOpciones;},
+     visible:function(ctx){return !!ctx.f.material && ctx.d.showProc && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
+     info:function(ctx){return ctx.d.procFija?{label:"Procedencia",value:ctx.d.procFija}:null;},
+     required:function(ctx){return ctx.d.showProc;},valid:function(ctx){return !!ctx.d.procFinal;}},
+    {id:"cota",type:"number",label:"Cota (msnm)",placeholder:"Ej: 2573",
+     visible:function(ctx){return ctx.d.showSiguiente;},
+     info:function(ctx){return ctx.d.cotaVar?{label:"Cota",value:"VARIABLE"}:null;},
+     valid:function(ctx){return !!ctx.d.cotaFinal;}},
+    {id:"area",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",
+     visible:function(ctx){return ctx.d.showSiguiente;}},
+    {id:"progFillBP",type:"toggle",label:"¿Ingresar progresiva?",
+     visible:function(ctx){return ctx.d.showSiguiente && ctx.d.bpSimple;},
+     afterChange:function(val,next){ next.progresiva=""; return next;}},
+    {id:"progresiva",type:"progresiva",label:"Progresiva",
+     visible:function(ctx){return ctx.d.showSiguiente && ctx.d.showProgRell;},
+     required:function(ctx){return ctx.d.showProgRell;}},
+    {id:"en
