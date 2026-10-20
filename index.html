@@ -8,9 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Liberaciones">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Liberaciones CQC</title>
+<title>Generador de Liberaciones CQC</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e3a5f'/%3E%3Cpath d='M26 52l16 16 32-34' stroke='%23fff' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e3a5f'/%3E%3Cpath d='M26 52l16 16 32-34' stroke='%23fff' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;background:#f3f4f6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -18,20 +19,24 @@
        padding:max(16px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
   #app{width:100%;max-width:520px}
   .card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-  .hdr{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:14px;padding:20px 24px;margin-bottom:16px;color:#fff}
+  .hdr{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:14px;padding:20px 20px 20px 24px;margin-bottom:16px;color:#fff;
+       display:flex;align-items:center;justify-content:space-between;gap:12px}
   .hdr .k{font-size:11px;font-weight:700;letter-spacing:2px;opacity:.7;margin-bottom:4px}
   .hdr .t{font-size:20px;font-weight:800}
+  .hbtn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:10px;
+       padding:9px 12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
   .fld{margin-bottom:16px}
   label{display:block;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
-  input[type=text]{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;font-size:15px;
+  .fdesc{font-size:12px;color:#9ca3af;margin-top:6px;line-height:1.4}
+  input[type=text],textarea{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;font-size:15px;
        outline:none;background:#fff;color:#111827;font-family:inherit}
-  input:focus{border-color:#2563eb}
-  input.up{text-transform:uppercase}
+  textarea{resize:vertical;line-height:1.5;font-size:14px}
+  input:focus,textarea:focus{border-color:#2563eb}
+  input.up,textarea.up{text-transform:uppercase}
   .row{display:flex;gap:8px;align-items:center}
   .row>input{flex:1;min-width:0}
   .dash{color:#6b7280;font-weight:700}
 
-  /* filas de botones */
   .opts{display:flex;flex-wrap:wrap;gap:8px}
   .opts button{flex:1 1 auto;min-width:calc(33.333% - 6px);padding:11px 10px;border-radius:9px;
        border:1.5px solid #d1d5db;background:#fff;color:#374151;font-weight:600;font-size:13.5px;
@@ -46,16 +51,48 @@
   .sinbtn{padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;
        font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit}
   .sinbtn.on{border-color:#2563eb;background:#2563eb;color:#fff}
-  input:disabled{background:#f3f4f6;color:#9ca3af}
   .out-t{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
   pre{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:13px;
-      line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;color:#1e293b;margin:0}
-  .btns{display:flex;gap:8px;margin-top:14px}
-  .btns button{padding:12px 14px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;flex:1;font-family:inherit}
+      line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;color:#1e293b;margin:0;
+      -webkit-user-select:text;user-select:text}
+  .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btns button,.savebar button{padding:12px 14px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;flex:1;font-family:inherit}
   .b-pri{background:#2563eb;color:#fff}
   .b-ok{background:#16a34a;color:#fff}
+  .b-warn{background:#d97706;color:#fff}
   .b-sec{background:#fff;color:#374151;border:1.5px solid #d1d5db!important}
+  .b-dng{background:#fff;color:#b91c1c;border:1.5px solid #fecaca!important}
   .hint{text-align:center;font-size:12px;color:#9ca3af;margin-top:8px}
+
+  /* configuración */
+  .sec-t{font-size:15px;font-weight:800;color:#1e3a5f;margin:0 0 4px}
+  .sec-d{font-size:12.5px;color:#6b7280;margin:0 0 14px;line-height:1.45}
+  .item{display:flex;align-items:center;gap:6px;padding:10px 0;border-top:1px solid #eef0f3}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .nm{flex:1;min-width:0}
+  .item .nm b{display:block;font-size:14px;color:#111827}
+  .item .nm span{display:block;font-size:11.5px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ib{border:1.5px solid #d1d5db;background:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;
+      cursor:pointer;color:#374151;font-family:inherit;flex:none}
+  .ib.del{color:#b91c1c;border-color:#fecaca}
+  .ib:disabled{opacity:.3;cursor:default}
+  .add{width:100%;margin-top:6px;padding:11px;border-radius:9px;border:1.5px dashed #93c5fd;background:#eff6ff;
+       color:#1d4ed8;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+  .sub{border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px;background:#fafbfc}
+  .sub-h{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+  .sub-h .n{flex:1;font-weight:800;font-size:13px;color:#374151;min-width:0}
+  .sub .fld:last-child{margin-bottom:0}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .grid3 .fld{margin-bottom:0}
+  .grid3 label{letter-spacing:.3px;font-size:10.5px}
+  .savebar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;
+       background:#1e293b;padding:10px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+  .savebar span{flex:1.3;color:#e2e8f0;font-size:13px;font-weight:600;padding-left:4px}
+  .savebar .b-sec{background:transparent;color:#e2e8f0;border:1.5px solid #475569!important}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px;line-height:1.45}
+  .note.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+  .note.err{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+  .note ul{margin:4px 0 0;padding-left:18px}
 </style>
 </head>
 <body>
@@ -63,146 +100,198 @@
 <script>
 "use strict";
 
-/* ═══════════════ CONSTANTES ═══════════════ */
-var TIPO = {
-  RELLENO:    "ACEPTACIÓN DE CAPA DE RELLENO",
-  SUBDRENES:  "INSTALACIÓN DE SUBDRENES",
-  SIST_SUBD:  "ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE",
-  FUNDACION:  "ACEPTACIÓN DE TERRENO DE FUNDACIÓN",
-  EVALUACION: "EVALUACIÓN DE MATERIAL",
-  OVERLINER:  "ACEPTACIÓN DE COLOCACIÓN DE OVERLINER"
-};
-var EST = {
-  PAD_2D:       "PAD DE LIXIVIACIÓN 2 FASE 2D SECTOR NORTE",
-  INTERLIFT:    "CONSTRUCCIÓN DE INTERLIFT PAD 2D",
-  PAD_2E:       "PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR SUR",
-  PAD_2E_N:     "PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR NORTE",
-  TAJO:         "RELLENO INTERNO SUR - TAJO CHALARINA",
-  COMPENSACION: "MATERIAL DE COMPENSACIÓN",
-  PAD_2F:       "PAD DE LIXIVIACIÓN 2 FASE 2F"
-};
-var MAT = {
-  RELLENO_ESTRUCTURAL: "RELLENO ESTRUCTURAL",
-  SUELO_BP:            "SUELO DE BAJA PERMEABILIDAD",
-  SOBRERREV:           "SOBRERREVESTIMIENTO",
-  RELLENO_CONTROLADO:  "RELLENO CONTROLADO",
-  APILAMIENTO:         "RELLENO MASIVO DE APILAMIENTO",
-  RIPIOS:              "RELLENO DE RIPIOS"
-};
+/* ════════════════════════════════════════════════════════════════
+   CONSTANTES DE LÓGICA (no configurables: definen el comportamiento)
+   ════════════════════════════════════════════════════════════════ */
+var TIPO_KEYS = ["RELLENO","SUBDRENES","SIST_SUBD","FUNDACION","EVALUACION","OVERLINER"];
 var SUBTIPO = { TOTAL:"SUBDREN TOTAL", FUND_TUB:"FUNDACIÓN Y TUBERÍA", SOLO_FUND:"SOLO FUNDACIÓN" };
 var DIAM_DOBLE = "100 y 450";
-var DEFAULT_PROC = ["PROPIO","CA-01"];
-var PROC_SUELO_BP = ["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"];
-
 var BP_TIPO = {
   ZANJA:"ZANJA DE ANCLAJE", BERMA:"BERMA PERIMETRAL", BANQUETA:"BANQUETA",
   PLATAFORMA:"PLATAFORMA", BERMA_IL:"BERMA"
 };
 var BP_PAD = [BP_TIPO.ZANJA, BP_TIPO.BERMA, BP_TIPO.BANQUETA];
 var BP_INTERLIFT = [BP_TIPO.PLATAFORMA, BP_TIPO.BERMA_IL];
+var COMPORTAMIENTOS = [
+  {k:"ESTANDAR",    t:"Estándar — capa numerada, cota calculada o manual"},
+  {k:"SUELO_BP",    t:"Suelo de baja permeabilidad — capa única, cota variable, zanja / berma / banqueta"},
+  {k:"VARIABLE",    t:"Capa única y cota variable (como sobrerrevestimiento)"},
+  {k:"APILAMIENTO", t:"Apilamiento — espesor 3/4 m alternado, cota calculada, sin procedencia"}
+];
+var BP_MODOS = [
+  {k:"",          t:"Ninguna"},
+  {k:"PAD",       t:"Pad: zanja de anclaje / berma perimetral / banqueta"},
+  {k:"INTERLIFT", t:"Interlift: plataforma / berma"}
+];
+var STORE_CFG = "genlib.config.v1", STORE_PREFS = "genlib.prefs.v1";
 
-/* etiqueta corta para los botones de estructura */
-var EST_CORTA = {};
-EST_CORTA[EST.PAD_2D]       = "PAD 2D NORTE";
-EST_CORTA[EST.INTERLIFT]    = "INTERLIFT PAD 2D";
-EST_CORTA[EST.PAD_2E]       = "PAD 2E SUR";
-EST_CORTA[EST.PAD_2E_N]     = "PAD 2E NORTE";
-EST_CORTA[EST.TAJO]         = "TAJO CHALARINA";
-EST_CORTA[EST.COMPENSACION] = "MAT. COMPENSACIÓN";
-EST_CORTA[EST.PAD_2F]       = "PAD 2F";
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function newId(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function arrStr(a){ return Array.isArray(a)?a.map(function(x){return String(x).trim();}).filter(function(x){return !!x;}):[]; }
+function findBy(arr,key,val){ for(var i=0;i<arr.length;i++) if(arr[i][key]===val) return arr[i]; return null; }
 
-/* etiqueta corta para los botones de tipo de liberación */
-var TIPO_CORTO = {};
-TIPO_CORTO[TIPO.RELLENO]    = "CAPA DE RELLENO";
-TIPO_CORTO[TIPO.SUBDRENES]  = "INSTALACIÓN DE SUBDRENES";
-TIPO_CORTO[TIPO.SIST_SUBD]  = "SISTEMA DE SUBDRENAJE";
-TIPO_CORTO[TIPO.FUNDACION]  = "TERRENO DE FUNDACIÓN";
-TIPO_CORTO[TIPO.EVALUACION] = "EVALUACIÓN DE MATERIAL";
-TIPO_CORTO[TIPO.OVERLINER]  = "COLOCACIÓN DE OVERLINER";
+/* ════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN DE FÁBRICA
+   ════════════════════════════════════════════════════════════════ */
+function defaultConfig(){
+  var PROC_BP = ["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"];
+  function mat(nombre,tipo,o){ o=o||{};
+    return {nombre:nombre,tipo:tipo,espesor:o.espesor||"",procFija:o.procFija||"",
+            procOpciones:o.procOpciones||[],cotaRef:o.cotaRef||"",parcial:!!o.parcial}; }
+  function RE(ref){ return mat("RELLENO ESTRUCTURAL","ESTANDAR",{espesor:"0.5 m",cotaRef:ref}); }
+  function BP(){ return mat("SUELO DE BAJA PERMEABILIDAD","SUELO_BP",{procOpciones:PROC_BP.slice()}); }
+  function SR(){ return mat("SOBRERREVESTIMIENTO","VARIABLE",{espesor:"0.7 m",procFija:"CHANCADORA"}); }
+  var PAD5 = ["RELLENO","SUBDRENES","FUNDACION","EVALUACION","OVERLINER"];
+  return {
+    version:1,
+    tipos:{
+      RELLENO:   {largo:"ACEPTACIÓN DE CAPA DE RELLENO",          corto:"CAPA DE RELLENO"},
+      SUBDRENES: {largo:"INSTALACIÓN DE SUBDRENES",               corto:"INSTALACIÓN DE SUBDRENES"},
+      SIST_SUBD: {largo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE",   corto:"SISTEMA DE SUBDRENAJE"},
+      FUNDACION: {largo:"ACEPTACIÓN DE TERRENO DE FUNDACIÓN",     corto:"TERRENO DE FUNDACIÓN"},
+      EVALUACION:{largo:"EVALUACIÓN DE MATERIAL",                 corto:"EVALUACIÓN DE MATERIAL"},
+      OVERLINER: {largo:"ACEPTACIÓN DE COLOCACIÓN DE OVERLINER",  corto:"COLOCACIÓN DE OVERLINER"}
+    },
+    supervisores:["Dick Delgado","Gustavo Sánchez","Jaison Chavez","Kelly Rodriguez","Leonardo Tafur"],
+    procDefault:["PROPIO","CA-01"],
+    materialesEval:["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"],
+    lineas:{"100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],"300":["TB-PD-P-300-01","TB-PD-P-300-02"]},
+    overliner:{material:"SOBRERREVESTIMIENTO",espesor:"0.7 m"},
+    cotasBase:[
+      {id:"ripios",        nombre:"RELLENO DE RIPIOS",      base:2573,  capaBase:9,  espesor:1},
+      {id:"controlado",    nombre:"RELLENO CONTROLADO",     base:2773,  capaBase:26, espesor:1},
+      {id:"estructural2e", nombre:"RELLENO ESTRUCTURAL 2E", base:2810.5,capaBase:15, espesor:0.5}
+    ],
+    frentes:[
+      {id:"pad2d",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2D SECTOR NORTE",corto:"PAD 2D NORTE",
+       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+      {id:"interlift",nombre:"CONSTRUCCIÓN DE INTERLIFT PAD 2D",corto:"INTERLIFT PAD 2D",
+       tipos:["RELLENO"],bp:"INTERLIFT",procDefault:[],materiales:[BP()]},
+      {id:"pad2e",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR SUR",corto:"PAD 2E SUR",
+       tipos:["RELLENO","FUNDACION","OVERLINER"],bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+      {id:"pad2en",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR NORTE",corto:"PAD 2E NORTE",
+       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+      {id:"tajo",nombre:"RELLENO INTERNO SUR - TAJO CHALARINA",corto:"TAJO CHALARINA",
+       tipos:["RELLENO","SIST_SUBD"],bp:"",procDefault:["TAJO 5E","TAJO 4B","CANTERA 6"],
+       materiales:[mat("RELLENO CONTROLADO","ESTANDAR",{espesor:"1 m",cotaRef:"controlado"}),
+                   mat("RELLENO MASIVO DE APILAMIENTO","APILAMIENTO")]},
+      {id:"compensacion",nombre:"MATERIAL DE COMPENSACIÓN",corto:"MAT. COMPENSACIÓN",
+       tipos:["RELLENO"],bp:"",procDefault:[],
+       materiales:[mat("RELLENO DE RIPIOS","ESTANDAR",{espesor:"1 m",procFija:"CANTERA CA-01",cotaRef:"ripios",parcial:true}),SR()]},
+      {id:"pad2f",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2F",corto:"PAD 2F",
+       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE(""),BP(),SR()]}
+    ]
+  };
+}
 
-/* ═══════════════ CONFIGURACIÓN ═══════════════ */
-var DATA = {};
-DATA[EST.PAD_2D] = {
-  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
-  bpTipos: BP_PAD,
-  materiales:(function(){var m={};
-    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
-    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
-    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
-    return m;})()
-};
-DATA[EST.INTERLIFT] = {
-  tiposLiberacion:[TIPO.RELLENO],
-  bpTipos: BP_INTERLIFT,
-  interlift: true,
-  materiales:(function(){var m={};
-    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
-    return m;})()
-};
-DATA[EST.PAD_2E] = {
-  tiposLiberacion:[TIPO.RELLENO,TIPO.FUNDACION,TIPO.OVERLINER],
-  bpTipos: BP_PAD,
-  materiales:(function(){var m={};
-    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
-    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
-    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
-    return m;})()
-};
-DATA[EST.PAD_2E_N] = {
-  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
-  bpTipos: BP_PAD,
-  materiales:(function(){var m={};
-    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m",cotaRef:"RELLENO ESTRUCTURAL_2E"};
-    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
-    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
-    return m;})()
-};
-DATA[EST.TAJO] = {
-  tiposLiberacion:[TIPO.RELLENO,TIPO.SIST_SUBD],
-  procOpcionesDefault:["TAJO 5E","TAJO 4B","CANTERA 6"],
-  materiales:(function(){var m={};
-    m[MAT.RELLENO_CONTROLADO]={espesor:"1 m",cotaRef:"RELLENO CONTROLADO"};
-    m[MAT.APILAMIENTO]={espesor:null,cotaApilamiento:true};
-    return m;})()
-};
-DATA[EST.COMPENSACION] = {
-  tiposLiberacion:[TIPO.RELLENO],
-  materiales:(function(){var m={};
-    m[MAT.RIPIOS]={espesor:"1 m",procFija:"CANTERA CA-01",cotaRef:"RELLENO DE RIPIOS"};
-    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
-    return m;})()
-};
-DATA[EST.PAD_2F] = {
-  tiposLiberacion:[TIPO.RELLENO,TIPO.SUBDRENES,TIPO.FUNDACION,TIPO.EVALUACION,TIPO.OVERLINER],
-  bpTipos: BP_PAD,
-  materiales:(function(){var m={};
-    m[MAT.RELLENO_ESTRUCTURAL]={espesor:"0.5 m"};
-    m[MAT.SUELO_BP]={espesor:null,capaDefault:"UNICA",procOpciones:PROC_SUELO_BP};
-    m[MAT.SOBRERREV]={espesor:"0.7 m",capaDefault:"UNICA",cotaDefault:"VARIABLE",procFija:"CHANCADORA"};
-    return m;})()
-};
+/* normaliza cualquier configuración (guardada o importada) */
+function sanMat(m){
+  m=m||{};
+  var ks = COMPORTAMIENTOS.map(function(c){return c.k;});
+  return {nombre:String(m.nombre||"").trim(),tipo:ks.indexOf(m.tipo)>=0?m.tipo:"ESTANDAR",
+    espesor:String(m.espesor||"").trim(),procFija:String(m.procFija||"").trim(),
+    procOpciones:arrStr(m.procOpciones),cotaRef:String(m.cotaRef||""),parcial:!!m.parcial};
+}
+function sanFrente(f){
+  f=f||{};
+  return {id:String(f.id||newId()),nombre:String(f.nombre||"").trim(),corto:String(f.corto||"").trim(),
+    tipos:arrStr(f.tipos).filter(function(k){return TIPO_KEYS.indexOf(k)>=0;}),
+    bp:(f.bp==="PAD"||f.bp==="INTERLIFT")?f.bp:"",
+    procDefault:arrStr(f.procDefault),
+    materiales:Array.isArray(f.materiales)?f.materiales.map(sanMat).filter(function(m){return !!m.nombre;}):[]};
+}
+function sanitizeCfg(c){
+  var d = defaultConfig();
+  if(!c || typeof c!=="object") return d;
+  var o = {version:1,tipos:{}};
+  TIPO_KEYS.forEach(function(k){
+    var t = (c.tipos&&c.tipos[k])||{};
+    o.tipos[k] = {largo:String(t.largo||"").trim()||d.tipos[k].largo,corto:String(t.corto||"").trim()||d.tipos[k].corto};
+  });
+  o.supervisores = arrStr(c.supervisores); if(!o.supervisores.length) o.supervisores = d.supervisores;
+  o.procDefault = arrStr(c.procDefault); if(!o.procDefault.length) o.procDefault = d.procDefault;
+  o.materialesEval = arrStr(c.materialesEval); if(!o.materialesEval.length) o.materialesEval = d.materialesEval;
+  o.lineas = c.lineas&&typeof c.lineas==="object"
+    ? {"100":arrStr(c.lineas["100"]),"300":arrStr(c.lineas["300"])} : d.lineas;
+  var ov = c.overliner||{};
+  o.overliner = {material:String(ov.material||"").trim()||d.overliner.material,espesor:String(ov.espesor||"").trim()||d.overliner.espesor};
+  o.cotasBase = Array.isArray(c.cotasBase)
+    ? c.cotasBase.map(function(r){ r=r||{}; return {id:String(r.id||newId()),nombre:String(r.nombre||"").trim(),
+        base:Number(r.base)||0,capaBase:Number(r.capaBase)||0,espesor:Number(r.espesor)||0}; })
+      .filter(function(r){return !!r.nombre;})
+    : d.cotasBase;
+  o.frentes = Array.isArray(c.frentes)
+    ? c.frentes.map(sanFrente).filter(function(f){return f.nombre && f.tipos.length;}) : d.frentes;
+  if(!o.frentes.length) o.frentes = d.frentes;
+  return o;
+}
 
-var LINEAS = {
-  "100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],
-  "300":["TB-PD-P-300-01","TB-PD-P-300-02"]
-};
-var SUPERVISORES = ["Dick Delgado","Gustavo Sánchez","Jaison Chavez","Kelly Rodriguez","Leonardo Tafur"];
-var MATERIALES_EVAL = ["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"];
-var COTAS_BASE = {
-  "RELLENO DE RIPIOS":{base:2573,capaBase:9,espesorM:1},
-  "RELLENO CONTROLADO":{base:2773,capaBase:26,espesorM:1},
-  "RELLENO ESTRUCTURAL_2E":{base:2810.5,capaBase:15,espesorM:0.5}
-};
+function validateFrente(f,i){
+  var e=[], n=f.corto||f.nombre||("Frente "+(i+1));
+  if(!f.nombre) e.push(n+": falta el nombre completo.");
+  if(!f.tipos.length) e.push(n+": elige al menos un tipo de liberación.");
+  if(f.tipos.indexOf("RELLENO")>=0){
+    if(!f.materiales.length) e.push(n+": “Capa de relleno” necesita al menos un material.");
+    var seen={};
+    f.materiales.forEach(function(m,j){
+      if(!m.nombre) e.push(n+": el material "+(j+1)+" no tiene nombre.");
+      else if(seen[m.nombre]) e.push(n+": el material “"+m.nombre+"” está repetido.");
+      seen[m.nombre]=1;
+    });
+  }
+  return e;
+}
+function validateCfg(c){
+  var e=[];
+  if(!c.frentes.length) e.push("Debe haber al menos un frente.");
+  c.frentes.forEach(function(f,i){ e = e.concat(validateFrente(f,i)); });
+  if(!c.supervisores.length) e.push("Agrega al menos un supervisor.");
+  TIPO_KEYS.forEach(function(k){
+    if(!String(c.tipos[k].largo).trim()||!String(c.tipos[k].corto).trim())
+      e.push("Tipo de liberación “"+(c.tipos[k].corto||k)+"”: los textos no pueden quedar vacíos.");
+  });
+  c.cotasBase.forEach(function(r,i){
+    var n = r.nombre||("Referencia "+(i+1));
+    if(!String(r.nombre).trim()) e.push("Referencia de cota "+(i+1)+": falta el nombre.");
+    if(!isFinite(parseFloat(r.base))||!isFinite(parseFloat(r.capaBase))||!(parseFloat(r.espesor)>0))
+      e.push(n+": completa cota base, capa base y espesor.");
+  });
+  if(!String(c.overliner.material).trim()||!String(c.overliner.espesor).trim())
+    e.push("Overliner: completa material y espesor.");
+  return e;
+}
 
-/* ═══════════════ CÁLCULOS ═══════════════ */
+/* ════════════════════════════════════════════════════════════════
+   ALMACENAMIENTO
+   ════════════════════════════════════════════════════════════════ */
+var storageOk = (function(){ try{ localStorage.setItem("genlib.t","1"); localStorage.removeItem("genlib.t"); return true; }catch(e){ return false; } })();
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+function loadCfg(){
+  var raw = lsGet(STORE_CFG);
+  if(!raw) return defaultConfig();
+  try{ return sanitizeCfg(JSON.parse(raw)); }catch(e){ return defaultConfig(); }
+}
+var cfg = loadCfg();
+var prefs = (function(){ try{ return JSON.parse(lsGet(STORE_PREFS)||"{}")||{}; }catch(e){ return {}; } })();
+function savePrefs(){ lsSet(STORE_PREFS,JSON.stringify(prefs)); }
+
+function getFrente(id){ return findBy(cfg.frentes,"id",id); }
+function getMat(fr,nombre){ return fr?findBy(fr.materiales,"nombre",nombre):null; }
+function getRef(id){ return id?findBy(cfg.cotasBase,"id",id):null; }
+
+/* ════════════════════════════════════════════════════════════════
+   CÁLCULOS
+   ════════════════════════════════════════════════════════════════ */
 function espesorApilamiento(c){ return (c-6)%3===2?4:3; }
 function cotaDesdeApilamiento(capa){ var c=2773; for(var i=7;i<=capa;i++) c+=espesorApilamiento(i); return c; }
-function calcularCota(matCfg,capaNum){
-  if(isNaN(capaNum)) return "";
-  if(matCfg&&matCfg.cotaApilamiento) return capaNum<6?"":String(cotaDesdeApilamiento(capaNum));
-  var ref = matCfg&&matCfg.cotaRef?COTAS_BASE[matCfg.cotaRef]:null;
+function cotaAuto(m){ return !!m && (m.tipo==="APILAMIENTO" || (m.tipo==="ESTANDAR" && !!getRef(m.cotaRef))); }
+function calcularCota(m,capaNum){
+  if(!m || isNaN(capaNum)) return "";
+  if(m.tipo==="APILAMIENTO") return capaNum<6?"":String(cotaDesdeApilamiento(capaNum));
+  var ref = getRef(m.cotaRef);
   if(!ref) return "";
-  return String(ref.base+(capaNum-ref.capaBase)*ref.espesorM);
+  return String(Math.round((ref.base+(capaNum-ref.capaBase)*ref.espesor)*1000)/1000);
 }
 function progLongitud(prog){
   if(!prog) return "";
@@ -214,50 +303,54 @@ function progLongitud(prog){
   return Math.abs(b-a).toFixed(2);
 }
 
-function derive(f,estructura,tipo){
-  var estData = estructura?DATA[estructura]:null;
-  var matData = estData&&f.material?estData.materiales[f.material]:null;
-  var isApilamiento = f.material===MAT.APILAMIENTO;
-  var isSobreRev = f.material===MAT.SOBRERREV;
-  var isSueloBP = f.material===MAT.SUELO_BP;
-  var isInterlift = !!(estData&&estData.interlift);
-  var bpTipos = (estData&&estData.bpTipos)?estData.bpTipos:null;
+function derive(f,frId,tipo){
+  var fr = getFrente(frId);
+  var matData = fr&&f.material?getMat(fr,f.material):null;
+  var mt = matData?matData.tipo:"";
+  var isApilamiento = mt==="APILAMIENTO";
+  var isSobreRev = mt==="VARIABLE";
+  var isSueloBP = mt==="SUELO_BP";
+  var isInterlift = !!fr && fr.bp==="INTERLIFT";
+  var bpTipos = fr&&fr.bp==="PAD"?BP_PAD:(isInterlift?BP_INTERLIFT:null);
 
-  var showZanja = isSueloBP && !!bpTipos && tipo===TIPO.RELLENO;
+  var showZanja = isSueloBP && !!bpTipos && tipo==="RELLENO";
   var bp = f.bpTipo||"";
   var esZanja     = showZanja && bp===BP_TIPO.ZANJA;
   var esBerma     = showZanja && /BERMA/.test(bp);
   var esBanqueta  = showZanja && bp===BP_TIPO.BANQUETA;
   var esPlataforma= showZanja && bp===BP_TIPO.PLATAFORMA;
 
-  var showParcial = estructura===EST.COMPENSACION && f.material===MAT.RIPIOS && tipo===TIPO.RELLENO;
+  var showParcial = !!matData && matData.parcial && mt==="ESTANDAR" && tipo==="RELLENO";
   var esParcial = showParcial && f.parcial==="SÍ";
 
-  var capasBPMode = (esZanja||esBerma) && !isInterlift;   // desplegable 1..N
+  var capasBPMode = (esZanja||esBerma) && !isInterlift;
   var capasBPOpts = esBerma?["1","2","3","4"]:["1","2","3"];
-  var capaLibre   = esBerma && isInterlift;               // capa numérica libre
+  var capaLibre   = esBerma && isInterlift;
   var capaFija = (isSobreRev||isSueloBP) && !capasBPMode && !capaLibre;
 
-  var espesorManualNeeded = !!matData && matData.espesor===null && !isApilamiento;
-  var espesorAuto = (isApilamiento && f.capa && !isNaN(parseInt(f.capa,10)))
-      ? espesorApilamiento(parseInt(f.capa,10))+" m" : (matData&&matData.espesor!=null?matData.espesor:"");
+  var espesorManualNeeded = !!matData && !matData.espesor && !isApilamiento;
+  var capaN = parseInt(f.capa,10);
+  var espesorAuto = isApilamiento
+      ? (f.capa && !isNaN(capaN) ? espesorApilamiento(capaN)+" m" : "")
+      : (matData?matData.espesor:"");
   var espesor = espesorManualNeeded ? (f.espesorM||"") : espesorAuto;
 
   var procFija = matData&&matData.procFija?matData.procFija:null;
   var showProc = !isApilamiento;
   var procFinal = isApilamiento?null:(procFija||f.procedencia);
-  var procOpciones = (matData&&matData.procOpciones) || (estData&&estData.procOpcionesDefault) || DEFAULT_PROC;
+  var procOpciones = (matData&&matData.procOpciones.length?matData.procOpciones:null)
+      || (fr&&fr.procDefault.length?fr.procDefault:null) || cfg.procDefault;
   var showSiguiente = !showProc || !!procFija || !!f.procedencia;
 
   var capaFinal = capaFija?"UNICA":(capasBPMode?f.capasBP:f.capa);
   var cotaVar = isSobreRev || isSueloBP;
   var cotaFinal = cotaVar?"VARIABLE":f.cota;
-  var bpSimple = isSueloBP && !esZanja && tipo===TIPO.RELLENO;
-  var showProgRell = esZanja || (isSueloBP && tipo===TIPO.RELLENO && f.progFillBP==="SÍ");
+  var bpSimple = isSueloBP && !esZanja && tipo==="RELLENO";
+  var showProgRell = esZanja || (isSueloBP && tipo==="RELLENO" && f.progFillBP==="SÍ");
 
   var esSoloFund = f.subtipo===SUBTIPO.SOLO_FUND;
   var esFundTub = f.subtipo===SUBTIPO.FUND_TUB;
-  var isSist = tipo===TIPO.SIST_SUBD;
+  var isSist = tipo==="SIST_SUBD";
   var esDoble = isSist && f.tuberia===DIAM_DOBLE;
   var gravaLabel = esFundTub?"FUNDACIÓN":(isSist?"GRAVA Y GEOTEXTIL":"GRAVA");
   var tubLabel = f.tuberia===DIAM_DOBLE?"Ø100/450 mm":"Ø"+f.tuberia+"mm";
@@ -267,7 +360,7 @@ function derive(f,estructura,tipo){
   var subLongTub = progLongitud(f.progresiva);
   var sup = f.supervisor?f.supervisor.toUpperCase():"";
 
-  return {matData:matData,isApilamiento:isApilamiento,isSobreRev:isSobreRev,isSueloBP:isSueloBP,
+  return {fr:fr,matData:matData,isApilamiento:isApilamiento,isSobreRev:isSobreRev,isSueloBP:isSueloBP,
     isInterlift:isInterlift,bpTipos:bpTipos,showZanja:showZanja,
     esZanja:esZanja,esBerma:esBerma,esBanqueta:esBanqueta,esPlataforma:esPlataforma,
     capasBPMode:capasBPMode,capasBPOpts:capasBPOpts,capaLibre:capaLibre,
@@ -280,25 +373,28 @@ function derive(f,estructura,tipo){
     subLongTub:subLongTub,sup:sup};
 }
 
-/* ═══════════════ ESQUEMAS ═══════════════ */
+/* ════════════════════════════════════════════════════════════════
+   ESQUEMAS DE CADA TIPO DE LIBERACIÓN
+   ════════════════════════════════════════════════════════════════ */
 function supervisorField(visible){
   return {id:"supervisor",type:"select",label:"Supervisor CQC",
-    options:function(){return SUPERVISORES;},visible:visible};
+    options:function(){return cfg.supervisores;},visible:visible,
+    afterChange:function(val,next){ prefs.supervisor=val; savePrefs(); return next; }};
 }
 
 var SCHEMAS = {};
 
-SCHEMAS[TIPO.RELLENO] = {
+SCHEMAS.RELLENO = {
   fields:[
     {id:"material",type:"select",label:"Material",
-     options:function(ctx){return Object.keys(DATA[ctx.estructura].materiales);},
+     options:function(ctx){return ctx.d.fr?ctx.d.fr.materiales.map(function(m){return m.nombre;}):[];},
      afterChange:function(val,next,env){
-       var md = env.estructura?DATA[env.estructura].materiales[val]:null;
-       next.espesorM = (val===MAT.SUELO_BP)?"0.3 m":"";
+       var md = getMat(getFrente(env.estructura),val);
+       next.espesorM = (md&&md.tipo==="SUELO_BP")?"0.3 m":"";
        next.procedencia="";next.protocolo="";next.bpTipo="";next.progresiva="";
        next.parcial="NO";next.parcialTexto="";next.nroEnsayoChk="NO";next.nroEnsayo="";next.capasBP="";
-       next.detalleRell="";next.sinDetalleRell="";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
-       next.capa=(md&&md.capaDefault)||"";next.cota=(md&&md.cotaDefault)||"";next.ensayo="SÍ";
+       next.detalleRell="";next.sinDetalleRell="SÍ";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
+       next.capa="";next.cota="";next.ensayo="SÍ";
        return next;}},
     {id:"bpTipo",type:"btns",label:"Tipo de estructura",
      options:function(ctx){return ctx.d.bpTipos||[];},
@@ -306,7 +402,7 @@ SCHEMAS[TIPO.RELLENO] = {
      required:function(ctx){return ctx.d.showZanja;},
      afterChange:function(val,next){
        next.capa="";next.capasBP="";next.progresiva="";next.progFillBP="NO";
-       next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="";
+       next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="SÍ";
        if(val===BP_TIPO.ZANJA){ next.espesorM="0.2 m"; next.ensayo=""; }
        else if(val===BP_TIPO.BERMA){ next.espesorM="0.3 m"; next.ensayo=""; }
        else { next.espesorM="0.3 m"; next.ensayo="SÍ"; }
@@ -331,9 +427,8 @@ SCHEMAS[TIPO.RELLENO] = {
      info:function(ctx){return ctx.d.capaFija?{label:"Capa",value:"UNICA"}:null;},
      valid:function(ctx){return !!ctx.d.capaFinal;},
      afterChange:function(val,next,env){
-       var md = env.estructura?DATA[env.estructura].materiales[next.material]:null;
-       var cf = next.material===MAT.SOBRERREV||next.material===MAT.SUELO_BP;
-       if(!cf){ var a=calcularCota(md,parseFloat(val)); if(a) next.cota=a; }
+       var md = getMat(getFrente(env.estructura),next.material);
+       if(cotaAuto(md)) next.cota = calcularCota(md,parseFloat(val));
        return next;}},
     {id:"capasBP",type:"btns",label:"N° de capas",
      options:function(ctx){return ctx.d.capasBPOpts;},
@@ -364,4 +459,879 @@ SCHEMAS[TIPO.RELLENO] = {
     {id:"progresiva",type:"progresiva",label:"Progresiva",
      visible:function(ctx){return ctx.d.showSiguiente && ctx.d.showProgRell;},
      required:function(ctx){return ctx.d.showProgRell;}},
-    {id:"en
+    {id:"ensayo",type:"toggle",label:"¿Aplica Ensayo?",
+     visible:function(ctx){return ctx.d.showSiguiente;}},
+    {id:"nroEnsayoChk",type:"toggle",label:"¿Ingresar N° de ensayo?",
+     visible:function(ctx){return ctx.d.showSiguiente && !!ctx.f.ensayo;},
+     afterChange:function(val,next){ next.nroEnsayo=""; return next;}},
+    {id:"nroEnsayo",type:"text",label:"N° de ensayo",placeholder:"Ej: DM-001",
+     visible:function(ctx){return ctx.d.showSiguiente && ctx.f.nroEnsayoChk==="SÍ";},
+     required:function(ctx){return ctx.f.nroEnsayoChk==="SÍ";}},
+    {id:"protocolo",type:"toggle",label:"Protocolo",
+     visible:function(ctx){return ctx.d.showSiguiente && !!ctx.f.ensayo && (ctx.f.nroEnsayoChk!=="SÍ"||!!ctx.f.nroEnsayo);}},
+    supervisorField(function(ctx){return !!ctx.f.protocolo;})
+  ],
+  output:[
+    function(ctx){return "MATERIAL: "+ctx.f.material;},
+    function(ctx){return ctx.d.isApilamiento?null:"PROCEDENCIA: "+ctx.d.procFinal;},
+    function(ctx){return "CAPA: "+ctx.d.capaFinal;},
+    function(ctx){return "ESPESOR: "+ctx.d.espesor;},
+    function(ctx){return "ÁREA: "+ctx.f.area+" m²";},
+    function(ctx){return "COTA: "+ctx.d.cotaFinal+(ctx.d.cotaFinal==="VARIABLE"?"":" msnm");},
+    function(ctx){return ctx.d.showProgRell?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return "ENSAYO: "+ctx.f.ensayo;},
+    function(ctx){return ctx.f.nroEnsayoChk==="SÍ"?"N° ENSAYO: "+ctx.f.nroEnsayo:null;},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protocolo;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.SUBDRENES = {
+  fields:[
+    {id:"subtipo",type:"btns",label:"Tipo de Subdren",
+     options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
+     resets:["tuberia","grava","linea","progresiva","ensayoSub","protSub"],
+     afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",
+     options:function(ctx){return ctx.d.tuberiaOpciones;},
+     visible:function(ctx){return !!ctx.f.subtipo;},resets:["linea"]},
+    {id:"progresiva",type:"progresiva",label:"Progresiva",visible:function(ctx){return !!ctx.f.tuberia;}},
+    {id:"_longCalc",type:"info",infoLabel:function(ctx){return "Long. tubería ("+ctx.d.tubLabel+")";},
+     compute:function(ctx){return ctx.d.subLongTub?ctx.d.subLongTub+" m":"—";},
+     visible:function(ctx){return !!ctx.f.progresiva && !ctx.d.esSoloFund;},required:function(){return false;}},
+    {id:"grava",type:"number",label:"Área (m²)",placeholder:"Ej: 139.80",
+     visible:function(ctx){return !!ctx.f.progresiva;}},
+    {id:"linea",type:"select",label:"Línea",
+     options:function(ctx){return cfg.lineas[ctx.f.tuberia]||[];},
+     visible:function(ctx){return !!ctx.f.grava;}},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},
+     visible:function(ctx){return !!ctx.f.linea;},required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.linea;}},
+    {id:"protSub",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.linea;}},
+    supervisorField(function(ctx){return !!ctx.f.protSub;})
+  ],
+  output:[
+    function(ctx){return ctx.d.esSoloFund?null:"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.d.subLongTub+" m";},
+    function(ctx){return "ÁREA: "+ctx.f.grava+" m²";},
+    function(ctx){return "LÍNEA: "+ctx.f.linea;},
+    function(){return "COTA: VARIABLE";},
+    function(ctx){return "PROGRESIVA: "+ctx.f.progresiva;},
+    function(ctx){return "ENSAYO: "+ctx.f.ensayoSub;},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protSub;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.SIST_SUBD = {
+  fields:[
+    {id:"subtipo",type:"btns",label:"Tipo de Subdren",
+     options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
+     resets:["tuberia","longTub","longTub2","grava","areaSub","linea","progresiva","ensayoSub","protSub"],
+     afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",
+     options:function(ctx){return ctx.d.tuberiaOpciones;},
+     visible:function(ctx){return !!ctx.f.subtipo;},resets:["linea","longTub2"]},
+    {id:"areaSub",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",
+     visible:function(ctx){return ctx.d.esSoloFund && !!ctx.f.tuberia;},
+     required:function(ctx){return ctx.d.esSoloFund;}},
+    {id:"longTub",type:"number",placeholder:"Ej: 108.2",
+     label:function(ctx){return ctx.d.esDoble?"Longitud tubería Ø100 (m)":"Longitud de tubería (m)";},
+     visible:function(ctx){return !!ctx.f.tuberia && !ctx.d.esSoloFund;},
+     required:function(ctx){return !ctx.d.esSoloFund;}},
+    {id:"longTub2",type:"number",label:"Longitud tubería Ø450 (m)",placeholder:"Ej: 95.40",
+     visible:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund && !!ctx.f.longTub;},
+     required:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund;}},
+    {id:"grava",type:"number",placeholder:"Ej: 139.80",
+     label:function(ctx){return ctx.d.gravaLabel+" (m²)";},
+     visible:function(ctx){return !ctx.d.esSoloFund && (ctx.d.esDoble?!!ctx.f.longTub2:!!ctx.f.longTub);},
+     required:function(ctx){return !ctx.d.esSoloFund;}},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},
+     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;},required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",
+     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;}},
+    {id:"protSub",type:"toggle",label:"Protocolo",
+     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;}},
+    supervisorField(function(ctx){return !!ctx.f.protSub;})
+  ],
+  output:[
+    function(ctx){return ctx.d.esSoloFund?"ÁREA: "+ctx.f.areaSub+" m²":null;},
+    function(ctx){return ctx.d.esSoloFund?null:(ctx.d.esDoble?"LONG. TUB (Ø100mm): "+ctx.f.longTub+" m":"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.f.longTub+" m");},
+    function(ctx){return (ctx.d.esDoble&&!ctx.d.esSoloFund)?"LONG. TUB (Ø450mm): "+ctx.f.longTub2+" m":null;},
+    function(ctx){return ctx.d.esSoloFund?null:ctx.d.gravaLabel+": "+ctx.f.grava+" m²";},
+    function(){return "COTA: VARIABLE";},
+    function(ctx){return "ENSAYO: "+ctx.f.ensayoSub;},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protSub;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.OVERLINER = {
+  fields:[
+    {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return cfg.overliner.material;},required:function(){return false;}},
+    {id:"_espFijo",type:"info",infoLabel:"Espesor",compute:function(){return cfg.overliner.espesor;},required:function(){return false;}},
+    {id:"_cotaFijo",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},required:function(){return false;}},
+    {id:"areaOver",type:"number",label:"Área (m²)",placeholder:"Ej: 1500"},
+    {id:"ensayoOver",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.areaOver;}},
+    {id:"protOver",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.ensayoOver;}},
+    supervisorField(function(ctx){return !!ctx.f.protOver;})
+  ],
+  output:[
+    function(){return "MATERIAL: "+cfg.overliner.material;},
+    function(){return "ESPESOR: "+cfg.overliner.espesor;},
+    function(ctx){return "ÁREA: "+ctx.f.areaOver+" m²";},
+    function(){return "COTA: VARIABLE";},
+    function(ctx){return "ENSAYO: "+ctx.f.ensayoOver;},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protOver;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.FUNDACION = {
+  fields:[
+    {id:"detalleFund",type:"detalleOpc",sinId:"sinDetalleFund",label:"Detalle de fundación",placeholder:"Ej: ZONA DE ESTRIBO",
+     valid:function(){return true;}},
+    {id:"areaFund",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515"},
+    {id:"cotasFill",type:"toggle",label:"¿Ingresar cotas sup./inf.?",
+     visible:function(ctx){return !!ctx.f.areaFund;},
+     afterChange:function(val,next){ next.cotaSup=""; next.cotaInf=""; return next;}},
+    {id:"cotaSup",type:"number",label:"Cota Superior (msnm)",placeholder:"Ej: 2811",
+     visible:function(ctx){return !!ctx.f.areaFund;},
+     info:function(ctx){return ctx.f.cotasFill==="SÍ"?null:{label:"Cota Superior",value:"VARIABLE"};},
+     valid:function(ctx){return ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaSup;}},
+    {id:"cotaInf",type:"number",label:"Cota Inferior (msnm)",placeholder:"Ej: 2809",
+     visible:function(ctx){return !!ctx.f.areaFund && (ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaSup);},
+     info:function(ctx){return ctx.f.cotasFill==="SÍ"?null:{label:"Cota Inferior",value:"VARIABLE"};},
+     valid:function(ctx){return ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaInf;}},
+    {id:"progFill",type:"toggle",label:"¿Ingresar progresiva?",
+     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk;},
+     afterChange:function(val,next){ next.progFund=""; return next;}},
+    {id:"progFund",type:"progresiva",label:"Progresiva",
+     visible:function(ctx){return ctx.f.progFill==="SÍ";},
+     required:function(ctx){return ctx.f.progFill==="SÍ";},
+     valid:function(ctx){return ctx.f.progFill!=="SÍ"||!!ctx.f.progFund;}},
+    {id:"_ensayoFundFijo",type:"info",infoLabel:"Ensayo",compute:function(){return "NO";},
+     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk && ctx.d.fundProgOk;},required:function(){return false;}},
+    {id:"protFund",type:"toggle",label:"Protocolo",
+     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk && ctx.d.fundProgOk;}},
+    supervisorField(function(ctx){return !!ctx.f.protFund;})
+  ],
+  output:[
+    function(ctx){return "ÁREA: "+ctx.f.areaFund+" m²";},
+    function(ctx){return ctx.f.cotasFill==="SÍ"?"COTA SUP.: "+ctx.f.cotaSup:"COTA: VARIABLE";},
+    function(ctx){return ctx.f.cotasFill==="SÍ"?"COTA INF.: "+ctx.f.cotaInf:null;},
+    function(ctx){return ctx.f.progFill==="SÍ"?"PROGRESIVA: "+ctx.f.progFund:null;},
+    function(){return "ENSAYO: NO";},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protFund;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.EVALUACION = {
+  fields:[
+    {id:"materialEval",type:"select",label:"Material",
+     options:function(){return cfg.materialesEval;}},
+    {id:"areaEval",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",
+     visible:function(ctx){return !!ctx.f.materialEval;}},
+    {id:"progEval",type:"progresiva",label:"Progresiva",visible:function(ctx){return !!ctx.f.areaEval;}},
+    {id:"ensayoEval",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.progEval;}},
+    {id:"protEval",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.ensayoEval;}},
+    supervisorField(function(ctx){return !!ctx.f.protEval;})
+  ],
+  output:[
+    function(ctx){return "MATERIAL: "+ctx.f.materialEval;},
+    function(ctx){return "ÁREA: "+ctx.f.areaEval+" m²";},
+    function(ctx){return "PROGRESIVA: "+ctx.f.progEval;},
+    function(ctx){return "ENSAYO: "+ctx.f.ensayoEval;},
+    function(ctx){return "PROTOCOLO: "+ctx.f.protEval;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+var INITIAL_FORM = {
+  material:"",procedencia:"",espesorM:"",capa:"",capasBP:"",cota:"",area:"",ensayo:"",protocolo:"",
+  bpTipo:"",parcial:"NO",parcialTexto:"",nroEnsayoChk:"NO",nroEnsayo:"",progresiva:"",
+  detalleRell:"",sinDetalleRell:"SÍ",progFillBP:"NO",bermaPos:"",detalleBerma:"",
+  subtipo:"",tuberia:"",longTub:"",longTub2:"",grava:"",areaSub:"",linea:"",ensayoSub:"NO",protSub:"",
+  areaFund:"",cotaSup:"",cotaInf:"",protFund:"",detalleFund:"",sinDetalleFund:"SÍ",
+  cotasFill:"NO",progFill:"NO",progFund:"",
+  materialEval:"",areaEval:"",progEval:"",ensayoEval:"SÍ",protEval:"",
+  areaOver:"",ensayoOver:"SÍ",protOver:"",
+  supervisor:""
+};
+var RESET_DEFAULTS = {ensayoSub:"NO",parcial:"NO",cotasFill:"NO",progFill:"NO",nroEnsayoChk:"NO",progFillBP:"NO"};
+
+function validForm(schema,ctx){
+  return schema.fields.every(function(field){
+    var req = field.required?field.required(ctx):true;
+    if(!req) return true;
+    return field.valid?field.valid(ctx):!!ctx.f[field.id];
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ESTADO
+   ════════════════════════════════════════════════════════════════ */
+var state = { view:"main", estructura:"", tipo:"", form:clone(INITIAL_FORM), flash:"" };
+var progUI = {};
+var ed = null; // borrador de configuración
+
+function resetForm(){
+  state.form = clone(INITIAL_FORM);
+  progUI = {};
+  if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)>=0) state.form.supervisor = prefs.supervisor;
+}
+
+function setField(field,value){
+  state.form[field.id] = value;
+  if(field.resets) field.resets.forEach(function(id){
+    state.form[id] = RESET_DEFAULTS.hasOwnProperty(id)?RESET_DEFAULTS[id]:"";
+    delete progUI[id];
+  });
+  if(field.afterChange) state.form = field.afterChange(value,state.form,{estructura:state.estructura,tipo:state.tipo});
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HELPERS UI
+   ════════════════════════════════════════════════════════════════ */
+function el(tag,attrs,children){
+  var n = document.createElement(tag);
+  if(attrs) Object.keys(attrs).forEach(function(k){
+    if(k==="class") n.className=attrs[k];
+    else if(k.slice(0,2)==="on") n.addEventListener(k.slice(2).toLowerCase(),attrs[k]);
+    else if(k==="disabled"){ if(attrs[k]) n.setAttribute(k,""); }
+    else n.setAttribute(k,attrs[k]);
+  });
+  (children||[]).forEach(function(c){ if(c==null) return;
+    n.appendChild(typeof c==="string"?document.createTextNode(c):c); });
+  return n;
+}
+function numFilter(v){
+  v = String(v).replace(/[^0-9.]/g,"");
+  var i = v.indexOf(".");
+  if(i!==-1) v = v.slice(0,i+1)+v.slice(i+1).replace(/\./g,"");
+  return v;
+}
+function fieldWrap(label,control,desc){
+  return el("div",{class:"fld"},[el("label",null,[label]),control,desc?el("div",{class:"fdesc"},[desc]):null]);
+}
+function infoBox(label,value){
+  return el("div",{class:"info"},[el("b",null,[label+":"]),document.createTextNode(" "+(value||"—"))]);
+}
+function optsCtl(value,options,onChange,opt){
+  opt = opt || {};
+  var lbl = function(o){ return opt.labelFn?opt.labelFn(o):o; };
+  var maxLen = 0;
+  options.forEach(function(o){ maxLen = Math.max(maxLen, String(lbl(o)).length); });
+  var cls = "opts";
+  if(maxLen > 24) cls += " wide";
+  else if(maxLen > 13) cls += " half";
+  var w = el("div",{class:cls});
+  options.forEach(function(o){
+    w.appendChild(el("button",{class:value===o?"on":"",type:"button",
+      onclick:function(){
+        if(value===o){ if(opt.allowUnset) onChange(""); return; }
+        onChange(o);
+      }},[lbl(o)]));
+  });
+  return w;
+}
+function multiCtl(selected,options,labelFn,onToggle){
+  var w = el("div",{class:"opts half"});
+  options.forEach(function(o){
+    w.appendChild(el("button",{type:"button",class:selected.indexOf(o)>=0?"on":"",
+      onclick:function(){ onToggle(o); }},[labelFn(o)]));
+  });
+  return w;
+}
+function toggleCtl(value,onChange){ return optsCtl(value,["SÍ","NO"],onChange,{}); }
+function textCtl(value,placeholder,numeric,onChange){
+  var i = el("input",{type:"text",value:value||"",placeholder:placeholder||"",
+    class:numeric?"":"up",inputmode:numeric?"decimal":"text"});
+  i.addEventListener("input",function(e){
+    var raw = e.target.value;
+    var v = numeric?numFilter(raw):raw.toUpperCase();
+    var pos = e.target.selectionStart;
+    if(v!==raw){ e.target.value = v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    onChange(v);
+  });
+  return i;
+}
+function progresivaCtl(id,value,onChange){
+  function fmt(v){ v=v.replace(/[^0-9+.]/g,""); return v||"0+"; }
+  function lleno(v){ return /\+\s*\d/.test(v); }
+  var st = progUI[id];
+  // si el formulario se reinició pero la UI conserva valores, se sincroniza
+  if(!st || (!value && lleno(st.d) && lleno(st.h))) st = progUI[id] = {d:"0+",h:"0+"};
+  function upd(){ onChange(lleno(st.d)&&lleno(st.h)?st.d+" - "+st.h:""); }
+  var a = el("input",{type:"text",value:st.d,placeholder:"0+135.80",inputmode:"decimal","data-fk":id+"__d"});
+  var b = el("input",{type:"text",value:st.h,placeholder:"0+244.00",inputmode:"decimal","data-fk":id+"__h"});
+  a.addEventListener("input",function(e){ st.d=fmt(e.target.value); e.target.value=st.d; upd(); });
+  b.addEventListener("input",function(e){ st.h=fmt(e.target.value); e.target.value=st.h; upd(); });
+  return el("div",{class:"row"},[a,el("span",{class:"dash"},["—"]),b]);
+}
+/* detalle opcional: el botón SIN DETALLE está activo exactamente cuando no hay texto */
+function detalleOpcCtl(field,value,onChange){
+  var i = el("input",{type:"text",value:value||"",placeholder:field.placeholder,class:"up","data-fk":field.id});
+  var b = el("button",{class:"sinbtn"+(value?"":" on"),type:"button"},["SIN DETALLE"]);
+  i.addEventListener("input",function(e){
+    var raw=e.target.value, v=raw.toUpperCase(), pos=e.target.selectionStart;
+    if(v!==raw){ e.target.value=v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    b.className = "sinbtn"+(v?"":" on");
+    onChange(v);
+  });
+  b.addEventListener("click",function(){ i.value=""; b.className="sinbtn on"; onChange(""); });
+  return el("div",{class:"row"},[i,b]);
+}
+function iconBtn(txt,cls,fn,disabled){
+  return el("button",{class:"ib "+(cls||""),type:"button",disabled:!!disabled,onclick:fn},[txt]);
+}
+function noteBox(lines,kind){
+  var n = el("div",{class:"note"+(kind?" "+kind:"")});
+  if(lines.length===1) n.appendChild(document.createTextNode(lines[0]));
+  else n.appendChild(el("ul",null,lines.map(function(l){return el("li",null,[l]);})));
+  return n;
+}
+
+/* copiar al portapapeles (primero de forma síncrona para no perder el gesto del usuario) */
+function execCopy(text){
+  var ok=false;
+  try{
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.top="0"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,text.length);
+    ok=document.execCommand("copy"); document.body.removeChild(ta);
+  }catch(e){}
+  return ok;
+}
+function copyText(text,cb){
+  if(execCopy(text)) return cb(true);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){cb(true);},function(){cb(false);});
+  } else cb(false);
+}
+function seleccionar(node){
+  try{ var r=document.createRange(); r.selectNodeContents(node); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){}
+}
+function flashBtn(btn,ok,txtOk,txtBase,clsBase){
+  btn.textContent = ok?txtOk:"⚠ No se pudo copiar";
+  btn.className = ok?"b-ok":"b-warn";
+  setTimeout(function(){ btn.textContent=txtBase; btn.className=clsBase; },2500);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VISTA PRINCIPAL
+   ════════════════════════════════════════════════════════════════ */
+function buildCtx(){
+  return {estructura:state.estructura,tipo:state.tipo,f:state.form,
+          d:derive(state.form,state.estructura,state.tipo)};
+}
+function renderSchema(schema,ctx,container){
+  var n = 2;
+  schema.fields.forEach(function(field){
+    if(field.visible && !field.visible(ctx)) return;
+    var info = null;
+    if(field.type==="info"){
+      var lb = typeof field.infoLabel==="function"?field.infoLabel(ctx):field.infoLabel;
+      info = {label:lb,value:field.compute(ctx)};
+    } else if(field.info) info = field.info(ctx);
+    if(info){ container.appendChild(infoBox(info.label,info.value)); return; }
+    n++;
+    var label = (typeof field.label==="function"?field.label(ctx):field.label);
+    var val = ctx.f[field.id]||"";
+    var ctl;
+    if(field.type==="select" || field.type==="btns"){
+      var opts = typeof field.options==="function"?field.options(ctx):(field.options||[]);
+      ctl = optsCtl(val,opts,function(v){setField(field,v);},{allowUnset:field.type==="btns"});
+    } else if(field.type==="toggle"){
+      ctl = toggleCtl(val,function(v){setField(field,v);});
+    } else if(field.type==="progresiva"){
+      ctl = progresivaCtl(field.id,val,function(v){ state.form[field.id]=v; updateOutput(); renderIfNeeded(); });
+    } else if(field.type==="detalleOpc"){
+      ctl = detalleOpcCtl(field,val,function(v){
+        state.form[field.id]=v; state.form[field.sinId]=v?"":"SÍ";
+        updateOutput(); renderIfNeeded(); });
+    } else {
+      ctl = textCtl(val,field.placeholder,field.type==="number",
+        function(v){ state.form[field.id]=v;
+          if(field.afterChange) state.form=field.afterChange(v,state.form,{estructura:state.estructura,tipo:state.tipo});
+          syncInputs(); updateOutput(); renderIfNeeded(); });
+      ctl.setAttribute("data-fid",field.id);
+      ctl.setAttribute("data-fk",field.id);
+    }
+    container.appendChild(fieldWrap(n+". "+label,ctl));
+  });
+}
+
+function syncInputs(){
+  var nodes = document.querySelectorAll("[data-fid]");
+  for(var i=0;i<nodes.length;i++){
+    var n = nodes[i];
+    if(n===document.activeElement) continue;
+    var id = n.getAttribute("data-fid");
+    var v = state.form[id]==null?"":state.form[id];
+    if(n.value!==v) n.value = v;
+  }
+}
+
+/* Firma de lo que se ve: solo cambia cuando hay que redibujar.
+   No incluye el valor de los campos de texto, así escribir no reconstruye el formulario. */
+var lastVisibleSig = "";
+function visibleSignature(){
+  var schema = SCHEMAS[state.tipo];
+  if(!schema) return "";
+  var ctx = buildCtx();
+  return schema.fields.map(function(f){
+    var vis = f.visible?f.visible(ctx):true;
+    var parts = [f.id, vis?"1":"0"];
+    if(vis){
+      if(f.type==="info"){
+        parts.push(typeof f.infoLabel==="function"?f.infoLabel(ctx):f.infoLabel, String(f.compute(ctx)));
+      } else {
+        var inf = f.info?f.info(ctx):null;
+        parts.push(inf?("i:"+inf.label+"="+inf.value):"f");
+        if(typeof f.label==="function") parts.push(f.label(ctx));
+        if(f.type==="select"||f.type==="btns")
+          parts.push((typeof f.options==="function"?f.options(ctx):f.options||[]).join("|"), String(ctx.f[f.id]||""));
+        if(f.type==="toggle") parts.push(String(ctx.f[f.id]||""));
+      }
+    }
+    return parts.join("~");
+  }).join(",");
+}
+function renderIfNeeded(){ if(visibleSignature()!==lastVisibleSig) render(); }
+
+function computeTexto(){
+  var schema = SCHEMAS[state.tipo];
+  var fr = getFrente(state.estructura);
+  if(!schema || !fr) return null;
+  var ctx = buildCtx();
+  if(!validForm(schema,ctx)) return null;
+  var tipoTexto = cfg.tipos[state.tipo].largo;
+  if(ctx.d.showZanja && state.form.bpTipo){
+    var parts = [state.form.bpTipo];
+    if(ctx.d.esBanqueta){
+      if(state.form.bermaPos) parts.push(state.form.bermaPos);
+      if(state.form.detalleBerma) parts.push(state.form.detalleBerma);
+    } else if(state.form.detalleRell){
+      parts.push(state.form.detalleRell);
+    }
+    tipoTexto += " ("+parts.join(" - ")+")";
+  }
+  else if(ctx.d.esParcial && state.tipo==="RELLENO") tipoTexto += " - PARCIAL ("+state.form.parcialTexto+")";
+  else if(state.tipo==="FUNDACION" && state.form.detalleFund) tipoTexto += " ("+state.form.detalleFund+")";
+  var lines = ["TIPO DE LIBERACIÓN: "+tipoTexto,"ESTRUCTURA: "+fr.nombre];
+  schema.output.forEach(function(fn){ var l=fn(ctx); if(l) lines.push(l); });
+  return lines.join("\n");
+}
+
+function buildOutBox(texto){
+  var pre = el("pre",null,[texto]);
+  var out = el("div",{class:"card",id:"outbox"},[el("div",{class:"out-t"},["Texto Generado"]),pre]);
+  var bCopy = el("button",{class:"b-pri",type:"button"},["📋 Copiar"]);
+  bCopy.addEventListener("click",function(){
+    copyText(computeTexto()||"",function(ok){
+      if(!ok) seleccionar(out.querySelector("pre"));
+      flashBtn(bCopy,ok,"✓ Copiado","📋 Copiar","b-pri");
+    });
+  });
+  var bClear = el("button",{class:"b-sec",type:"button"},["Nueva liberación"]);
+  bClear.addEventListener("click",function(){ resetForm(); render(); window.scrollTo(0,0); });
+  out.appendChild(el("div",{class:"btns"},[bCopy,bClear]));
+  return out;
+}
+function updateOutput(){
+  var box = document.getElementById("outbox");
+  var hint = document.getElementById("hintbox");
+  var t = computeTexto();
+  if(t){
+    if(hint && hint.parentNode) hint.parentNode.removeChild(hint);
+    if(box){ box.querySelector("pre").textContent = t; }
+    else { document.getElementById("app").appendChild(buildOutBox(t)); }
+  } else {
+    if(box && box.parentNode) box.parentNode.removeChild(box);
+    if(!hint && state.tipo)
+      document.getElementById("app").appendChild(el("div",{class:"hint",id:"hintbox"},["Completa todos los campos para generar el texto"]));
+  }
+}
+
+function renderMain(app){
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["HERRAMIENTA CQC"]),el("div",{class:"t"},["Generador de Liberación"])]),
+    el("button",{class:"hbtn",type:"button",onclick:abrirConfig},["⚙ Ajustes"])
+  ]));
+  if(state.flash){ app.appendChild(noteBox([state.flash],"ok")); state.flash=""; }
+
+  var card = el("div",{class:"card"});
+  card.appendChild(fieldWrap("1. Frente",
+    optsCtl(state.estructura,cfg.frentes.map(function(f){return f.id;}),function(v){
+      state.estructura=v; state.tipo=""; prefs.frente=v; savePrefs(); resetForm(); render();
+    },{labelFn:function(id){ var f=getFrente(id); return f?(f.corto||f.nombre):id; }})));
+
+  var fr = getFrente(state.estructura);
+  if(fr){
+    card.appendChild(fieldWrap("2. Tipo de Liberación",
+      optsCtl(state.tipo,fr.tipos,function(v){ state.tipo=v; resetForm(); render(); },
+        {labelFn:function(k){return cfg.tipos[k].corto;}})));
+  }
+  var schema = SCHEMAS[state.tipo];
+  if(schema) renderSchema(schema,buildCtx(),card);
+  app.appendChild(card);
+
+  var texto = computeTexto();
+  if(texto) app.appendChild(buildOutBox(texto));
+  else if(state.tipo) app.appendChild(el("div",{class:"hint",id:"hintbox"},["Completa todos los campos para generar el texto"]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN
+   ════════════════════════════════════════════════════════════════ */
+function abrirConfig(){
+  ed = {cfg:clone(cfg),dirty:false,fi:-1,fr:null,frDirty:false,msg:null,msgKind:""};
+  state.view="config"; render(); window.scrollTo(0,0);
+}
+function setMsg(lines,kind){ ed.msg=lines; ed.msgKind=kind||""; }
+function touch(){
+  if(state.view==="config"){ ed.dirty=true; updateSavebar(); }
+  else if(state.view==="frente") ed.frDirty=true;
+}
+function markDirty(){ ed.dirty=true; }
+function updateSavebar(){
+  var s = document.getElementById("savemsg");
+  if(s) s.textContent = ed.dirty?"Cambios sin guardar":"Sin cambios";
+}
+function mover(arr,i,d){
+  var j=i+d; if(j<0||j>=arr.length) return;
+  var t=arr[i]; arr[i]=arr[j]; arr[j]=t;
+  if(state.view==="config") markDirty(); else ed.frDirty=true;
+  render();
+}
+function cfgInput(value,ph,fk,onIn,opt){
+  opt=opt||{};
+  var i=el("input",{type:"text",value:value==null?"":String(value),placeholder:ph||"",
+    class:opt.up?"up":"",inputmode:opt.num?"decimal":"text","data-fk":fk});
+  i.addEventListener("input",function(e){
+    var raw=e.target.value, v=raw, pos=e.target.selectionStart;
+    if(opt.num) v=numFilter(v); else if(opt.up) v=v.toUpperCase();
+    if(v!==raw){ e.target.value=v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    onIn(v); touch();
+  });
+  return i;
+}
+function cfgArea(arr,ph,fk,onIn,opt){
+  opt=opt||{};
+  var t=el("textarea",{placeholder:ph||"",class:opt.up?"up":"","data-fk":fk,
+    rows:String(Math.max(3,Math.min(8,arr.length+1)))});
+  t.value=arr.join("\n");
+  t.addEventListener("input",function(e){
+    var v=e.target.value, pos=e.target.selectionStart;
+    if(opt.up){ var u=v.toUpperCase(); if(u!==v){ e.target.value=u; try{ e.target.setSelectionRange(pos,pos); }catch(err){} } v=u; }
+    onIn(v.split("\n").map(function(x){return x.trim();}).filter(function(x){return !!x;}));
+    touch();
+  });
+  return t;
+}
+function secCard(title,desc,children){
+  var c=el("div",{class:"card"},[el("div",{class:"sec-t"},[title]),desc?el("div",{class:"sec-d"},[desc]):null]);
+  children.forEach(function(ch){ if(ch) c.appendChild(ch); });
+  return c;
+}
+
+function renderConfig(app){
+  var C = ed.cfg;
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN"]),el("div",{class:"t"},["Ajustes del generador"])]),
+    el("button",{class:"hbtn",type:"button",onclick:salirConfig},["← Volver"])
+  ]));
+  if(!storageOk) app.appendChild(noteBox(["Este navegador no permite guardar datos: los cambios durarán solo hasta cerrar la app. Respáldalos con “Copiar configuración”."],""));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg=null;
+
+  /* Frentes */
+  var lista = el("div");
+  C.frentes.forEach(function(f,i){
+    var tipos = f.tipos.map(function(k){return C.tipos[k].corto;}).join(" · ");
+    lista.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[f.corto||f.nombre||"(sin nombre)"]),el("span",null,[tipos||"Sin liberaciones"])]),
+      iconBtn("↑","",function(){mover(C.frentes,i,-1);},i===0),
+      iconBtn("↓","",function(){mover(C.frentes,i,1);},i===C.frentes.length-1),
+      iconBtn("Editar","",function(){editarFrente(i);}),
+      iconBtn("✕","del",function(){
+        if(confirm("¿Eliminar el frente “"+(f.corto||f.nombre)+"”?")){ C.frentes.splice(i,1); markDirty(); render(); }
+      })
+    ]));
+  });
+  app.appendChild(secCard("Frentes","Cada frente define qué liberaciones ofrece y con qué materiales.",[
+    lista, el("button",{class:"add",type:"button",onclick:function(){editarFrente(-1);}},["+ Agregar frente"])
+  ]));
+
+  /* Supervisores y procedencias */
+  app.appendChild(secCard("Supervisores CQC","Uno por línea. El que elijas al liberar queda recordado.",[
+    cfgArea(C.supervisores,"Nombre Apellido","c_sup",function(a){C.supervisores=a;})
+  ]));
+  app.appendChild(secCard("Procedencias generales","Una por línea. Se usan cuando el frente o el material no tienen las suyas.",[
+    cfgArea(C.procDefault,"PROPIO","c_proc",function(a){C.procDefault=a;},{up:true})
+  ]));
+
+  /* Tipos de liberación */
+  var tiposWrap = el("div");
+  TIPO_KEYS.forEach(function(k){
+    var t = C.tipos[k];
+    tiposWrap.appendChild(el("div",{class:"sub"},[
+      el("div",{class:"sub-h"},[el("div",{class:"n"},[k.replace("_"," ")])]),
+      fieldWrap("Texto en el reporte",cfgInput(t.largo,"","c_tl_"+k,function(v){t.largo=v;},{up:true})),
+      fieldWrap("Texto del botón",cfgInput(t.corto,"","c_tc_"+k,function(v){t.corto=v;},{up:true}))
+    ]));
+  });
+  app.appendChild(secCard("Tipos de liberación","Los campos de cada tipo son fijos; aquí cambias cómo se llaman. Qué tipos tiene cada frente se elige al editar el frente.",[tiposWrap]));
+
+  /* Overliner */
+  app.appendChild(secCard("Colocación de overliner",null,[
+    fieldWrap("Material",cfgInput(C.overliner.material,"SOBRERREVESTIMIENTO","c_ovm",function(v){C.overliner.material=v;},{up:true})),
+    fieldWrap("Espesor",cfgInput(C.overliner.espesor,"0.7 m","c_ove",function(v){C.overliner.espesor=v;}))
+  ]));
+
+  /* Referencias de cota */
+  var refs = el("div");
+  C.cotasBase.forEach(function(r,i){
+    var usos = 0;
+    C.frentes.forEach(function(f){ f.materiales.forEach(function(m){ if(m.cotaRef===r.id) usos++; }); });
+    refs.appendChild(el("div",{class:"sub"},[
+      el("div",{class:"sub-h"},[el("div",{class:"n"},[(r.nombre||"Referencia "+(i+1))+(usos?" · "+usos+" material"+(usos>1?"es":""):"")]),
+        iconBtn("✕","del",function(){
+          if(confirm(usos?"La usan "+usos+" material(es); pasarán a cota manual. ¿Eliminar?":"¿Eliminar esta referencia?")){
+            C.cotasBase.splice(i,1); markDirty(); render(); }
+        })]),
+      fieldWrap("Nombre",cfgInput(r.nombre,"Ej: RELLENO CONTROLADO","c_rn"+i,function(v){r.nombre=v;},{up:true})),
+      el("div",{class:"grid3"},[
+        el("div",{class:"fld"},[el("label",null,["Cota base"]),cfgInput(r.base,"2773","c_rb"+i,function(v){r.base=v;},{num:true})]),
+        el("div",{class:"fld"},[el("label",null,["Capa base"]),cfgInput(r.capaBase,"26","c_rc"+i,function(v){r.capaBase=v;},{num:true})]),
+        el("div",{class:"fld"},[el("label",null,["Espesor (m)"]),cfgInput(r.espesor,"1","c_re"+i,function(v){r.espesor=v;},{num:true})])
+      ])
+    ]));
+  });
+  app.appendChild(secCard("Referencias de cota","Cota = cota base + (capa − capa base) × espesor. Se asignan a los materiales estándar.",[
+    refs, el("button",{class:"add",type:"button",onclick:function(){
+      C.cotasBase.push({id:newId(),nombre:"",base:"",capaBase:"",espesor:""}); markDirty(); render(); }},["+ Agregar referencia"])
+  ]));
+
+  /* Líneas y evaluación */
+  app.appendChild(secCard("Líneas de subdren","Una por línea, según el diámetro de tubería.",[
+    fieldWrap("Tubería Ø100",cfgArea(C.lineas["100"],"TB-PD-P-100-01","c_l100",function(a){C.lineas["100"]=a;},{up:true})),
+    fieldWrap("Tubería Ø300",cfgArea(C.lineas["300"],"TB-PD-P-300-01","c_l300",function(a){C.lineas["300"]=a;},{up:true}))
+  ]));
+  app.appendChild(secCard("Materiales de evaluación","Uno por línea.",[
+    cfgArea(C.materialesEval,"ADECUADO","c_meval",function(a){C.materialesEval=a;},{up:true})
+  ]));
+
+  /* Respaldo */
+  var bCopy = el("button",{class:"b-pri",type:"button"},["Copiar configuración"]);
+  bCopy.addEventListener("click",function(){
+    copyText(JSON.stringify(ed.cfg,null,1),function(ok){ flashBtn(bCopy,ok,"✓ Copiada","Copiar configuración","b-pri"); });
+  });
+  var bDown = el("button",{class:"b-sec",type:"button",onclick:function(){
+    try{
+      var blob=new Blob([JSON.stringify(ed.cfg,null,1)],{type:"application/json"});
+      var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="config-liberaciones.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+    }catch(e){ alert("No se pudo descargar. Usa “Copiar configuración”."); }
+  }},["Descargar .json"]);
+  var ta = el("textarea",{placeholder:"Pega aquí una configuración copiada…","data-fk":"c_imp",rows:"3"});
+  var file = el("input",{type:"file",accept:".json,application/json,text/plain",style:"display:none"});
+  file.addEventListener("change",function(){
+    var f=file.files&&file.files[0]; if(!f) return;
+    var rd=new FileReader(); rd.onload=function(){ importar(String(rd.result)); }; rd.readAsText(f);
+  });
+  app.appendChild(secCard("Respaldo","Copia o descarga la configuración para pasarla a otro celular o guardarla. Al importar, revisa y pulsa Guardar.",[
+    el("div",{class:"btns",style:"margin-top:0"},[bCopy,bDown]),
+    el("div",{style:"height:14px"}),
+    ta,
+    el("div",{class:"btns"},[
+      el("button",{class:"b-sec",type:"button",onclick:function(){ importar(ta.value); }},["Importar texto pegado"]),
+      el("button",{class:"b-sec",type:"button",onclick:function(){ file.click(); }},["Importar archivo"])
+    ]),
+    file,
+    el("div",{class:"btns"},[el("button",{class:"b-dng",type:"button",onclick:function(){
+      if(confirm("¿Restaurar todos los frentes, materiales y listas a los valores de fábrica?")){
+        ed.cfg=defaultConfig(); markDirty(); setMsg(["Valores de fábrica cargados. Pulsa Guardar para aplicarlos."],"ok");
+        render(); window.scrollTo(0,0); }
+    }},["Restaurar valores de fábrica"])])
+  ]));
+
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",{id:"savemsg"},[ed.dirty?"Cambios sin guardar":"Sin cambios"]),
+    el("button",{class:"b-sec",type:"button",onclick:salirConfig},["Salir"]),
+    el("button",{class:"b-pri",type:"button",onclick:guardarConfig},["Guardar"])
+  ]));
+}
+
+function importar(texto){
+  try{
+    var obj = JSON.parse(texto);
+    if(!obj || !Array.isArray(obj.frentes)) throw new Error("x");
+    ed.cfg = sanitizeCfg(obj); markDirty();
+    setMsg(["Configuración importada. Revísala y pulsa Guardar."],"ok");
+  }catch(e){
+    setMsg(["El texto o archivo no es una configuración válida."],"err");
+  }
+  render(); window.scrollTo(0,0);
+}
+function guardarConfig(){
+  if(!ed.dirty){ salirConfig(); return; }
+  var errs = validateCfg(ed.cfg);
+  if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
+  cfg = sanitizeCfg(clone(ed.cfg));
+  var ok = lsSet(STORE_CFG,JSON.stringify(cfg));
+  ed = null; state.view = "main";
+  var fr = getFrente(state.estructura);
+  if(!fr){ state.estructura=""; state.tipo=""; }
+  else if(fr.tipos.indexOf(state.tipo)<0) state.tipo="";
+  if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)<0){ prefs.supervisor=""; savePrefs(); }
+  resetForm();
+  state.flash = ok?"Configuración guardada.":"Configuración aplicada, pero este navegador no permitió guardarla; se perderá al cerrar.";
+  render(); window.scrollTo(0,0);
+}
+function salirConfig(){
+  if(ed && ed.dirty && !confirm("Hay cambios sin guardar. ¿Descartarlos?")) return;
+  ed = null; state.view = "main"; render(); window.scrollTo(0,0);
+}
+
+/* ── editor de un frente ── */
+function editarFrente(i){
+  ed.fi = i;
+  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],bp:"",procDefault:[],materiales:[]}
+              : clone(ed.cfg.frentes[i]);
+  ed.frDirty = false; ed.msg = null;
+  state.view = "frente"; render(); window.scrollTo(0,0);
+}
+function aplicarFrente(){
+  var f = ed.fr;
+  f.nombre = f.nombre.trim(); f.corto = (f.corto||"").trim();
+  f.materiales.forEach(function(m){ m.nombre=m.nombre.trim(); m.espesor=(m.espesor||"").trim(); m.procFija=(m.procFija||"").trim(); });
+  var errs = validateFrente(f, ed.fi<0?ed.cfg.frentes.length:ed.fi);
+  if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
+  if(ed.fi<0) ed.cfg.frentes.push(f); else ed.cfg.frentes[ed.fi] = f;
+  ed.fr = null; markDirty();
+  setMsg(["Frente “"+(f.corto||f.nombre)+"” listo. Pulsa Guardar para aplicar los cambios."],"ok");
+  state.view = "config"; render(); window.scrollTo(0,0);
+}
+function cancelarFrente(){
+  if(ed.frDirty && !confirm("¿Descartar los cambios de este frente?")) return;
+  ed.fr = null; state.view = "config"; render(); window.scrollTo(0,0);
+}
+function renderFrente(app){
+  var f = ed.fr, C = ed.cfg;
+  function chg(){ ed.frDirty=true; render(); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN · FRENTE"]),el("div",{class:"t"},[ed.fi<0?"Nuevo frente":"Editar frente"])]),
+    el("button",{class:"hbtn",type:"button",onclick:cancelarFrente},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+
+  app.appendChild(secCard("Datos del frente",null,[
+    fieldWrap("Nombre completo",cfgInput(f.nombre,"Ej: PAD DE LIXIVIACIÓN 2 FASE 2G","fe_nom",function(v){f.nombre=v;},{up:true}),
+      "Así aparece en la línea ESTRUCTURA del texto."),
+    fieldWrap("Nombre corto",cfgInput(f.corto,"Ej: PAD 2G","fe_cor",function(v){f.corto=v;},{up:true}),
+      "Texto del botón. Si queda vacío se usa el nombre completo."),
+    fieldWrap("Tipos de liberación",multiCtl(f.tipos,TIPO_KEYS,function(k){return C.tipos[k].corto;},function(k){
+      var on = f.tipos.indexOf(k)>=0;
+      f.tipos = TIPO_KEYS.filter(function(x){ return x===k?!on:f.tipos.indexOf(x)>=0; });
+      chg();
+    })),
+    fieldWrap("Estructuras de suelo de baja permeabilidad",
+      optsCtl(f.bp,BP_MODOS.map(function(m){return m.k;}),function(v){f.bp=v;chg();},
+        {labelFn:function(k){return findBy(BP_MODOS,"k",k).t;}}),
+      "Opciones que aparecen al liberar suelo de baja permeabilidad en capa de relleno."),
+    fieldWrap("Procedencias del frente",cfgArea(f.procDefault,"Una por línea","fe_proc",function(a){f.procDefault=a;},{up:true}),
+      "Si queda vacío se usan las generales ("+C.procDefault.join(", ")+").")
+  ]));
+
+  var mats = el("div");
+  if(f.tipos.indexOf("RELLENO")<0){
+    mats.appendChild(el("div",{class:"sec-d"},["Los materiales solo se usan en “Capa de relleno”, que no está activada en este frente."]));
+  }
+  f.materiales.forEach(function(m,j){
+    var p = "fm"+j+"_";
+    var sub = el("div",{class:"sub"});
+    sub.appendChild(el("div",{class:"sub-h"},[
+      el("div",{class:"n"},["MATERIAL "+(j+1)]),
+      iconBtn("↑","",function(){mover(f.materiales,j,-1);},j===0),
+      iconBtn("↓","",function(){mover(f.materiales,j,1);},j===f.materiales.length-1),
+      iconBtn("✕","del",function(){
+        if(confirm("¿Eliminar el material “"+(m.nombre||"sin nombre")+"”?")){ f.materiales.splice(j,1); chg(); }
+      })
+    ]));
+    sub.appendChild(fieldWrap("Nombre",cfgInput(m.nombre,"Ej: RELLENO ESTRUCTURAL",p+"n",function(v){m.nombre=v;},{up:true})));
+    sub.appendChild(fieldWrap("Comportamiento",optsCtl(m.tipo,COMPORTAMIENTOS.map(function(c){return c.k;}),
+      function(v){m.tipo=v;chg();},{labelFn:function(k){return findBy(COMPORTAMIENTOS,"k",k).t;}})));
+    if(m.tipo!=="APILAMIENTO"){
+      sub.appendChild(fieldWrap("Espesor fijo",cfgInput(m.espesor,"Ej: 0.5 m",p+"e",function(v){m.espesor=v;}),
+        m.tipo==="SUELO_BP"?"Normalmente vacío: se propone 0.2 m en zanja y 0.3 m en lo demás, editable al liberar."
+                           :"Vacío = se escribe al liberar."));
+      sub.appendChild(fieldWrap("Procedencia fija",cfgInput(m.procFija,"Ej: CHANCADORA",p+"pf",function(v){m.procFija=v;},{up:true}),
+        "Si la llenas, no se pregunta la procedencia."));
+      sub.appendChild(fieldWrap("Opciones de procedencia",cfgArea(m.procOpciones,"Una por línea",p+"po",function(a){m.procOpciones=a;},{up:true}),
+        "Vacío = procedencias del frente."));
+    } else {
+      sub.appendChild(infoBox("Automático","espesor 3/4 m alternado, cota desde 2773 msnm en capa 6, sin procedencia"));
+    }
+    if(m.tipo==="ESTANDAR"){
+      var refVal = findBy(C.cotasBase,"id",m.cotaRef)?m.cotaRef:"";
+      sub.appendChild(fieldWrap("Cálculo de cota",optsCtl(refVal,[""].concat(C.cotasBase.map(function(r){return r.id;})),
+        function(v){m.cotaRef=v;chg();},
+        {labelFn:function(id){ if(!id) return "Manual"; var r=findBy(C.cotasBase,"id",id); return r?(r.nombre||"(sin nombre)"):id; }}),
+        "Con una referencia, la cota se calcula sola al escribir la capa. Las referencias se editan en Ajustes."));
+      sub.appendChild(fieldWrap("Permite liberación parcial",toggleCtl(m.parcial?"SÍ":"NO",function(v){m.parcial=(v==="SÍ");chg();}),
+        "Agrega “¿Es liberación parcial?” (ej. HOMBRO); si es parcial, el ensayo pasa a NO."));
+    }
+    mats.appendChild(sub);
+  });
+  app.appendChild(secCard("Materiales de capa de relleno",null,[
+    mats,
+    el("button",{class:"add",type:"button",onclick:function(){
+      f.materiales.push({nombre:"",tipo:"ESTANDAR",espesor:"",procFija:"",procOpciones:[],cotaRef:"",parcial:false}); chg();
+    }},["+ Agregar material"])
+  ]));
+
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,["Edición de frente"]),
+    el("button",{class:"b-sec",type:"button",onclick:cancelarFrente},["Cancelar"]),
+    el("button",{class:"b-pri",type:"button",onclick:aplicarFrente},["Aplicar"])
+  ]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER GENERAL
+   ════════════════════════════════════════════════════════════════ */
+function render(){
+  var ae = document.activeElement;
+  var keepId = (ae && ae.getAttribute) ? ae.getAttribute("data-fk") : null;
+  var keepPos = null;
+  if(keepId){ try{ keepPos = ae.selectionStart; }catch(e){} }
+
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+  if(state.view==="config") renderConfig(app);
+  else if(state.view==="frente") renderFrente(app);
+  else { lastVisibleSig = visibleSignature(); renderMain(app); }
+
+  if(keepId){
+    var back = document.querySelector('[data-fk="'+keepId+'"]');
+    if(back){ back.focus(); if(keepPos!=null){ try{ back.setSelectionRange(keepPos,keepPos); }catch(e){} } }
+  }
+}
+
+/* arranque: recuerda el último frente usado */
+if(prefs.frente && getFrente(prefs.frente)) state.estructura = prefs.frente;
+resetForm();
+render();
+
+/* instalación como app (solo cuando se sirve por http/https) */
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
+</body>
+</html>
