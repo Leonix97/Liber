@@ -93,10 +93,36 @@
   .note.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
   .note.err{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
   .note ul{margin:4px 0 0;padding-left:18px}
+  .note button{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+
+  /* subir / fotos / día */
+  .hgrp{display:flex;gap:6px}
+  .btns .icn{flex:0 0 52px;padding:0;font-size:21px;line-height:44px;background:#fff;border:1.5px solid #d1d5db!important;color:#374151}
+  .btns button:disabled{opacity:.6;cursor:default}
+  .foto{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:#374151;font-weight:600}
+  .foto img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb}
+  .foto span{flex:1}
+  .stat{font-size:12.5px;margin-top:10px;text-align:center;color:#6b7280}
+  .stat.ok{color:#15803d}.stat.err{color:#b91c1c}.stat.warn{color:#b45309}
+  .dnav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .dnav b{flex:1;text-align:center;font-size:15px;color:#1e3a5f}
+  .lib{display:flex;gap:12px;padding:12px 0;border-top:1px solid #eef0f3}
+  .lib:first-child{border-top:none;padding-top:0}
+  .lib .tx{flex:1;min-width:0}
+  .lib .tx b{display:block;font-size:13.5px;color:#111827;line-height:1.35}
+  .lib .tx span{display:block;font-size:12px;color:#6b7280;margin-top:3px}
+  .lib img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex:none}
+  .lib details{margin-top:6px}
+  .lib summary{font-size:12px;color:#2563eb;cursor:pointer;font-weight:600}
+  .lib pre{margin-top:6px;font-size:12px;padding:10px 12px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:#fef3c7;color:#92400e;margin-left:4px}
+  a.lnk{display:block;text-align:center;color:#2563eb;font-weight:700;font-size:14px;margin-top:6px}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<input type="file" id="inCam" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="inGal" accept="image/*" style="display:none">
 <script>
 "use strict";
 
@@ -124,6 +150,7 @@ var BP_MODOS = [
   {k:"INTERLIFT", t:"Interlift: plataforma / berma"}
 ];
 var STORE_CFG = "genlib.config.v1", STORE_PREFS = "genlib.prefs.v1";
+var STORE_CONN = "genlib.conn.v1", STORE_EDITOR = "genlib.editor.v1", STORE_META = "genlib.cfgmeta.v1", STORE_COLA = "genlib.cola.v1";
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function newId(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -275,6 +302,104 @@ function loadCfg(){
 var cfg = loadCfg();
 var prefs = (function(){ try{ return JSON.parse(lsGet(STORE_PREFS)||"{}")||{}; }catch(e){ return {}; } })();
 function savePrefs(){ lsSet(STORE_PREFS,JSON.stringify(prefs)); }
+function lsJson(k,def){ try{ var v=JSON.parse(lsGet(k)||"null"); return v==null?def:v; }catch(e){ return def; } }
+
+/* ════════════════════════════════════════════════════════════════
+   SISTEMA DEL EQUIPO (Google Apps Script)
+   ════════════════════════════════════════════════════════════════ */
+var conexion = lsJson(STORE_CONN,null);          // {url,key}
+var editor = lsJson(STORE_EDITOR,null);          // {pin,nombre}
+var cfgMeta = lsJson(STORE_META,{version:0});    // versión de la config compartida
+var cola = lsJson(STORE_COLA,[]);                // liberaciones esperando señal
+function conectado(){ return !!(conexion && conexion.url && conexion.key); }
+
+function api(action,data,ms){
+  if(!conectado()) return Promise.reject(new Error("La app no está conectada al sistema del equipo"));
+  var body = {action:action,key:conexion.key};
+  Object.keys(data||{}).forEach(function(k){ body[k]=data[k]; });
+  var ctl = window.AbortController?new AbortController():null;
+  var t = ctl?setTimeout(function(){ ctl.abort(); },ms||30000):null;
+  return fetch(conexion.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(body),redirect:"follow",signal:ctl?ctl.signal:undefined})
+    .then(function(r){ if(!r.ok) throw new Error("El servidor respondió "+r.status); return r.json(); },
+          function(){ throw new Error("Sin señal o el servidor no responde"); })
+    .then(function(j){
+      if(t) clearTimeout(t);
+      if(!j.ok && !j.conflict){ var e=new Error(j.error||"Error del servidor"); e.server=true; throw e; }
+      return j;
+    },function(e){ if(t) clearTimeout(t); throw e; });
+}
+
+function aplicarCfgRemota(j){
+  cfg = sanitizeCfg(j.config);
+  lsSet(STORE_CFG,JSON.stringify(cfg));
+  cfgMeta = {version:j.version,fecha:j.fecha||"",por:j.por||""};
+  lsSet(STORE_META,JSON.stringify(cfgMeta));
+  var fr = getFrente(state.estructura);
+  if(!fr){ state.estructura=""; state.tipo=""; resetForm(); }
+  else if(fr.tipos.indexOf(state.tipo)<0){ state.tipo=""; resetForm(); }
+}
+var ultimaSync = 0;
+function syncConfig(forzar){
+  if(!conectado() || (!forzar && Date.now()-ultimaSync<60000)) return Promise.resolve(false);
+  ultimaSync = Date.now();
+  return api("getConfig").then(function(j){
+    if(j.config && j.version!==cfgMeta.version){
+      aplicarCfgRemota(j);
+      if(state.view==="main"){ state.flash="Configuración del equipo actualizada (v"+j.version+(j.por?" · "+j.por:"")+")."; render(); }
+      return true;
+    }
+    return false;
+  }).catch(function(){ return false; });
+}
+
+/* ── cola de liberaciones sin señal ── */
+function guardarCola(){ return lsSet(STORE_COLA,JSON.stringify(cola)); }
+var enviandoCola = false;
+function enviarItem(it){
+  return api("addLib",{uid:it.uid,texto:it.texto,campos:it.campos,foto:it.foto,nombreFoto:it.nombreFoto},90000);
+}
+function procesarCola(){
+  if(enviandoCola || !cola.length || !conectado()) return;
+  var it = cola[0];
+  if(it.error) return;
+  enviandoCola = true;
+  enviarItem(it).then(function(){
+    cola.shift(); guardarCola(); enviandoCola=false; refrescarAviso(); procesarCola();
+  },function(e){
+    enviandoCola=false;
+    if(e.server){ it.error=e.message; guardarCola(); }
+    refrescarAviso();
+  });
+}
+function reintentarCola(){ cola.forEach(function(i){ delete i.error; }); guardarCola(); procesarCola(); refrescarAviso(); }
+function refrescarAviso(){
+  if(state.view==="main" || state.view==="hoy") render();
+}
+function avisoCola(){
+  if(!cola.length) return null;
+  var err = cola.filter(function(i){return i.error;})[0];
+  var n = el("div",{class:"note"+(err?" err":"")},[
+    (err?"No se pudo subir: "+err.error+". ":"⏳ ")+cola.length+(cola.length>1?" liberaciones esperan":" liberación espera")+" señal para subir."]);
+  n.appendChild(el("button",{type:"button",onclick:reintentarCola},["Reintentar"]));
+  return n;
+}
+
+/* ── enlace de conexión para el equipo (#conectar=...) ── */
+function enlaceConexion(){
+  var b64 = btoa(unescape(encodeURIComponent(JSON.stringify({u:conexion.url,k:conexion.key}))));
+  return location.origin+location.pathname+"#conectar="+encodeURIComponent(b64);
+}
+function leerEnlace(){
+  var m = /[#&]conectar=([^&]+)/.exec(location.hash||"");
+  if(!m) return false;
+  try{
+    var o = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+    if(o.u && o.k){ conexion={url:o.u,key:o.k}; lsSet(STORE_CONN,JSON.stringify(conexion)); }
+  }catch(e){}
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+  return conectado();
+}
 
 function getFrente(id){ return findBy(cfg.frentes,"id",id); }
 function getMat(fr,nombre){ return fr?findBy(fr.materiales,"nombre",nombre):null; }
@@ -671,13 +796,14 @@ function validForm(schema,ctx){
 /* ════════════════════════════════════════════════════════════════
    ESTADO
    ════════════════════════════════════════════════════════════════ */
-var state = { view:"main", estructura:"", tipo:"", form:clone(INITIAL_FORM), flash:"" };
+var state = { view:"main", estructura:"", tipo:"", form:clone(INITIAL_FORM), flash:"", foto:null, subida:null, dia:"" };
 var progUI = {};
 var ed = null; // borrador de configuración
 
 function resetForm(){
   state.form = clone(INITIAL_FORM);
   progUI = {};
+  state.foto = null; state.subida = null;
   if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)>=0) state.form.supervisor = prefs.supervisor;
 }
 
@@ -935,18 +1061,121 @@ function buildOutBox(texto){
       flashBtn(bCopy,ok,"✓ Copiado","📋 Copiar","b-pri");
     });
   });
+  var bCam = el("button",{class:"icn",type:"button",title:"Tomar foto","aria-label":"Tomar foto",
+    onclick:function(){ abrirFoto("inCam"); }},["📷"]);
+  var bGal = el("button",{class:"icn",type:"button",title:"Elegir de la galería","aria-label":"Elegir de la galería",
+    onclick:function(){ abrirFoto("inGal"); }},["🖼️"]);
+  out.appendChild(el("div",{class:"btns"},[bCopy,bCam,bGal]));
+
+  if(state.foto){
+    out.appendChild(el("div",{class:"foto"},[
+      el("img",{src:state.foto.url,alt:"Foto adjunta"}),
+      el("span",null,["Foto adjunta"]),
+      iconBtn("✕","del",function(){ state.foto=null; updateOutput(); })
+    ]));
+  }
+
+  var sig = firmaSubida(texto);
+  var sub = state.subida && state.subida.sig===sig ? state.subida : null;
+  var bUp = el("button",{class:"b-ok",type:"button",disabled:!!(sub&&sub.estado!=="error")},[
+    !sub?"⬆ Subir liberación":
+    sub.estado==="subiendo"?"Subiendo…":
+    sub.estado==="ok"?"✓ Subida":
+    sub.estado==="cola"?"✓ En cola":"⬆ Reintentar"]);
+  bUp.addEventListener("click",subirLiberacion);
   var bClear = el("button",{class:"b-sec",type:"button"},["Nueva liberación"]);
   bClear.addEventListener("click",function(){ resetForm(); render(); window.scrollTo(0,0); });
-  out.appendChild(el("div",{class:"btns"},[bCopy,bClear]));
+  out.appendChild(el("div",{class:"btns"},[bUp,bClear]));
+
+  if(sub){
+    var msg = sub.estado==="subiendo"?["", "Enviando al sistema del equipo…"]:
+              sub.estado==="ok"?["ok","Registrada como "+sub.id+(state.foto?" con foto":"")+"."]:
+              sub.estado==="cola"?["warn","Sin señal: se guardó en el celular y se subirá sola."]:
+              ["err",sub.msg||"No se pudo subir."];
+    out.appendChild(el("div",{class:"stat "+msg[0]},[msg[1]]));
+  } else if(!conectado()){
+    out.appendChild(el("div",{class:"stat"},["Para subir, conecta la app al sistema del equipo en ⚙ Ajustes."]));
+  }
   return out;
 }
+
+/* ── foto ── */
+function abrirFoto(id){
+  var inp = document.getElementById(id);
+  inp.value = "";
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    if(!f) return;
+    comprimir(f,function(err,foto){
+      if(err){ alert(err.message); return; }
+      state.foto = foto; updateOutput();
+    });
+  };
+  inp.click();
+}
+function comprimir(file,cb){
+  var url = URL.createObjectURL(file), img = new Image();
+  img.onload = function(){
+    var max=1600, w=img.naturalWidth, h=img.naturalHeight, s=Math.min(1,max/Math.max(w,h));
+    var cv=document.createElement("canvas"); cv.width=Math.round(w*s); cv.height=Math.round(h*s);
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);
+    var d = cv.toDataURL("image/jpeg",0.8);
+    cb(null,{url:d,data:d.split(",")[1],mime:"image/jpeg"});
+  };
+  img.onerror = function(){ URL.revokeObjectURL(url); cb(new Error("No se pudo leer la imagen.")); };
+  img.src = url;
+}
+
+/* ── subir ── */
+function firmaSubida(texto){ return texto+"|"+(state.foto?state.foto.data.length+state.foto.data.slice(-24):""); }
+function camposDeTexto(texto){
+  return texto.split("\n").map(function(l){ var i=l.indexOf(": "); return i>0?[l.slice(0,i).trim(),l.slice(i+2).trim()]:null; })
+    .filter(function(x){return !!x;});
+}
+function nombreFoto(){
+  var fr = getFrente(state.estructura), f = state.form, ctx = buildCtx();
+  var p = [cfg.tipos[state.tipo].corto];
+  if(state.tipo==="RELLENO"){
+    if(f.material) p.push(f.material);
+    if(ctx.d.capaFinal && ctx.d.capaFinal!=="UNICA") p.push("CAPA "+ctx.d.capaFinal);
+    if(f.bpTipo) p.push(f.bpTipo);
+  } else if(f.subtipo) p.push(f.subtipo);
+  p.push(fr?(fr.corto||fr.nombre):"");
+  return p.filter(Boolean).join(" - ");
+}
+function subirLiberacion(){
+  var texto = computeTexto();
+  if(!texto) return;
+  if(!conectado()){
+    state.subida = {sig:firmaSubida(texto),estado:"error",msg:"Primero conecta la app al sistema del equipo en ⚙ Ajustes."};
+    updateOutput(); return;
+  }
+  var sig = firmaSubida(texto);
+  var it = {uid:newId(),texto:texto,campos:camposDeTexto(texto),nombreFoto:nombreFoto(),
+            foto:state.foto?{data:state.foto.data,mime:state.foto.mime}:null,creado:Date.now()};
+  state.subida = {sig:sig,estado:"subiendo"}; updateOutput();
+  enviarItem(it).then(function(j){
+    if(state.subida && state.subida.sig===sig) state.subida = {sig:sig,estado:"ok",id:j.id};
+    updateOutput();
+  },function(e){
+    if(e.server){ state.subida = {sig:sig,estado:"error",msg:"No se pudo subir: "+e.message}; }
+    else {
+      cola.push(it);
+      if(!guardarCola()){ cola.pop(); state.subida = {sig:sig,estado:"error",msg:"Sin señal y sin espacio para guardarla en el celular. Inténtalo con señal."}; }
+      else state.subida = {sig:sig,estado:"cola"};
+    }
+    render();
+  });
+}
+
 function updateOutput(){
   var box = document.getElementById("outbox");
   var hint = document.getElementById("hintbox");
   var t = computeTexto();
   if(t){
     if(hint && hint.parentNode) hint.parentNode.removeChild(hint);
-    if(box){ box.querySelector("pre").textContent = t; }
+    if(box){ box.parentNode.replaceChild(buildOutBox(t),box); }
     else { document.getElementById("app").appendChild(buildOutBox(t)); }
   } else {
     if(box && box.parentNode) box.parentNode.removeChild(box);
@@ -958,9 +1187,13 @@ function updateOutput(){
 function renderMain(app){
   app.appendChild(el("div",{class:"hdr"},[
     el("div",null,[el("div",{class:"k"},["HERRAMIENTA CQC"]),el("div",{class:"t"},["Generador de Liberación"])]),
-    el("button",{class:"hbtn",type:"button",onclick:abrirConfig},["⚙ Ajustes"])
+    el("div",{class:"hgrp"},[
+      conectado()?el("button",{class:"hbtn",type:"button",onclick:abrirDia,"aria-label":"Liberaciones del día"},["📋 Hoy"]):null,
+      el("button",{class:"hbtn",type:"button",onclick:abrirConfig,"aria-label":"Ajustes"},["⚙"])
+    ])
   ]));
   if(state.flash){ app.appendChild(noteBox([state.flash],"ok")); state.flash=""; }
+  var av = avisoCola(); if(av) app.appendChild(av);
 
   var card = el("div",{class:"card"});
   card.appendChild(fieldWrap("1. Frente",
@@ -986,6 +1219,72 @@ function renderMain(app){
 /* ════════════════════════════════════════════════════════════════
    CONFIGURACIÓN
    ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   LIBERACIONES DEL DÍA (compartidas)
+   ════════════════════════════════════════════════════════════════ */
+var dia = {fecha:"",estado:"",items:[],hoja:"",msg:""};
+function hoyStr(off){
+  var d = new Date(); if(off) d.setDate(d.getDate()+off);
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+function moverDia(n){
+  var p = dia.fecha.split("-"), d = new Date(+p[0],+p[1]-1,+p[2]+n);
+  cargarDia(d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2));
+}
+function abrirDia(){ state.view="hoy"; cargarDia(hoyStr()); window.scrollTo(0,0); }
+function cargarDia(f){
+  dia.fecha=f; dia.estado="cargando"; dia.items=[]; render();
+  api("listLibs",{fecha:f}).then(function(j){
+    if(dia.fecha!==f) return;
+    dia.estado="ok"; dia.items=j.items||[]; dia.hoja=j.hoja||""; render();
+  },function(e){ if(dia.fecha!==f) return; dia.estado="error"; dia.msg=e.message; render(); });
+}
+function idDrive(url){ var m=/\/d\/([\w-]+)/.exec(url||"")||/[?&]id=([\w-]+)/.exec(url||""); return m?m[1]:""; }
+function lineaDe(texto,clave){
+  var l = (texto||"").split("\n").filter(function(x){return x.indexOf(clave+": ")===0;})[0];
+  return l?l.slice(clave.length+2):"";
+}
+function tarjetaLib(texto,arriba,abajo,foto,pendiente){
+  var tipo = lineaDe(texto,"TIPO DE LIBERACIÓN"), est = lineaDe(texto,"ESTRUCTURA");
+  var tx = el("div",{class:"tx"},[
+    el("b",null,[tipo||"Liberación",pendiente?el("span",{class:"tag"},["POR SUBIR"]):null]),
+    el("span",null,[est]),
+    el("span",null,[arriba+(abajo?" · "+abajo:"")]),
+    el("details",null,[el("summary",null,["Ver texto"]),el("pre",null,[texto])])
+  ]);
+  var kids = [tx];
+  var id = idDrive(foto);
+  if(id) kids.push(el("a",{href:foto,target:"_blank",rel:"noopener"},[
+    el("img",{src:"https://drive.google.com/thumbnail?id="+id+"&sz=w200",alt:"Foto",loading:"lazy"})]));
+  return el("div",{class:"lib"},kids);
+}
+function renderDia(app){
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["EQUIPO CQC"]),el("div",{class:"t"},["Liberaciones del día"])]),
+    el("button",{class:"hbtn",type:"button",onclick:function(){ state.view="main"; render(); window.scrollTo(0,0); }},["← Volver"])
+  ]));
+  var av = avisoCola(); if(av) app.appendChild(av);
+  var p = dia.fecha.split("-");
+  var card = el("div",{class:"card"},[el("div",{class:"dnav"},[
+    iconBtn("‹","",function(){ moverDia(-1); }),
+    el("b",null,[(dia.fecha===hoyStr()?"Hoy · ":"")+p[2]+"/"+p[1]+"/"+p[0]]),
+    iconBtn("›","",function(){ moverDia(1); },dia.fecha>=hoyStr()),
+    iconBtn("↻","",function(){ cargarDia(dia.fecha); })
+  ])]);
+  if(dia.fecha===hoyStr()) cola.forEach(function(it){
+    card.appendChild(tarjetaLib(it.texto,"guardada en este celular","",null,true));
+  });
+  if(dia.estado==="cargando") card.appendChild(el("div",{class:"stat"},["Cargando…"]));
+  else if(dia.estado==="error") card.appendChild(el("div",{class:"stat err"},[dia.msg]));
+  else if(!dia.items.length) card.appendChild(el("div",{class:"stat"},["No hay liberaciones registradas este día."]));
+  dia.items.slice().reverse().forEach(function(it){
+    card.appendChild(tarjetaLib(it.texto,it.hora,it.id,it.foto,false));
+  });
+  if(dia.estado==="ok") card.appendChild(el("div",{class:"stat"},[dia.items.length+(dia.items.length===1?" liberación":" liberaciones")+" registrada"+(dia.items.length===1?"":"s")]));
+  app.appendChild(card);
+  if(dia.hoja) app.appendChild(el("a",{class:"lnk",href:dia.hoja,target:"_blank",rel:"noopener"},["Abrir la hoja de cálculo completa ↗"]));
+}
+
 function abrirConfig(){
   ed = {cfg:clone(cfg),dirty:false,fi:-1,fr:null,frDirty:false,msg:null,msgKind:""};
   state.view="config"; render(); window.scrollTo(0,0);
@@ -1046,6 +1345,11 @@ function renderConfig(app){
   if(!storageOk) app.appendChild(noteBox(["Este navegador no permite guardar datos: los cambios durarán solo hasta cerrar la app. Respáldalos con “Copiar configuración”."],""));
   if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
   ed.msg=null;
+
+  /* Conexión y modo editor */
+  app.appendChild(cardConexion());
+  if(conectado() && !editor)
+    app.appendChild(noteBox(["Modo lectura: puedes revisar los ajustes del equipo, pero para guardar cambios necesitas un PIN de editor."],""));
 
   /* Frentes */
   var lista = el("div");
@@ -1162,8 +1466,71 @@ function renderConfig(app){
   app.appendChild(el("div",{class:"savebar"},[
     el("span",{id:"savemsg"},[ed.dirty?"Cambios sin guardar":"Sin cambios"]),
     el("button",{class:"b-sec",type:"button",onclick:salirConfig},["Salir"]),
-    el("button",{class:"b-pri",type:"button",onclick:guardarConfig},["Guardar"])
+    el("button",{class:"b-pri",type:"button",onclick:guardarConfig},[conectado()&&editor?"Guardar para todos":"Guardar"])
   ]));
+}
+
+function cardConexion(){
+  var kids = [];
+  if(conectado()){
+    kids.push(el("div",{class:"info"},[el("b",null,["Conectado:"]),document.createTextNode(
+      cfgMeta.version?" configuración v"+cfgMeta.version+(cfgMeta.fecha?" · "+cfgMeta.fecha:"")+(cfgMeta.por?" · "+cfgMeta.por:"")
+                     :" el servidor aún no tiene configuración; un editor debe pulsar Guardar para publicarla.")]));
+    var bLink = el("button",{class:"b-pri",type:"button"},["Copiar enlace para el equipo"]);
+    bLink.addEventListener("click",function(){
+      copyText(enlaceConexion(),function(ok){ flashBtn(bLink,ok,"✓ Enlace copiado","Copiar enlace para el equipo","b-pri"); });
+    });
+    kids.push(el("div",{class:"btns",style:"margin-top:0"},[bLink,
+      el("button",{class:"b-sec",type:"button",onclick:function(){
+        if(confirm("¿Desconectar este celular del sistema del equipo?")){
+          conexion=null; editor=null; lsSet(STORE_CONN,"null"); lsSet(STORE_EDITOR,"null"); render(); }
+      }},["Desconectar"])]));
+    kids.push(el("div",{class:"fdesc"},["Envía el enlace por WhatsApp: al abrirlo, el celular queda conectado."]));
+
+    // modo editor
+    var editorBox = el("div",{style:"margin-top:16px"});
+    if(editor){
+      editorBox.appendChild(el("div",{class:"item"},[
+        el("div",{class:"nm"},[el("b",null,["Editor: "+editor.nombre]),el("span",null,["Tus cambios en Ajustes se guardan para todo el equipo."])]),
+        iconBtn("Salir","",function(){ editor=null; lsSet(STORE_EDITOR,"null"); render(); })
+      ]));
+    } else {
+      var pin = el("input",{type:"text",placeholder:"PIN de editor",inputmode:"numeric","data-fk":"c_pin",autocomplete:"off"});
+      var bPin = el("button",{class:"ib",type:"button"},["Activar"]);
+      bPin.addEventListener("click",function(){
+        var v = pin.value.trim(); if(!v) return;
+        bPin.textContent="…";
+        api("checkPin",{pin:v}).then(function(j){
+          editor={pin:v,nombre:j.nombre}; lsSet(STORE_EDITOR,JSON.stringify(editor));
+          setMsg(["Modo editor activo: "+j.nombre+"."],"ok"); render();
+        },function(e){ setMsg([e.message],"err"); render(); });
+      });
+      editorBox.appendChild(fieldWrap("Modo editor",el("div",{class:"row"},[pin,bPin]),"Solo para quienes pueden cambiar los ajustes del equipo."));
+    }
+    kids.push(editorBox);
+  } else {
+    var url = el("input",{type:"text",placeholder:"https://script.google.com/macros/s/…/exec","data-fk":"c_url"});
+    var key = el("input",{type:"text",placeholder:"Clave de equipo","data-fk":"c_key",autocomplete:"off"});
+    var bOk = el("button",{class:"b-pri",type:"button"},["Conectar"]);
+    bOk.addEventListener("click",function(){
+      var u = url.value.trim(), k = key.value.trim();
+      if(!/^https:\/\//.test(u) || !k){ setMsg(["Completa la dirección del servidor y la clave de equipo."],"err"); render(); return; }
+      bOk.textContent = "Probando…";
+      var prev = conexion; conexion = {url:u,key:k};
+      api("ping").then(function(){
+        lsSet(STORE_CONN,JSON.stringify(conexion));
+        return syncConfig(true).then(function(){
+          if(!ed.dirty) ed.cfg = clone(cfg);
+          setMsg(["Conectado al sistema del equipo."],"ok"); render(); procesarCola();
+        });
+      },function(e){ conexion = prev; setMsg(["No se pudo conectar: "+e.message],"err"); render(); });
+    });
+    kids.push(el("div",{class:"sec-d"},["Sin conectar: la configuración y las liberaciones solo quedan en este celular. Lo más fácil es abrir el enlace que te envíe tu administrador."]));
+    kids.push(fieldWrap("Dirección del servidor",url));
+    kids.push(fieldWrap("Clave de equipo",key));
+    kids.push(el("div",{class:"btns",style:"margin-top:0"},[bOk]));
+  }
+  return secCard("Sistema del equipo",null,kids);
 }
 
 function importar(texto){
@@ -1178,18 +1545,45 @@ function importar(texto){
   render(); window.scrollTo(0,0);
 }
 function guardarConfig(){
-  if(!ed.dirty){ salirConfig(); return; }
+  var publicarInicial = conectado() && editor && !cfgMeta.version;
+  if(!ed.dirty && !publicarInicial){ salirConfig(); return; }
   var errs = validateCfg(ed.cfg);
   if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
-  cfg = sanitizeCfg(clone(ed.cfg));
-  var ok = lsSet(STORE_CFG,JSON.stringify(cfg));
+  var nueva = sanitizeCfg(clone(ed.cfg));
+  if(!conectado()){ cerrarConGuardado(nueva,lsSet(STORE_CFG,JSON.stringify(nueva)),"Configuración guardada en este celular."); return; }
+  if(!editor){
+    setMsg(["Para guardar cambios para todo el equipo activa el modo editor con tu PIN (arriba)."],"err");
+    render(); window.scrollTo(0,0); return;
+  }
+  var bar = document.querySelector(".savebar .b-pri"); if(bar){ bar.textContent="Guardando…"; bar.disabled=true; }
+  function enviar(force){
+    api("saveConfig",{pin:editor.pin,config:nueva,baseVersion:cfgMeta.version,force:!!force}).then(function(j){
+      if(j.conflict){
+        var msg = "Otro editor"+(j.por?" ("+j.por+")":"")+" guardó la versión "+j.version+" mientras editabas.\n\n"+
+                  "Aceptar: guardar tus cambios encima.\nCancelar: descartar los tuyos y cargar la suya.";
+        if(confirm(msg)) return enviar(true);
+        ultimaSync = 0;
+        return syncConfig(true).then(function(){ ed=null; state.view="main"; state.flash="Se cargó la versión más reciente del equipo."; render(); });
+      }
+      cfgMeta = {version:j.version,fecha:j.fecha,por:j.por}; lsSet(STORE_META,JSON.stringify(cfgMeta));
+      cerrarConGuardado(nueva,lsSet(STORE_CFG,JSON.stringify(nueva)),"Configuración v"+j.version+" guardada para todo el equipo.");
+    },function(e){
+      if(/PIN/i.test(e.message)){ editor=null; lsSet(STORE_EDITOR,"null"); }
+      setMsg(["No se pudo guardar en el sistema: "+e.message+(e.server?"":". Revisa la señal e inténtalo de nuevo.")],"err");
+      render(); window.scrollTo(0,0);
+    });
+  }
+  enviar(false);
+}
+function cerrarConGuardado(nueva,ok,texto){
+  cfg = nueva;
   ed = null; state.view = "main";
   var fr = getFrente(state.estructura);
   if(!fr){ state.estructura=""; state.tipo=""; }
   else if(fr.tipos.indexOf(state.tipo)<0) state.tipo="";
   if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)<0){ prefs.supervisor=""; savePrefs(); }
   resetForm();
-  state.flash = ok?"Configuración guardada.":"Configuración aplicada, pero este navegador no permitió guardarla; se perderá al cerrar.";
+  state.flash = ok?texto:"Configuración aplicada, pero este navegador no permitió guardarla en el celular.";
   render(); window.scrollTo(0,0);
 }
 function salirConfig(){
@@ -1315,6 +1709,7 @@ function render(){
   app.innerHTML = "";
   if(state.view==="config") renderConfig(app);
   else if(state.view==="frente") renderFrente(app);
+  else if(state.view==="hoy") renderDia(app);
   else { lastVisibleSig = visibleSignature(); renderMain(app); }
 
   if(keepId){
@@ -1324,9 +1719,19 @@ function render(){
 }
 
 /* arranque: recuerda el último frente usado */
+var recienConectado = leerEnlace();
 if(prefs.frente && getFrente(prefs.frente)) state.estructura = prefs.frente;
 resetForm();
+if(recienConectado) state.flash = "Celular conectado al sistema del equipo.";
 render();
+
+/* sincronización con el equipo */
+syncConfig(true).then(procesarCola);
+window.addEventListener("online",function(){ syncConfig(true); procesarCola(); });
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"){ syncConfig(false); procesarCola(); }
+});
+setInterval(function(){ if(cola.length) procesarCola(); },60000);
 
 /* instalación como app (solo cuando se sirve por http/https) */
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
