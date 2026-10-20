@@ -1,8 +1,8 @@
 /* Service worker del Generador de Liberaciones.
    Red primero (para recibir actualizaciones) y caché como respaldo sin señal.
    Si cambias el nombre del index.html, actualiza también ARCHIVOS y el manifest. */
-var CACHE = "liberaciones-v4";
-var ARCHIVOS = ["./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
+var CACHE = "liberaciones-v5";
+var ARCHIVOS = ["./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./logo-izq.jpg","./logo-der.png","./exceljs.min.js"];
 
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ARCHIVOS); }).then(function(){ return self.skipWaiting(); }));

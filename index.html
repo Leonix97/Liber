@@ -184,6 +184,7 @@ function defaultConfig(){
     materialesEval:["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"],
     lineas:{"100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],"300":["TB-PD-P-300-01","TB-PD-P-300-02"]},
     overliner:{material:"SOBRERREVESTIMIENTO",espesor:"0.7 m"},
+    reporte:defaultReporte(),
     cotasBase:[
       {id:"ripios",        nombre:"RELLENO DE RIPIOS",      base:2573,  capaBase:9,  espesor:1},
       {id:"controlado",    nombre:"RELLENO CONTROLADO",     base:2773,  capaBase:26, espesor:1},
@@ -210,6 +211,19 @@ function defaultConfig(){
     ]
   };
 }
+
+var REP_CAMPOS = [
+  ["codigo","Código del reporte","RD-ST.QC-PAD2-F2EE2SN"],
+  ["numRef","N° de referencia","503"],
+  ["fechaRef","Fecha de ese N° (AAAA-MM-DD)","2026-10-19"],
+  ["contratista","Contratista","STRACON PERU S.A."],
+  ["cliente","Cliente","PAN AMERICAN SILVER PERU S.A.C."],
+  ["unidad","Unidad minera","SHAHUINDO S.A.C."],
+  ["cqa","Supervisión CQA","ANDDES"],
+  ["area","Área","CONTROL DE CALIDAD"],
+  ["responsable","Responsable de calidad","Víctor Cedrón Briceño"]
+];
+function defaultReporte(){ var r={}; REP_CAMPOS.forEach(function(c){ r[c[0]]=c[2]; }); return r; }
 
 /* normaliza cualquier configuración (guardada o importada) */
 function sanMat(m){
@@ -242,6 +256,9 @@ function sanitizeCfg(c){
     ? {"100":arrStr(c.lineas["100"]),"300":arrStr(c.lineas["300"])} : d.lineas;
   var ov = c.overliner||{};
   o.overliner = {material:String(ov.material||"").trim()||d.overliner.material,espesor:String(ov.espesor||"").trim()||d.overliner.espesor};
+  var rp = c.reporte||{};
+  o.reporte = {};
+  REP_CAMPOS.forEach(function(f){ o.reporte[f[0]] = rp[f[0]]!=null&&String(rp[f[0]]).trim()!==""?String(rp[f[0]]).trim():d.reporte[f[0]]; });
   o.cotasBase = Array.isArray(c.cotasBase)
     ? c.cotasBase.map(function(r){ r=r||{}; return {id:String(r.id||newId()),nombre:String(r.nombre||"").trim(),
         base:Number(r.base)||0,capaBase:Number(r.capaBase)||0,espesor:Number(r.espesor)||0}; })
@@ -1281,8 +1298,339 @@ function renderDia(app){
     card.appendChild(tarjetaLib(it.texto,it.hora,it.id,it.foto,false));
   });
   if(dia.estado==="ok") card.appendChild(el("div",{class:"stat"},[dia.items.length+(dia.items.length===1?" liberación":" liberaciones")+" registrada"+(dia.items.length===1?"":"s")]));
+  if(dia.estado==="ok" && dia.items.length){
+    var bRep = el("button",{class:"b-pri",type:"button"},["⬇ Reporte diario (.xlsx)"]);
+    bRep.addEventListener("click",function(){ generarReporte(dia.fecha,bRep); });
+    card.appendChild(el("div",{class:"btns"},[bRep]));
+    if(dia.fecha===hoyStr() && cola.length)
+      card.appendChild(el("div",{class:"stat warn"},["Las liberaciones por subir no entrarán al reporte hasta que se suban."]));
+  }
   app.appendChild(card);
   if(dia.hoja) app.appendChild(el("a",{class:"lnk",href:dia.hoja,target:"_blank",rel:"noopener"},["Abrir la hoja de cálculo completa ↗"]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   REPORTE DIARIO (.xlsx) — hojas R.D. y P. FOTOG.
+   ════════════════════════════════════════════════════════════════ */
+function cargarScript(src){
+  return new Promise(function(ok,mal){
+    if(window.ExcelJS) return ok();
+    var s=document.createElement("script"); s.src=src; s.onload=function(){ok();};
+    s.onerror=function(){ mal(new Error("No se pudo cargar el generador de Excel (exceljs.min.js).")); };
+    document.head.appendChild(s);
+  });
+}
+function generarReporte(fecha,btn){
+  var base = btn.textContent;
+  function estado(t){ btn.textContent=t; }
+  btn.disabled = true; estado("Preparando…");
+  cargarScript("exceljs.min.js").then(function(){
+    estado("Descargando fotos…");
+    return api("listLibs",{fecha:fecha,fotos:true},180000);
+  }).then(function(j){
+    estado("Armando Excel…");
+    return armarReporte(fecha,j.items||[]);
+  }).then(function(res){
+    var a=document.createElement("a"); a.href=URL.createObjectURL(res.blob); a.download=res.nombre;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+    btn.disabled=false; btn.className="b-ok"; estado("✓ Descargado");
+    setTimeout(function(){ btn.className="b-pri"; estado(base); },3000);
+  }).catch(function(e){
+    btn.disabled=false; btn.className="b-warn"; estado("⚠ "+e.message);
+    setTimeout(function(){ btn.className="b-pri"; estado(base); },6000);
+  });
+}
+
+/* ── interpretar cada liberación a partir de su texto ── */
+function camposMapa(texto){ var m={}; camposDeTexto(texto).forEach(function(c){ if(!(c[0] in m)) m[c[0]]=c[1]; }); return m; }
+function oracion(s){ s=String(s||"").toLowerCase(); return s.charAt(0).toUpperCase()+s.slice(1); }
+function nombrePropio(s){ return String(s||"").toLowerCase().replace(/(^|\s)(\S)/g,function(a,b,c){return b+c.toUpperCase();}); }
+function numero(s){ var m=/-?\d+(\.\d+)?/.exec(String(s||"").replace(/,/g,"")); return m?Number(m[0]):null; }
+function sinUnidad(s){ return String(s||"").replace(/\s*(m²|m2|msnm|m)\s*$/i,"").trim(); }
+
+function interpretarLib(it){
+  var c = camposMapa(it.texto);
+  var tipoTxt = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
+  var key = null, detalle = "";
+  TIPO_KEYS.forEach(function(k){
+    var l = cfg.tipos[k].largo;
+    if(!key && tipoTxt.indexOf(l)===0){ key=k; detalle=tipoTxt.slice(l.length).replace(/^\s*-?\s*/,"").replace(/^\(|\)$/g,""); }
+  });
+  var fr = findBy(cfg.frentes,"nombre",est);
+  var mat = c["MATERIAL"]||"";
+  var cat;
+  if(key==="RELLENO"){
+    var md = fr?getMat(fr,mat):null, mt = md?md.tipo:"";
+    if(mt==="SUELO_BP" || /BAJA PERMEABILIDAD/.test(mat)) cat="SBP";
+    else if(mt==="VARIABLE" || /SOBRERREVEST/.test(mat)) cat="SOBRE";
+    else cat="RELLENO";
+  } else if(key==="OVERLINER") cat="SOBRE";
+  else if(key==="FUNDACION") cat="FUND";
+  else if(key==="EVALUACION") cat="EVAL";
+  else if(key==="SUBDRENES"||key==="SIST_SUBD")
+    cat = Object.keys(c).some(function(k){return k.indexOf("LONG. TUB")===0;})?"SSUB":"FSUB";
+  else cat="OTRO";
+
+  var h = parseInt(String(it.hora||"").split(":")[0],10);
+  var longs = Object.keys(c).filter(function(k){return k.indexOf("LONG. TUB")===0;});
+  var diam = longs.map(function(k){ var m=/Ø\s*([\d\/]+)/.exec(k); return m?m[1]:""; }).filter(Boolean).join(" / ");
+  var cota = c["COTA SUP."]? sinUnidad(c["COTA SUP."])+" - "+sinUnidad(c["COTA INF."]) :
+             c["COTA"]? (c["COTA"]==="VARIABLE"?"Variable":sinUnidad(c["COTA"])) : "";
+  var sec = /SECTOR\s+(\S+)/.exec(est), fase = /FASE\s+(\S+)/.exec(est);
+  var esp = c["ESPESOR"]? numero(c["ESPESOR"]) : null;
+  var area = c["ÁREA"]||c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||"";
+
+  var desc;
+  var det = detalle?oracion(detalle):"";
+  switch(cat){
+    case "RELLENO": desc = "Liberación de "+mat.toLowerCase()+(det?" - "+det.toLowerCase():""); break;
+    case "SBP":     desc = "Suelo de baja permeabilidad"+(det?" en "+det.toLowerCase():""); break;
+    case "SOBRE":   desc = "Liberación de colocación de "+(mat||cfg.overliner.material).toLowerCase(); break;
+    case "FUND":    desc = "Liberación de fundación"+(det?" - "+det.toLowerCase():""); break;
+    case "EVAL":    desc = "Evaluación de material: "+mat.toLowerCase(); break;
+    case "FSUB":    desc = "Liberación de fundación de subdrén"+(c["LÍNEA"]?", línea "+c["LÍNEA"]:""); break;
+    case "SSUB":    desc = "Liberación de subdrén"+(c["LÍNEA"]?", línea "+c["LÍNEA"]:""); break;
+    default:        desc = oracion(tipoTxt);
+  }
+  return {
+    id:it.id, cat:cat, frente:fr, estructura:est, desc:desc, texto:it.texto,
+    turno: isNaN(h)?"":(h>=7&&h<19?"Día":"Noche"),
+    capa: c["CAPA"]?(c["CAPA"]==="UNICA"?"Única":c["CAPA"]):"-",
+    sector: sec?oracion(sec[1]):"-", fase: fase?fase[1]:"-",
+    cantera: c["PROCEDENCIA"]?nombrePropio(c["PROCEDENCIA"]):"-",
+    area: numero(area), espesor: esp!=null?Math.round(esp*1000):null,
+    longitud: longs.map(function(k){return sinUnidad(c[k]);}).join(" / "),
+    diametro: diam, grava: numero(c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||""),
+    progCota: c["PROGRESIVA"]||cota||"-",
+    supervisor: nombrePropio(c["SUPERVISOR CQC"]||""),
+    foto: it.fotoData||null
+  };
+}
+
+/* ── definición de tablas, igual que el formato RD ── */
+var REP_TABLAS = [
+  {cat:"EVAL",    titulo:"EVALUACIÓN DE MATERIAL", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["FASE","G","G","fase"],["SECTOR","H","H","sector"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"FUND",    titulo:"ACEPTACIÓN DE FUNDACIÓN", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["FASE","G","G","fase"],["SECTOR","H","H","sector"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"RELLENO", titulo:"ACEPTACIÓN DE RELLENO", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"SBP",     titulo:"ACEPTACIÓN DE SUELO DE BAJA PERMEABILIDAD", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"SOBRE",   titulo:"SOBRERREVESTIMIENTO", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"FSUB",    titulo:"FUNDACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["SECTOR","G","G","sector"],["LONGITUD","H","H","longitud"],["ÁREA (m2)","I","I","area"],["PROGRESIVA / COTA","J","L","progCota"]]},
+  {cat:"SSUB",    titulo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["DIÁMETRO DE TUBERÍA (mm)","G","G","diametro"],["SECTOR","H","H","sector"],["LONGITUD","I","I","longitud"],["GRAVA Y GEOTEXTIL (m2)","J","J","grava"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"OTRO",    titulo:"OTRAS LIBERACIONES", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","H","desc"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]}
+];
+var COLW_RD = {A:2,B:4.4,C:9.4,D:12.4,E:13.4,F:12.4,G:13.6,H:12.6,I:11.4,J:13.4,K:11.6,L:21.6,M:3.6,N:21.4};
+var COLW_PF = {A:2,B:2.4,C:9.6,D:13.6,E:11.4,F:11.4,G:6.6,H:9.6,I:13.6,J:11.4,K:11.4,L:2.4};
+var AZUL = "FF1F3864", CELESTE = "FFDDEBF7", FUENTE = "Aptos Narrow";
+var BORDE = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+function colN(l){ return l.charCodeAt(0)-64; }
+function pxCol(w){ return Math.floor(w*7+5); }
+
+function semana(d){ var ini=new Date(d.getFullYear(),0,1), yday=Math.round((d-ini)/864e5), wd=(d.getDay()+6)%7; return Math.floor((yday+7-wd)/7); }
+function fechaDe(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+
+function armarReporte(fecha,items){
+  var R = cfg.reporte, d = fechaDe(fecha);
+  var dif = Math.round((d-fechaDe(R.fechaRef||fecha))/864e5);
+  var numRep = (Number(R.numRef)||0)+dif;
+  var dd = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+String(d.getFullYear()).slice(-2);
+  var libs = items.map(interpretarLib);
+
+  // agrupar por frente, en el orden de Ajustes
+  var orden = cfg.frentes.map(function(f){return f.nombre;});
+  var grupos = {};
+  libs.forEach(function(l){ (grupos[l.estructura]=grupos[l.estructura]||[]).push(l); });
+  var nombres = Object.keys(grupos).sort(function(a,b){
+    var ia=orden.indexOf(a), ib=orden.indexOf(b); return (ia<0?999:ia)-(ib<0?999:ib); });
+
+  // numerar fotos en el mismo orden en que aparecen en las tablas
+  var nFoto = 0;
+  nombres.forEach(function(n){
+    REP_TABLAS.forEach(function(t){
+      grupos[n].filter(function(l){return l.cat===t.cat;}).forEach(function(l){
+        if(l.foto){ nFoto++; l.nFoto=("0"+nFoto).slice(-2); l.desc += " (Foto "+l.nFoto+")"; }
+      });
+    });
+  });
+
+  var wb = new ExcelJS.Workbook();
+  wb.creator = "Generador de Liberaciones CQC";
+  var dims = libs.filter(function(l){return l.foto;}).map(function(l){
+    return new Promise(function(ok){ var im=new Image();
+      im.onload=function(){ l.fw=im.naturalWidth; l.fh=im.naturalHeight; ok(); };
+      im.onerror=function(){ l.foto=null; ok(); };
+      im.src="data:image/jpeg;base64,"+l.foto; });
+  });
+  return Promise.all(dims).then(function(){
+    return Promise.all([traerImg("logo-izq.jpg"),traerImg("logo-der.png")]);
+  }).then(function(logos){
+    var L1 = logos[0]?wb.addImage({base64:logos[0],extension:"jpeg"}):null;
+    var L2 = logos[1]?wb.addImage({base64:logos[1],extension:"png"}):null;
+    hojaRD(wb,{L1:L1,L2:L2,R:R,numRep:numRep,dd:dd,d:d,libs:libs,grupos:grupos,nombres:nombres});
+    hojaFotos(wb,{L1:L1,L2:L2,grupos:grupos,nombres:nombres});
+    return wb.xlsx.writeBuffer();
+  }).then(function(buf){
+    return {blob:new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),
+            nombre:R.codigo+"-"+numRep+"_"+fecha+".xlsx"};
+  });
+}
+function traerImg(url){
+  return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){
+    return new Promise(function(ok){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(",")[1]); }; fr.readAsDataURL(b); });
+  }).catch(function(){ return null; });
+}
+
+function estilo(cell,o){
+  o=o||{};
+  cell.font = {name:FUENTE,size:o.size||11,bold:!!o.bold,color:o.color?{argb:o.color}:undefined};
+  cell.alignment = {horizontal:o.h||"center",vertical:o.v||"middle",wrapText:o.wrap!==false};
+  if(o.fill) cell.fill = {type:"pattern",pattern:"solid",fgColor:{argb:o.fill}};
+  if(o.border) cell.border = BORDE;
+}
+function celda(ws,ref,valor,o){
+  var p = ref.split(":"); if(p.length>1) ws.mergeCells(ref);
+  var c = ws.getCell(p[0]); c.value = valor; estilo(c,o);
+  if(o && o.border && p.length>1){
+    var a=ws.getCell(p[0]), b=ws.getCell(p[1]);
+    for(var r=a.row;r<=b.row;r++) for(var k=a.col;k<=b.col;k++) ws.getCell(r,k).border = BORDE;
+  }
+  return c;
+}
+function encabezadoLogos(ws,L1,L2,colDer){
+  if(L1!=null) ws.addImage(L1,{tl:{col:2,row:0.15},ext:{width:180,height:46}});
+  if(L2!=null) ws.addImage(L2,{tl:{col:colDer,row:0.3},ext:{width:170,height:35}});
+}
+function pagina(ws,ultimaCol,ultimaFila){
+  ws.pageSetup = {paperSize:9,orientation:"portrait",fitToPage:true,fitToWidth:1,fitToHeight:0,
+    horizontalCentered:true,printArea:"B1:"+ultimaCol+ultimaFila,
+    margins:{left:0.39,right:0.39,top:0.59,bottom:0.59,header:0.3,footer:0.3}};
+  ws.headerFooter.oddFooter = "&CPágina &P";
+}
+
+function hojaRD(wb,x){
+  var ws = wb.addWorksheet("R.D.",{views:[{showGridLines:false}]});
+  Object.keys(COLW_RD).forEach(function(k){ ws.getColumn(k).width = COLW_RD[k]; });
+  ws.getRow(1).height=20; ws.getRow(2).height=20;
+  encabezadoLogos(ws,x.L1,x.L2,10);
+  var R = x.R;
+  celda(ws,"F3:J3","REPORTE DIARIO DE CONTROL DE CALIDAD",{size:12,bold:true});
+  celda(ws,"C5:L5",R.codigo+"-"+x.numRep,{h:"left",bold:true});
+  celda(ws,"C6:E6","CONTRATISTA: "+R.contratista,{h:"left",bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+  celda(ws,"F6:L6","ÁREA: "+R.area,{bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+  celda(ws,"C7:E7","CLIENTE: "+R.cliente,{h:"left",border:true});
+  [["F7","TURNO"],["G7","DESDE"],["H7","HASTA"],["I7:L7","TOTAL HH"]].forEach(function(p){ celda(ws,p[0],p[1],{bold:true,fill:CELESTE,border:true}); });
+  celda(ws,"C8:E8","UNIDAD MINERA: "+R.unidad,{h:"left",border:true});
+  celda(ws,"F8","Día (TD)\nNoche (TN)",{border:true}); celda(ws,"G8","07:00\n19:00",{border:true});
+  celda(ws,"H8","18:00\n06:00",{border:true}); celda(ws,"I8:L8","11:00\n11:00",{border:true});
+  celda(ws,"C9:E9","SUPERVISIÓN CQA: "+R.cqa,{h:"left",border:true});
+  celda(ws,"F9:G9","FECHA: "+x.dd,{h:"left",border:true});
+  celda(ws,"H9","SEMANA: "+semana(x.d),{border:true});
+  celda(ws,"I9:L9",["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"][x.d.getDay()],{border:true});
+  ws.getRow(7).height=30; ws.getRow(8).height=30; ws.getRow(9).height=28;
+  celda(ws,"C10:E10","RESPONSABLE DE CALIDAD STRACON",{bold:true,h:"left",fill:CELESTE,border:true});
+  celda(ws,"F10:H10","SUPERVISORES RESPONSABLES",{bold:true,fill:CELESTE,border:true});
+  celda(ws,"I10","TD",{bold:true,fill:CELESTE,border:true}); celda(ws,"J10","TN",{bold:true,fill:CELESTE,border:true});
+  celda(ws,"K10:L10","DL",{bold:true,fill:CELESTE,border:true});
+
+  var sups = {};
+  x.libs.forEach(function(l){ if(!l.supervisor) return; sups[l.supervisor]=sups[l.supervisor]||{}; sups[l.supervisor][l.turno]=1; });
+  var lista = Object.keys(sups); if(!lista.length) lista=[""];
+  var r = 11;
+  lista.forEach(function(s,i){
+    celda(ws,"C"+r+":E"+r,i===0?R.responsable:"",{h:"left",border:true});
+    celda(ws,"F"+r+":H"+r,s,{h:"left",border:true});
+    celda(ws,"I"+r,sups[s]&&sups[s]["Día"]?"X":"",{border:true});
+    celda(ws,"J"+r,sups[s]&&sups[s]["Noche"]?"X":"",{border:true});
+    celda(ws,"K"+r+":L"+r,"",{border:true});
+    r++;
+  });
+
+  r += 1;
+  celda(ws,"C"+r,"4. CONTROL DE CALIDAD DE LA CONSTRUCCIÓN (CQC)",{bold:true,h:"left",wrap:false}); r++;
+  celda(ws,"C"+r,"    4.1 LIBERACIONES DE CAMPO",{bold:true,h:"left",wrap:false}); r+=2;
+
+  if(!x.nombres.length){ celda(ws,"C"+r,"No se realizaron liberaciones.",{h:"left",wrap:false}); r++; }
+  x.nombres.forEach(function(n){
+    celda(ws,"C"+r,"• "+n,{bold:true,h:"left",wrap:false}); r+=2;
+    REP_TABLAS.forEach(function(t){
+      var filas = x.grupos[n].filter(function(l){return l.cat===t.cat;});
+      if(!filas.length) return;
+      celda(ws,"C"+r+":L"+r,t.titulo,{bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+      celda(ws,"N"+r+":N"+(r+1),"SUPERVISOR",{bold:true,fill:CELESTE,border:true});
+      ws.getRow(r).height=17; r++;
+      var alto = 17;
+      t.cols.forEach(function(cl){ celda(ws,cl[1]+r+(cl[2]!==cl[1]?":"+cl[2]+r:""),cl[0],{bold:true,fill:CELESTE,border:true,size:10});
+        if(cl[1]===cl[2]) alto=Math.max(alto,cl[0].length>20?42:cl[0].length>12?30:17); });
+      ws.getRow(r).height=alto; r++;
+      filas.forEach(function(l){
+        var maxLin = 1;
+        t.cols.forEach(function(cl){
+          var v = l[cl[3]]; if(v==null||v==="") v="-";
+          var c = celda(ws,cl[1]+r+(cl[2]!==cl[1]?":"+cl[2]+r:""),v,{border:true});
+          if(typeof v==="number") c.numFmt = cl[3]==="espesor"?"0":"#,##0.00";
+          var w = 0; for(var k=colN(cl[1]);k<=colN(cl[2]);k++) w += COLW_RD[String.fromCharCode(64+k)];
+          maxLin = Math.max(maxLin, Math.ceil(String(v).length/(w*0.85)));
+        });
+        celda(ws,"N"+r,l.supervisor||"-",{border:true});
+        ws.getRow(r).height = Math.max(16,maxLin*14.5+3);
+        r++;
+      });
+      r++;
+    });
+  });
+  ws.getRow(6).height=30;
+  pagina(ws,"N",r);
+}
+
+function hojaFotos(wb,x){
+  var ws = wb.addWorksheet("P. FOTOG.",{views:[{showGridLines:false}]});
+  Object.keys(COLW_PF).forEach(function(k){ ws.getColumn(k).width = COLW_PF[k]; });
+  ws.getRow(1).height=20; ws.getRow(2).height=20;
+  encabezadoLogos(ws,x.L1,x.L2,9);
+  celda(ws,"E3:I3","REPORTE DIARIO DE CONTROL DE CALIDAD",{size:12,bold:true});
+  celda(ws,"C4:F4","6. PANEL FOTOGRÁFICO:",{bold:true,h:"left",wrap:false});
+  var FILA = 14.45, r = 5, enPagina = 5, POR_PAGINA = 54;
+  function saltoSi(n){
+    if(enPagina+n > POR_PAGINA){ ws.getRow(r-1).addPageBreak(); enPagina = 0; }
+    enPagina += n;
+  }
+  var hay = false;
+  x.nombres.forEach(function(n){
+    var fotos = [];
+    REP_TABLAS.forEach(function(t){ x.grupos[n].forEach(function(l){ if(l.cat===t.cat && l.foto) fotos.push(l); }); });
+    if(!fotos.length) return;
+    hay = true;
+    saltoSi(2+17);
+    celda(ws,"C"+r+":K"+r,n,{size:14,bold:true}); ws.getRow(r).height=18.6; r+=2;
+    for(var i=0;i<fotos.length;i+=2){
+      if(i>0) saltoSi(17);
+      [fotos[i],fotos[i+1]].forEach(function(l,lado){
+        if(!l) return;
+        var c1 = lado?"H":"C", c2 = lado?"K":"F", cd = lado?"I":"D";
+        celda(ws,c1+r+":"+c2+(r+13),"",{border:true});
+        celda(ws,c1+(r+14)+":"+c1+(r+15),"FOTO "+l.nFoto+".-",{v:"top",h:"left",border:true,size:10,wrap:false});
+        celda(ws,cd+(r+14)+":"+c2+(r+15),l.desc.replace(/\s*\(Foto \d+\)$/,"")+(l.sector!=="-"?", sector "+l.sector.toLowerCase():""),
+          {v:"top",h:"left",border:true,size:10});
+        ponerFoto(wb,ws,l,c1,c2,r,r+13,FILA);
+      });
+      for(var k=r;k<r+16;k++) ws.getRow(k).height = FILA;
+      r += 17;
+    }
+  });
+  if(!hay) celda(ws,"C"+(r+1)+":K"+(r+1),"No se registraron fotos de liberaciones este día.",{h:"left"});
+  pagina(ws,"L",Math.max(r,8));
+}
+
+function ponerFoto(wb,ws,l,c1,c2,r1,r2,filaPt){
+  var anchos = []; for(var k=colN(c1);k<=colN(c2);k++) anchos.push(pxCol(COLW_PF[String.fromCharCode(64+k)]));
+  var boxW = anchos.reduce(function(a,b){return a+b;},0), filaPx = filaPt*96/72, boxH = (r2-r1+1)*filaPx;
+  var iw = l.fw||4, ih = l.fh||3;
+  var m = 6, s = Math.min((boxW-2*m)/iw,(boxH-2*m)/ih), w = iw*s, h = ih*s;
+  var offX = (boxW-w)/2, offY = (boxH-h)/2;
+  var col = colN(c1)-1, rest = offX, i = 0;
+  while(i<anchos.length && rest>anchos[i]){ rest-=anchos[i]; col++; i++; }
+  var id = wb.addImage({base64:l.foto,extension:"jpeg"});
+  ws.addImage(id,{tl:{col:col+rest/anchos[i],row:(r1-1)+offY/filaPx},ext:{width:w,height:h},editAs:"oneCell"});
 }
 
 function abrirConfig(){
@@ -1394,6 +1742,14 @@ function renderConfig(app){
     fieldWrap("Material",cfgInput(C.overliner.material,"SOBRERREVESTIMIENTO","c_ovm",function(v){C.overliner.material=v;},{up:true})),
     fieldWrap("Espesor",cfgInput(C.overliner.espesor,"0.7 m","c_ove",function(v){C.overliner.espesor=v;}))
   ]));
+
+  /* Reporte diario */
+  var repWrap = el("div");
+  REP_CAMPOS.forEach(function(f){
+    repWrap.appendChild(fieldWrap(f[1],cfgInput(C.reporte[f[0]],f[2],"c_rep_"+f[0],function(v){C.reporte[f[0]]=v;},
+      {num:f[0]==="numRef"})));
+  });
+  app.appendChild(secCard("Reporte diario","Datos del encabezado del Excel. El N° del reporte avanza solo: N° de referencia + días desde su fecha.",[repWrap]));
 
   /* Referencias de cota */
   var refs = el("div");
