@@ -127,6 +127,7 @@
   .copia i{width:10px;height:10px;border-radius:3px;background:#fde68a;border:1px solid #f59e0b;flex:none}
   .copia button{border:none;background:none;color:#92400e;font-size:15px;cursor:pointer;padding:0 2px}
   input.cp{background:#fffbeb;border-color:#f59e0b}
+  .fijo{flex:1;min-width:0;padding:11px 12px;border-radius:8px;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-size:15px;font-weight:600}
   .opts button.on.cp{background:#f59e0b;border-color:#f59e0b;color:#fff}
   .mini{border:none;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;border-radius:6px;padding:5px 9px;margin-top:6px;cursor:pointer;font-family:inherit}
   .buscar{margin-bottom:12px}
@@ -165,6 +166,35 @@ var BP_MODOS = [
   {k:"INTERLIFT", t:"Interlift: plataforma / berma"}
 ];
 var STORE_CFG = "genlib.config.v1", STORE_PREFS = "genlib.prefs.v1";
+
+/* Líneas del texto que se pueden configurar por frente y liberación.
+   [clave, nombre, estados permitidos, predeterminado, nota del predeterminado]
+   S = siempre · O = opcional (la app pregunta) · N = nunca · AUTO = como funcionaba antes */
+var SON = ["S","O","N"], SN = ["S","N"];
+var LINEAS = {
+  RELLENO:[["MAT","Material",SN],["PROC","Procedencia",SON],["CAPA","Capa",SON],["ESP","Espesor",SON],
+           ["AREA","Área",SON],["COTA","Cota",SON],
+           ["PROG","Progresiva",SON,"AUTO","Sin elegir: zanja de anclaje siempre, suelo BP opcional, el resto nunca."],
+           ["ENS","Ensayo",SN],["NENS","N° de ensayo",SON,"O"],["PROT","Protocolo",SN]],
+  SUBDRENES:[["LONG","Long. de tubería (se calcula con la progresiva)",SN],["AREA","Área",SON],["LINEA","Línea",SON],
+             ["COTA","Cota (VARIABLE)",SN],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  SIST_SUBD:[["AREA","Área (solo fundación)",SON],["LONG","Long. de tubería",SON],["GRAVA","Grava y geotextil / Fundación (m²)",SON],
+             ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  FUNDACION:[["AREA","Área",SON],["COTA","Cotas sup. / inf.",SON,"O","Opcional: si no se ingresan, sale COTA: VARIABLE."],
+             ["PROG","Progresiva",SON,"O"],["ENS","Ensayo (NO)",SN],["PROT","Protocolo",SN]],
+  EVALUACION:[["MAT","Material",SN],["AREA","Área",SON],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  OVERLINER:[["MAT","Material",SN],["ESP","Espesor",SN],["AREA","Área",SON],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]]
+};
+/* campo del formulario que guarda la respuesta "¿Ingresar …?" de cada línea opcional */
+var OPID = {
+  RELLENO:{PROC:"opProc",CAPA:"opCapa",ESP:"opEsp",AREA:"opArea",COTA:"opCota",PROG:"progFillBP",NENS:"nroEnsayoChk"},
+  SUBDRENES:{AREA:"opArea",LINEA:"opLinea",PROG:"opProg"},
+  SIST_SUBD:{AREA:"opArea",LONG:"opLong",GRAVA:"opGrava",PROG:"opProg"},
+  FUNDACION:{AREA:"opArea",COTA:"cotasFill",PROG:"progFill"},
+  EVALUACION:{AREA:"opArea",PROG:"opProg"},
+  OVERLINER:{AREA:"opArea"}
+};
+var ESTADO_TXT = {S:"Siempre",O:"Opcional",N:"Nunca"};
 var STORE_CONN = "genlib.conn.v1", STORE_EDITOR = "genlib.editor.v1", STORE_META = "genlib.cfgmeta.v1", STORE_COLA = "genlib.cola.v1";
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -246,7 +276,8 @@ function sanMat(m){
   var ks = COMPORTAMIENTOS.map(function(c){return c.k;});
   return {nombre:String(m.nombre||"").trim(),tipo:ks.indexOf(m.tipo)>=0?m.tipo:"ESTANDAR",
     espesor:String(m.espesor||"").trim(),procFija:String(m.procFija||"").trim(),
-    procOpciones:arrStr(m.procOpciones),cotaRef:String(m.cotaRef||""),parcial:!!m.parcial};
+    procOpciones:arrStr(m.procOpciones),cotaRef:String(m.cotaRef||""),parcial:!!m.parcial,
+    cotasCapa:arrStr(m.cotasCapa)};
 }
 function sanFrente(f){
   f=f||{};
@@ -254,7 +285,19 @@ function sanFrente(f){
     tipos:arrStr(f.tipos).filter(function(k){return TIPO_KEYS.indexOf(k)>=0;}),
     bp:(f.bp==="PAD"||f.bp==="INTERLIFT")?f.bp:"",
     procDefault:arrStr(f.procDefault),
-    materiales:Array.isArray(f.materiales)?f.materiales.map(sanMat).filter(function(m){return !!m.nombre;}):[]};
+    materiales:Array.isArray(f.materiales)?f.materiales.map(sanMat).filter(function(m){return !!m.nombre;}):[],
+    lineas:sanLineas(f.lineas)};
+}
+function sanLineas(src){
+  var o = {};
+  if(!src || typeof src!=="object") return o;
+  TIPO_KEYS.forEach(function(t){
+    var x = src[t]; if(!x || typeof x!=="object") return;
+    var y = {};
+    (LINEAS[t]||[]).forEach(function(d){ if(d[2].indexOf(x[d[0]])>=0) y[d[0]] = x[d[0]]; });
+    if(Object.keys(y).length) o[t] = y;
+  });
+  return o;
 }
 function sanitizeCfg(c){
   var d = defaultConfig();
@@ -296,6 +339,9 @@ function validateFrente(f,i){
       if(!m.nombre) e.push(n+": el material "+(j+1)+" no tiene nombre.");
       else if(seen[m.nombre]) e.push(n+": el material “"+m.nombre+"” está repetido.");
       seen[m.nombre]=1;
+      (m.cotasCapa||[]).forEach(function(l){
+        if(!RE_COTA_CAPA.test(l)) e.push(n+" · "+(m.nombre||"material")+": “"+l+"” no tiene el formato capa = cota.");
+      });
     });
   }
   return e;
@@ -451,6 +497,25 @@ function calcularCota(m,capaNum){
   if(!ref) return "";
   return String(Math.round((ref.base+(capaNum-ref.capaBase)*ref.espesor)*1000)/1000);
 }
+/* tabla "capa = cota" del material; devuelve null si la capa no está */
+var RE_COTA_CAPA = /^(.+?)\s*[=:;\t]\s*(-?\d+(?:[.,]\d+)?)\s*$/;
+function cotaDeTabla(m,capa){
+  if(!m || !m.cotasCapa || !m.cotasCapa.length) return null;
+  var k = String(capa==null?"":capa).trim().toUpperCase();
+  if(!k) return null;
+  for(var i=0;i<m.cotasCapa.length;i++){
+    var p = RE_COTA_CAPA.exec(m.cotasCapa[i]); if(!p) continue;
+    var c = p[1].trim().toUpperCase();
+    if(c===k || (c!=="" && !isNaN(c) && !isNaN(k) && Number(c)===Number(k))) return p[2].replace(",",".");
+  }
+  return null;
+}
+function cotaParaCapa(m,capa,esTexto){
+  var t = cotaDeTabla(m,capa);
+  if(t!=null) return t;
+  return esTexto?"":calcularCota(m,parseFloat(capa));
+}
+function usaCotaAuto(m){ return cotaAuto(m) || !!(m && m.cotasCapa && m.cotasCapa.length); }
 function progLongitud(prog){
   if(!prog) return "";
   function est(s){ var p=s.trim().split("+"); return p.length===2?parseFloat(p[0])*1000+parseFloat(p[1]):parseFloat(s); }
@@ -459,6 +524,14 @@ function progLongitud(prog){
   var a=est(parts[0]), b=est(parts[1]);
   if(isNaN(a)||isNaN(b)) return "";
   return Math.abs(b-a).toFixed(2);
+}
+
+/* estado configurado de una línea (S siempre, O opcional, N nunca, AUTO como siempre funcionó) */
+function defLinea(tipo,k){ return findBy((LINEAS[tipo]||[]).map(function(d){return {k:d[0],d:d};}),"k",k); }
+function estadoLinea(fr,tipo,k){
+  var x = defLinea(tipo,k); if(!x) return "S";
+  var v = fr && fr.lineas && fr.lineas[tipo] && fr.lineas[tipo][k];
+  return x.d[2].indexOf(v)>=0 ? v : (x.d[3]||"S");
 }
 
 function derive(f,frId,tipo){
@@ -478,6 +551,17 @@ function derive(f,frId,tipo){
   var esBanqueta  = showZanja && bp===BP_TIPO.BANQUETA;
   var esPlataforma= showZanja && bp===BP_TIPO.PLATAFORMA;
 
+  /* líneas del texto */
+  var L = function(k){
+    var s = estadoLinea(fr,tipo,k);
+    if(s==="AUTO") s = esZanja?"S":((isSueloBP && tipo==="RELLENO")?"O":"N");
+    return s;
+  };
+  var on = function(k){
+    var s = L(k), op = (OPID[tipo]||{})[k];
+    return s==="S" || (s==="O" && f[op]==="SÍ");
+  };
+
   var showParcial = !!matData && matData.parcial && mt==="ESTANDAR" && tipo==="RELLENO";
   var esParcial = showParcial && f.parcial==="SÍ";
 
@@ -489,12 +573,12 @@ function derive(f,frId,tipo){
   var espesorManualNeeded = !!matData && !matData.espesor && !isApilamiento;
   var capaN = parseInt(f.capa,10);
   var espesorAuto = isApilamiento
-      ? (f.capa && !isNaN(capaN) ? espesorApilamiento(capaN)+" m" : "")
+      ? (f.capa && !isNaN(capaN) && f.capaTxt!=="SÍ" ? espesorApilamiento(capaN)+" m" : "")
       : (matData?matData.espesor:"");
-  var espesor = espesorManualNeeded ? (f.espesorM||"") : espesorAuto;
+  var espesor = f.espVar==="SÍ" ? "VARIABLE" : (espesorManualNeeded ? (f.espesorM||"") : espesorAuto);
 
   var procFija = matData&&matData.procFija?matData.procFija:null;
-  var showProc = !isApilamiento;
+  var showProc = !isApilamiento && tipo==="RELLENO" && on("PROC");
   var procFinal = isApilamiento?null:(procFija||f.procedencia);
   var procOpciones = (matData&&matData.procOpciones.length?matData.procOpciones:null)
       || (fr&&fr.procDefault.length?fr.procDefault:null) || cfg.procDefault;
@@ -503,8 +587,7 @@ function derive(f,frId,tipo){
   var capaFinal = capaFija?"UNICA":(capasBPMode?f.capasBP:f.capa);
   var cotaVar = isSobreRev || isSueloBP;
   var cotaFinal = cotaVar?"VARIABLE":f.cota;
-  var bpSimple = isSueloBP && !esZanja && tipo==="RELLENO";
-  var showProgRell = esZanja || (isSueloBP && tipo==="RELLENO" && f.progFillBP==="SÍ");
+  var showProgRell = tipo==="RELLENO" && on("PROG");
 
   var esSoloFund = f.subtipo===SUBTIPO.SOLO_FUND;
   var esFundTub = f.subtipo===SUBTIPO.FUND_TUB;
@@ -513,136 +596,150 @@ function derive(f,frId,tipo){
   var gravaLabel = esFundTub?"FUNDACIÓN":(isSist?"GRAVA Y GEOTEXTIL":"GRAVA");
   var tubLabel = f.tuberia===DIAM_DOBLE?"Ø100/450 mm":"Ø"+f.tuberia+"mm";
   var tuberiaOpciones = isSist?["100","450",DIAM_DOBLE]:["100","300"];
-  var fundCotasOk = f.cotasFill!=="SÍ" || (!!f.cotaSup && !!f.cotaInf);
-  var fundProgOk = f.progFill!=="SÍ" || !!f.progFund;
+  var fundCotas = tipo==="FUNDACION" && on("COTA");
   var subLongTub = progLongitud(f.progresiva);
   var sup = f.supervisor?f.supervisor.toUpperCase():"";
+
+  /* puertas de la capa de relleno */
+  var ensOk = L("ENS")==="N" || !!f.ensayo;
+  var nroOk = !on("NENS") || !!f.nroEnsayo;
 
   return {fr:fr,matData:matData,isApilamiento:isApilamiento,isSobreRev:isSobreRev,isSueloBP:isSueloBP,
     isInterlift:isInterlift,bpTipos:bpTipos,showZanja:showZanja,
     esZanja:esZanja,esBerma:esBerma,esBanqueta:esBanqueta,esPlataforma:esPlataforma,
     capasBPMode:capasBPMode,capasBPOpts:capasBPOpts,capaLibre:capaLibre,
     showParcial:showParcial,esParcial:esParcial,capaFija:capaFija,
-    espesorManualNeeded:espesorManualNeeded,espesor:espesor,procFija:procFija,showProc:showProc,
+    espesorManualNeeded:espesorManualNeeded,espesor:espesor,espesorAuto:espesorAuto,procFija:procFija,showProc:showProc,
     procFinal:procFinal,procOpciones:procOpciones,showSiguiente:showSiguiente,capaFinal:capaFinal,
-    cotaFinal:cotaFinal,cotaVar:cotaVar,bpSimple:bpSimple,showProgRell:showProgRell,
+    cotaFinal:cotaFinal,cotaVar:cotaVar,showProgRell:showProgRell,
     esSoloFund:esSoloFund,esFundTub:esFundTub,esDoble:esDoble,gravaLabel:gravaLabel,
-    tubLabel:tubLabel,tuberiaOpciones:tuberiaOpciones,fundCotasOk:fundCotasOk,fundProgOk:fundProgOk,
-    subLongTub:subLongTub,sup:sup};
+    tubLabel:tubLabel,tuberiaOpciones:tuberiaOpciones,fundCotas:fundCotas,
+    subLongTub:subLongTub,sup:sup,L:L,on:on,ensOk:ensOk,nroOk:nroOk};
 }
 
 /* ════════════════════════════════════════════════════════════════
    ESQUEMAS DE CADA TIPO DE LIBERACIÓN
+   seq:true = aparece solo cuando todo lo anterior está completo
    ════════════════════════════════════════════════════════════════ */
-function supervisorField(visible){
-  return {id:"supervisor",type:"select",label:"Supervisor CQC",
+function supervisorField(visible,seq){
+  return {id:"supervisor",type:"select",label:"Supervisor CQC",seq:!!seq,
     options:function(){return cfg.supervisores;},visible:visible,
     afterChange:function(val,next){ prefs.supervisor=val; savePrefs(); return next; }};
 }
+/* pregunta "¿Ingresar …?" para una línea opcional */
+function opT(tipo,k,label,base,afterChange,seq){
+  return {id:OPID[tipo][k],type:"toggle",label:label,seq:!!seq,
+    visible:function(ctx){ return ctx.d.L(k)==="O" && (!base || base(ctx)); },
+    afterChange:afterChange};
+}
+function no(k){ return function(ctx){ return ctx.d.L(k)!=="N"; }; }
+function si(k){ return function(ctx){ return ctx.d.on(k); }; }
 
 var SCHEMAS = {};
 
-SCHEMAS.RELLENO = {
-  fields:[
-    {id:"material",type:"select",label:"Material",
-     options:function(ctx){return ctx.d.fr?ctx.d.fr.materiales.map(function(m){return m.nombre;}):[];},
-     afterChange:function(val,next,env){
-       var md = getMat(getFrente(env.estructura),val);
-       next.espesorM = (md&&md.tipo==="SUELO_BP")?"0.3 m":"";
-       next.procedencia="";next.protocolo="";next.bpTipo="";next.progresiva="";
-       next.parcial="NO";next.parcialTexto="";next.nroEnsayoChk="NO";next.nroEnsayo="";next.capasBP="";
-       next.detalleRell="";next.sinDetalleRell="SÍ";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
-       next.capa="";next.cota="";next.ensayo="SÍ";
-       return next;}},
-    {id:"bpTipo",type:"btns",label:"Tipo de estructura",
-     options:function(ctx){return ctx.d.bpTipos||[];},
-     visible:function(ctx){return ctx.d.showZanja;},
-     required:function(ctx){return ctx.d.showZanja;},
-     afterChange:function(val,next){
-       next.capa="";next.capasBP="";next.progresiva="";next.progFillBP="NO";
-       next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="SÍ";
-       if(val===BP_TIPO.ZANJA){ next.espesorM="0.2 m"; next.ensayo=""; }
-       else if(val===BP_TIPO.BERMA){ next.espesorM="0.3 m"; next.ensayo=""; }
-       else { next.espesorM="0.3 m"; next.ensayo="SÍ"; }
-       return next;}},
-    {id:"bermaPos",type:"btns",label:"Ubicación de banqueta",
-     options:function(){return ["INFERIOR","INTERMEDIA","SUPERIOR"];},
-     visible:function(ctx){return ctx.d.esBanqueta;},
-     required:function(ctx){return ctx.d.esBanqueta;},
-     valid:function(ctx){return !ctx.d.esBanqueta || !!ctx.f.bermaPos || !!ctx.f.detalleBerma;}},
-    {id:"detalleBerma",type:"text",label:"Otro detalle (opcional)",placeholder:"Ej: TRAMO NORTE",
-     visible:function(ctx){return ctx.d.esBanqueta;},required:function(){return false;}},
-    {id:"detalleRell",type:"detalleOpc",sinId:"sinDetalleRell",label:"Detalle adicional",placeholder:"Ej: TRAMO NORTE",
-     visible:function(ctx){return ctx.d.showZanja && !!ctx.f.bpTipo && !ctx.d.esBanqueta;},
-     valid:function(){return true;}},
-    {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",
-     visible:function(ctx){return ctx.d.showParcial;},
-     afterChange:function(val,next){ next.parcialTexto = val==="SÍ"?"HOMBRO":""; next.ensayo = val==="SÍ"?"NO":"SÍ"; return next;}},
-    {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
-     visible:function(ctx){return ctx.d.esParcial;},required:function(ctx){return ctx.d.esParcial;}},
-    {id:"capa",type:"number",label:"Capa",placeholder:"Ej: 9",
-     visible:function(ctx){return !!ctx.f.material && !ctx.d.capasBPMode && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
-     info:function(ctx){return ctx.d.capaFija?{label:"Capa",value:"UNICA"}:null;},
-     valid:function(ctx){return !!ctx.d.capaFinal;},
-     afterChange:function(val,next,env){
-       var md = getMat(getFrente(env.estructura),next.material);
-       if(cotaAuto(md)) next.cota = calcularCota(md,parseFloat(val));
-       return next;}},
-    {id:"capasBP",type:"btns",label:"N° de capas",
-     options:function(ctx){return ctx.d.capasBPOpts;},
-     visible:function(ctx){return ctx.d.capasBPMode;},
-     required:function(ctx){return ctx.d.capasBPMode;},
-     afterChange:function(val,next){
-       if(/BERMA/.test(next.bpTipo||"")) next.ensayo = (val==="2"||val==="4")?"SÍ":"NO";
-       else next.ensayo = val==="1"?"NO":"SÍ";
-       return next;}},
-    {id:"espesorM",type:"text",label:"Espesor",placeholder:"Ej: 0.3 m",
-     visible:function(ctx){return !!ctx.f.material && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
-     info:function(ctx){return ctx.d.espesorManualNeeded?null:{label:"Espesor asignado",value:ctx.d.espesor};},
-     valid:function(ctx){return !!ctx.d.espesor;}},
-    {id:"procedencia",type:"select",label:"Procedencia",
-     options:function(ctx){return ctx.d.procOpciones;},
-     visible:function(ctx){return !!ctx.f.material && ctx.d.showProc && (!ctx.d.showZanja || !!ctx.f.bpTipo);},
-     info:function(ctx){return ctx.d.procFija?{label:"Procedencia",value:ctx.d.procFija}:null;},
-     required:function(ctx){return ctx.d.showProc;},valid:function(ctx){return !!ctx.d.procFinal;}},
-    {id:"cota",type:"number",label:"Cota (msnm)",placeholder:"Ej: 2573",
-     visible:function(ctx){return ctx.d.showSiguiente;},
-     info:function(ctx){return ctx.d.cotaVar?{label:"Cota",value:"VARIABLE"}:null;},
-     valid:function(ctx){return !!ctx.d.cotaFinal;}},
-    {id:"area",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",
-     visible:function(ctx){return ctx.d.showSiguiente;}},
-    {id:"progFillBP",type:"toggle",label:"¿Ingresar progresiva?",
-     visible:function(ctx){return ctx.d.showSiguiente && ctx.d.bpSimple;},
-     afterChange:function(val,next){ next.progresiva=""; return next;}},
-    {id:"progresiva",type:"progresiva",label:"Progresiva",
-     visible:function(ctx){return ctx.d.showSiguiente && ctx.d.showProgRell;},
-     required:function(ctx){return ctx.d.showProgRell;}},
-    {id:"ensayo",type:"toggle",label:"¿Aplica Ensayo?",
-     visible:function(ctx){return ctx.d.showSiguiente;}},
-    {id:"nroEnsayoChk",type:"toggle",label:"¿Ingresar N° de ensayo?",
-     visible:function(ctx){return ctx.d.showSiguiente && !!ctx.f.ensayo;},
-     afterChange:function(val,next){ next.nroEnsayo=""; return next;}},
-    {id:"nroEnsayo",type:"text",label:"N° de ensayo",placeholder:"Ej: DM-001",
-     visible:function(ctx){return ctx.d.showSiguiente && ctx.f.nroEnsayoChk==="SÍ";},
-     required:function(ctx){return ctx.f.nroEnsayoChk==="SÍ";}},
-    {id:"protocolo",type:"toggle",label:"Protocolo",
-     visible:function(ctx){return ctx.d.showSiguiente && !!ctx.f.ensayo && (ctx.f.nroEnsayoChk!=="SÍ"||!!ctx.f.nroEnsayo);}},
-    supervisorField(function(ctx){return !!ctx.f.protocolo;})
-  ],
-  output:[
-    function(ctx){return "MATERIAL: "+ctx.f.material;},
-    function(ctx){return ctx.d.isApilamiento?null:"PROCEDENCIA: "+ctx.d.procFinal;},
-    function(ctx){return "CAPA: "+ctx.d.capaFinal;},
-    function(ctx){return "ESPESOR: "+ctx.d.espesor;},
-    function(ctx){return "ÁREA: "+ctx.f.area+" m²";},
-    function(ctx){return "COTA: "+ctx.d.cotaFinal+(ctx.d.cotaFinal==="VARIABLE"?"":" msnm");},
-    function(ctx){return ctx.d.showProgRell?"PROGRESIVA: "+ctx.f.progresiva:null;},
-    function(ctx){return "ENSAYO: "+ctx.f.ensayo;},
-    function(ctx){return ctx.f.nroEnsayoChk==="SÍ"?"N° ENSAYO: "+ctx.f.nroEnsayo:null;},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protocolo;},
-    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
-  ]
-};
+(function(){
+  function baseMat(ctx){ return !!ctx.f.material && (!ctx.d.showZanja || !!ctx.f.bpTipo); }
+  function g1(ctx){ return ctx.d.showSiguiente; }
+  function procBase(ctx){ return baseMat(ctx) && !ctx.d.isApilamiento; }
+  SCHEMAS.RELLENO = {
+    fields:[
+      {id:"material",type:"select",label:"Material",
+       options:function(ctx){return ctx.d.fr?ctx.d.fr.materiales.map(function(m){return m.nombre;}):[];},
+       afterChange:function(val,next,env){
+         var md = getMat(getFrente(env.estructura),val);
+         next.espesorM = (md&&md.tipo==="SUELO_BP")?"0.3 m":"";
+         next.procedencia="";next.protocolo="";next.bpTipo="";next.progresiva="";
+         next.parcial="NO";next.parcialTexto="";next.nroEnsayoChk="NO";next.nroEnsayo="";next.capasBP="";
+         next.detalleRell="";next.sinDetalleRell="SÍ";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
+         next.capa="";next.cota="";next.ensayo="SÍ";next.capaTxt="";next.espVar="";
+         return next;}},
+      {id:"bpTipo",type:"btns",label:"Tipo de estructura",
+       options:function(ctx){return ctx.d.bpTipos||[];},
+       visible:function(ctx){return ctx.d.showZanja;},
+       afterChange:function(val,next){
+         next.capa="";next.capasBP="";next.progresiva="";next.progFillBP="NO";
+         next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="SÍ";
+         if(val===BP_TIPO.ZANJA){ next.espesorM="0.2 m"; next.ensayo=""; }
+         else if(val===BP_TIPO.BERMA){ next.espesorM="0.3 m"; next.ensayo=""; }
+         else { next.espesorM="0.3 m"; next.ensayo="SÍ"; }
+         return next;}},
+      {id:"bermaPos",type:"btns",label:"Ubicación de banqueta",
+       options:function(){return ["INFERIOR","INTERMEDIA","SUPERIOR"];},
+       visible:function(ctx){return ctx.d.esBanqueta;},
+       valid:function(ctx){return !!ctx.f.bermaPos || !!ctx.f.detalleBerma;}},
+      {id:"detalleBerma",type:"text",label:"Otro detalle (opcional)",placeholder:"Ej: TRAMO NORTE",
+       visible:function(ctx){return ctx.d.esBanqueta;},required:function(){return false;}},
+      {id:"detalleRell",type:"detalleOpc",sinId:"sinDetalleRell",label:"Detalle adicional",placeholder:"Ej: TRAMO NORTE",
+       visible:function(ctx){return ctx.d.showZanja && !!ctx.f.bpTipo && !ctx.d.esBanqueta;},
+       valid:function(){return true;}},
+      {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",
+       visible:function(ctx){return ctx.d.showParcial;},
+       afterChange:function(val,next){ next.parcialTexto = val==="SÍ"?"HOMBRO":""; next.ensayo = val==="SÍ"?"NO":"SÍ"; return next;}},
+      {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
+       visible:function(ctx){return ctx.d.esParcial;}},
+      opT("RELLENO","CAPA","¿Ingresar capa?",baseMat),
+      {id:"capa",type:"capa",label:"Capa",placeholder:"Ej: 9",
+       visible:function(ctx){return baseMat(ctx) && ctx.d.on("CAPA") && !ctx.d.capasBPMode;},
+       info:function(ctx){return ctx.d.capaFija?{label:"Capa",value:"UNICA"}:null;},
+       valid:function(ctx){return !!ctx.d.capaFinal;},
+       afterChange:function(val,next,env){
+         var md = getMat(getFrente(env.estructura),next.material);
+         if(usaCotaAuto(md)) next.cota = cotaParaCapa(md,val,next.capaTxt==="SÍ");
+         return next;}},
+      {id:"capasBP",type:"btns",label:"N° de capas",
+       options:function(ctx){return ctx.d.capasBPOpts;},
+       visible:function(ctx){return ctx.d.capasBPMode && ctx.d.on("CAPA");},
+       afterChange:function(val,next){
+         if(/BERMA/.test(next.bpTipo||"")) next.ensayo = (val==="2"||val==="4")?"SÍ":"NO";
+         else next.ensayo = val==="1"?"NO":"SÍ";
+         return next;}},
+      opT("RELLENO","ESP","¿Ingresar espesor?",baseMat),
+      {id:"espesorM",type:"espesor",label:"Espesor",placeholder:"Ej: 0.3 m",
+       visible:function(ctx){return baseMat(ctx) && ctx.d.on("ESP");},
+       valid:function(ctx){return !!ctx.d.espesor;}},
+      opT("RELLENO","PROC","¿Ingresar procedencia?",procBase),
+      {id:"procedencia",type:"select",label:"Procedencia",
+       options:function(ctx){return ctx.d.procOpciones;},
+       visible:function(ctx){return procBase(ctx) && ctx.d.showProc;},
+       info:function(ctx){return ctx.d.procFija?{label:"Procedencia",value:ctx.d.procFija}:null;},
+       valid:function(ctx){return !!ctx.d.procFinal;}},
+      opT("RELLENO","COTA","¿Ingresar cota?",g1),
+      {id:"cota",type:"number",label:"Cota (msnm)",placeholder:"Ej: 2573",
+       visible:function(ctx){return g1(ctx) && ctx.d.on("COTA");},
+       info:function(ctx){return ctx.d.cotaVar?{label:"Cota",value:"VARIABLE"}:null;},
+       valid:function(ctx){return !!ctx.d.cotaFinal;}},
+      opT("RELLENO","AREA","¿Ingresar área?",g1),
+      {id:"area",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",
+       visible:function(ctx){return g1(ctx) && ctx.d.on("AREA");}},
+      opT("RELLENO","PROG","¿Ingresar progresiva?",g1,function(val,next){ next.progresiva=""; return next; }),
+      {id:"progresiva",type:"progresiva",label:"Progresiva",
+       visible:function(ctx){return g1(ctx) && ctx.d.showProgRell;}},
+      {id:"ensayo",type:"toggle",label:"¿Aplica Ensayo?",
+       visible:function(ctx){return g1(ctx) && ctx.d.L("ENS")!=="N";}},
+      opT("RELLENO","NENS","¿Ingresar N° de ensayo?",function(ctx){return g1(ctx) && ctx.d.ensOk;},
+          function(val,next){ next.nroEnsayo=""; return next; }),
+      {id:"nroEnsayo",type:"text",label:"N° de ensayo",placeholder:"Ej: DM-001",
+       visible:function(ctx){return g1(ctx) && ctx.d.ensOk && ctx.d.on("NENS");}},
+      {id:"protocolo",type:"toggle",label:"Protocolo",
+       visible:function(ctx){return ctx.d.L("PROT")!=="N" && g1(ctx) && ctx.d.ensOk && ctx.d.nroOk;}},
+      supervisorField(function(ctx){
+        return ctx.d.L("PROT")==="N" ? (g1(ctx) && ctx.d.ensOk && ctx.d.nroOk) : !!ctx.f.protocolo; })
+    ],
+    output:[
+      function(ctx){return ctx.d.L("MAT")==="N"?null:"MATERIAL: "+ctx.f.material;},
+      function(ctx){return (ctx.d.isApilamiento||!ctx.d.on("PROC"))?null:"PROCEDENCIA: "+ctx.d.procFinal;},
+      function(ctx){return ctx.d.on("CAPA")?"CAPA: "+ctx.d.capaFinal:null;},
+      function(ctx){return ctx.d.on("ESP")?"ESPESOR: "+ctx.d.espesor:null;},
+      function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.area+" m²":null;},
+      function(ctx){return ctx.d.on("COTA")?"COTA: "+ctx.d.cotaFinal+(ctx.d.cotaFinal==="VARIABLE"?"":" msnm"):null;},
+      function(ctx){return ctx.d.showProgRell?"PROGRESIVA: "+ctx.f.progresiva:null;},
+      function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayo:null;},
+      function(ctx){return ctx.d.on("NENS")?"N° ENSAYO: "+ctx.f.nroEnsayo:null;},
+      function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protocolo:null;},
+      function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+    ]
+  };
+})();
 
 SCHEMAS.SUBDRENES = {
   fields:[
@@ -650,32 +747,33 @@ SCHEMAS.SUBDRENES = {
      options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
      resets:["tuberia","grava","linea","progresiva","ensayoSub","protSub"],
      afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
-    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",
-     options:function(ctx){return ctx.d.tuberiaOpciones;},
-     visible:function(ctx){return !!ctx.f.subtipo;},resets:["linea"]},
-    {id:"progresiva",type:"progresiva",label:"Progresiva",visible:function(ctx){return !!ctx.f.tuberia;}},
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",seq:true,
+     options:function(ctx){return ctx.d.tuberiaOpciones;},resets:["linea"]},
+    opT("SUBDRENES","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,
+     visible:function(ctx){return ctx.d.on("PROG") || (ctx.d.L("LONG")!=="N" && !ctx.d.esSoloFund);}},
     {id:"_longCalc",type:"info",infoLabel:function(ctx){return "Long. tubería ("+ctx.d.tubLabel+")";},
      compute:function(ctx){return ctx.d.subLongTub?ctx.d.subLongTub+" m":"—";},
-     visible:function(ctx){return !!ctx.f.progresiva && !ctx.d.esSoloFund;},required:function(){return false;}},
-    {id:"grava",type:"number",label:"Área (m²)",placeholder:"Ej: 139.80",
-     visible:function(ctx){return !!ctx.f.progresiva;}},
-    {id:"linea",type:"select",label:"Línea",
-     options:function(ctx){return cfg.lineas[ctx.f.tuberia]||[];},
-     visible:function(ctx){return !!ctx.f.grava;}},
-    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},
-     visible:function(ctx){return !!ctx.f.linea;},required:function(){return false;}},
-    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.linea;}},
-    {id:"protSub",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.linea;}},
-    supervisorField(function(ctx){return !!ctx.f.protSub;})
+     visible:function(ctx){return !!ctx.f.progresiva && !ctx.d.esSoloFund && ctx.d.L("LONG")!=="N";},required:function(){return false;}},
+    opT("SUBDRENES","AREA","¿Ingresar área?",null,null,true),
+    {id:"grava",type:"number",label:"Área (m²)",placeholder:"Ej: 139.80",seq:true,visible:si("AREA")},
+    opT("SUBDRENES","LINEA","¿Ingresar línea?",null,null,true),
+    {id:"linea",type:"select",label:"Línea",seq:true,visible:si("LINEA"),
+     options:function(ctx){return cfg.lineas[ctx.f.tuberia]||[];}},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
   ],
   output:[
-    function(ctx){return ctx.d.esSoloFund?null:"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.d.subLongTub+" m";},
-    function(ctx){return "ÁREA: "+ctx.f.grava+" m²";},
-    function(ctx){return "LÍNEA: "+ctx.f.linea;},
-    function(){return "COTA: VARIABLE";},
-    function(ctx){return "PROGRESIVA: "+ctx.f.progresiva;},
-    function(ctx){return "ENSAYO: "+ctx.f.ensayoSub;},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protSub;},
+    function(ctx){return (ctx.d.esSoloFund||ctx.d.L("LONG")==="N")?null:"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.d.subLongTub+" m";},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.grava+" m²":null;},
+    function(ctx){return ctx.d.on("LINEA")?"LÍNEA: "+ctx.f.linea:null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoSub:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protSub:null;},
     function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
   ]
 };
@@ -686,60 +784,60 @@ SCHEMAS.SIST_SUBD = {
      options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
      resets:["tuberia","longTub","longTub2","grava","areaSub","linea","progresiva","ensayoSub","protSub"],
      afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
-    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",
-     options:function(ctx){return ctx.d.tuberiaOpciones;},
-     visible:function(ctx){return !!ctx.f.subtipo;},resets:["linea","longTub2"]},
-    {id:"areaSub",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",
-     visible:function(ctx){return ctx.d.esSoloFund && !!ctx.f.tuberia;},
-     required:function(ctx){return ctx.d.esSoloFund;}},
-    {id:"longTub",type:"number",placeholder:"Ej: 108.2",
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",seq:true,
+     options:function(ctx){return ctx.d.tuberiaOpciones;},resets:["linea","longTub2"]},
+    opT("SIST_SUBD","AREA","¿Ingresar área?",function(ctx){return ctx.d.esSoloFund;},null,true),
+    {id:"areaSub",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,
+     visible:function(ctx){return ctx.d.esSoloFund && ctx.d.on("AREA");}},
+    opT("SIST_SUBD","LONG","¿Ingresar longitud de tubería?",function(ctx){return !ctx.d.esSoloFund;},null,true),
+    {id:"longTub",type:"number",placeholder:"Ej: 108.2",seq:true,
      label:function(ctx){return ctx.d.esDoble?"Longitud tubería Ø100 (m)":"Longitud de tubería (m)";},
-     visible:function(ctx){return !!ctx.f.tuberia && !ctx.d.esSoloFund;},
-     required:function(ctx){return !ctx.d.esSoloFund;}},
-    {id:"longTub2",type:"number",label:"Longitud tubería Ø450 (m)",placeholder:"Ej: 95.40",
-     visible:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund && !!ctx.f.longTub;},
-     required:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund;}},
-    {id:"grava",type:"number",placeholder:"Ej: 139.80",
+     visible:function(ctx){return !ctx.d.esSoloFund && ctx.d.on("LONG");}},
+    {id:"longTub2",type:"number",label:"Longitud tubería Ø450 (m)",placeholder:"Ej: 95.40",seq:true,
+     visible:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund && ctx.d.on("LONG");}},
+    opT("SIST_SUBD","GRAVA","¿Ingresar grava / fundación?",function(ctx){return !ctx.d.esSoloFund;},null,true),
+    {id:"grava",type:"number",placeholder:"Ej: 139.80",seq:true,
      label:function(ctx){return ctx.d.gravaLabel+" (m²)";},
-     visible:function(ctx){return !ctx.d.esSoloFund && (ctx.d.esDoble?!!ctx.f.longTub2:!!ctx.f.longTub);},
-     required:function(ctx){return !ctx.d.esSoloFund;}},
-    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},
-     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;},required:function(){return false;}},
-    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",
-     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;}},
-    {id:"protSub",type:"toggle",label:"Protocolo",
-     visible:function(ctx){return ctx.d.esSoloFund?!!ctx.f.areaSub:!!ctx.f.grava;}},
-    supervisorField(function(ctx){return !!ctx.f.protSub;})
+     visible:function(ctx){return !ctx.d.esSoloFund && ctx.d.on("GRAVA");}},
+    opT("SIST_SUBD","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
   ],
   output:[
-    function(ctx){return ctx.d.esSoloFund?"ÁREA: "+ctx.f.areaSub+" m²":null;},
-    function(ctx){return ctx.d.esSoloFund?null:(ctx.d.esDoble?"LONG. TUB (Ø100mm): "+ctx.f.longTub+" m":"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.f.longTub+" m");},
-    function(ctx){return (ctx.d.esDoble&&!ctx.d.esSoloFund)?"LONG. TUB (Ø450mm): "+ctx.f.longTub2+" m":null;},
-    function(ctx){return ctx.d.esSoloFund?null:ctx.d.gravaLabel+": "+ctx.f.grava+" m²";},
-    function(){return "COTA: VARIABLE";},
-    function(ctx){return "ENSAYO: "+ctx.f.ensayoSub;},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protSub;},
+    function(ctx){return (ctx.d.esSoloFund&&ctx.d.on("AREA"))?"ÁREA: "+ctx.f.areaSub+" m²":null;},
+    function(ctx){return (ctx.d.esSoloFund||!ctx.d.on("LONG"))?null:(ctx.d.esDoble?"LONG. TUB (Ø100mm): "+ctx.f.longTub+" m":"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.f.longTub+" m");},
+    function(ctx){return (ctx.d.esDoble&&!ctx.d.esSoloFund&&ctx.d.on("LONG"))?"LONG. TUB (Ø450mm): "+ctx.f.longTub2+" m":null;},
+    function(ctx){return (ctx.d.esSoloFund||!ctx.d.on("GRAVA"))?null:ctx.d.gravaLabel+": "+ctx.f.grava+" m²";},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoSub:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protSub:null;},
     function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
   ]
 };
 
 SCHEMAS.OVERLINER = {
   fields:[
-    {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return cfg.overliner.material;},required:function(){return false;}},
-    {id:"_espFijo",type:"info",infoLabel:"Espesor",compute:function(){return cfg.overliner.espesor;},required:function(){return false;}},
-    {id:"_cotaFijo",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},required:function(){return false;}},
-    {id:"areaOver",type:"number",label:"Área (m²)",placeholder:"Ej: 1500"},
-    {id:"ensayoOver",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.areaOver;}},
-    {id:"protOver",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.ensayoOver;}},
-    supervisorField(function(ctx){return !!ctx.f.protOver;})
+    {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return cfg.overliner.material;},visible:no("MAT"),required:function(){return false;}},
+    {id:"_espFijo",type:"info",infoLabel:"Espesor",compute:function(){return cfg.overliner.espesor;},visible:no("ESP"),required:function(){return false;}},
+    {id:"_cotaFijo",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},visible:no("COTA"),required:function(){return false;}},
+    opT("OVERLINER","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaOver",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",seq:true,visible:si("AREA")},
+    {id:"ensayoOver",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protOver",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
   ],
   output:[
-    function(){return "MATERIAL: "+cfg.overliner.material;},
-    function(){return "ESPESOR: "+cfg.overliner.espesor;},
-    function(ctx){return "ÁREA: "+ctx.f.areaOver+" m²";},
-    function(){return "COTA: VARIABLE";},
-    function(ctx){return "ENSAYO: "+ctx.f.ensayoOver;},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protOver;},
+    function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: "+cfg.overliner.material:null;},
+    function(ctx){return ctx.d.L("ESP")!=="N"?"ESPESOR: "+cfg.overliner.espesor:null;},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaOver+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoOver:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protOver:null;},
     function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
   ]
 };
@@ -748,38 +846,29 @@ SCHEMAS.FUNDACION = {
   fields:[
     {id:"detalleFund",type:"detalleOpc",sinId:"sinDetalleFund",label:"Detalle de fundación",placeholder:"Ej: ZONA DE ESTRIBO",
      valid:function(){return true;}},
-    {id:"areaFund",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515"},
-    {id:"cotasFill",type:"toggle",label:"¿Ingresar cotas sup./inf.?",
-     visible:function(ctx){return !!ctx.f.areaFund;},
-     afterChange:function(val,next){ next.cotaSup=""; next.cotaInf=""; return next;}},
-    {id:"cotaSup",type:"number",label:"Cota Superior (msnm)",placeholder:"Ej: 2811",
-     visible:function(ctx){return !!ctx.f.areaFund;},
-     info:function(ctx){return ctx.f.cotasFill==="SÍ"?null:{label:"Cota Superior",value:"VARIABLE"};},
-     valid:function(ctx){return ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaSup;}},
-    {id:"cotaInf",type:"number",label:"Cota Inferior (msnm)",placeholder:"Ej: 2809",
-     visible:function(ctx){return !!ctx.f.areaFund && (ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaSup);},
-     info:function(ctx){return ctx.f.cotasFill==="SÍ"?null:{label:"Cota Inferior",value:"VARIABLE"};},
-     valid:function(ctx){return ctx.f.cotasFill!=="SÍ"||!!ctx.f.cotaInf;}},
-    {id:"progFill",type:"toggle",label:"¿Ingresar progresiva?",
-     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk;},
-     afterChange:function(val,next){ next.progFund=""; return next;}},
-    {id:"progFund",type:"progresiva",label:"Progresiva",
-     visible:function(ctx){return ctx.f.progFill==="SÍ";},
-     required:function(ctx){return ctx.f.progFill==="SÍ";},
-     valid:function(ctx){return ctx.f.progFill!=="SÍ"||!!ctx.f.progFund;}},
-    {id:"_ensayoFundFijo",type:"info",infoLabel:"Ensayo",compute:function(){return "NO";},
-     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk && ctx.d.fundProgOk;},required:function(){return false;}},
-    {id:"protFund",type:"toggle",label:"Protocolo",
-     visible:function(ctx){return !!ctx.f.areaFund && ctx.d.fundCotasOk && ctx.d.fundProgOk;}},
-    supervisorField(function(ctx){return !!ctx.f.protFund;})
+    opT("FUNDACION","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaFund",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,visible:si("AREA")},
+    opT("FUNDACION","COTA","¿Ingresar cotas sup./inf.?",null,function(val,next){ next.cotaSup=""; next.cotaInf=""; return next;},true),
+    {id:"cotaSup",type:"number",label:"Cota Superior (msnm)",placeholder:"Ej: 2811",seq:true,visible:no("COTA"),
+     info:function(ctx){return ctx.d.fundCotas?null:{label:"Cota Superior",value:"VARIABLE"};},
+     valid:function(ctx){return !ctx.d.fundCotas||!!ctx.f.cotaSup;}},
+    {id:"cotaInf",type:"number",label:"Cota Inferior (msnm)",placeholder:"Ej: 2809",seq:true,visible:no("COTA"),
+     info:function(ctx){return ctx.d.fundCotas?null:{label:"Cota Inferior",value:"VARIABLE"};},
+     valid:function(ctx){return !ctx.d.fundCotas||!!ctx.f.cotaInf;}},
+    opT("FUNDACION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progFund=""; return next;},true),
+    {id:"progFund",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_ensayoFundFijo",type:"info",infoLabel:"Ensayo",compute:function(){return "NO";},seq:true,
+     visible:no("ENS"),required:function(){return false;}},
+    {id:"protFund",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
   ],
   output:[
-    function(ctx){return "ÁREA: "+ctx.f.areaFund+" m²";},
-    function(ctx){return ctx.f.cotasFill==="SÍ"?"COTA SUP.: "+ctx.f.cotaSup:"COTA: VARIABLE";},
-    function(ctx){return ctx.f.cotasFill==="SÍ"?"COTA INF.: "+ctx.f.cotaInf:null;},
-    function(ctx){return ctx.f.progFill==="SÍ"?"PROGRESIVA: "+ctx.f.progFund:null;},
-    function(){return "ENSAYO: NO";},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protFund;},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaFund+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")==="N"?null:(ctx.d.fundCotas?"COTA SUP.: "+ctx.f.cotaSup:"COTA: VARIABLE");},
+    function(ctx){return ctx.d.fundCotas?"COTA INF.: "+ctx.f.cotaInf:null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progFund:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: NO":null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protFund:null;},
     function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
   ]
 };
@@ -788,19 +877,20 @@ SCHEMAS.EVALUACION = {
   fields:[
     {id:"materialEval",type:"select",label:"Material",
      options:function(){return cfg.materialesEval;}},
-    {id:"areaEval",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",
-     visible:function(ctx){return !!ctx.f.materialEval;}},
-    {id:"progEval",type:"progresiva",label:"Progresiva",visible:function(ctx){return !!ctx.f.areaEval;}},
-    {id:"ensayoEval",type:"toggle",label:"¿Aplica Ensayo?",visible:function(ctx){return !!ctx.f.progEval;}},
-    {id:"protEval",type:"toggle",label:"Protocolo",visible:function(ctx){return !!ctx.f.ensayoEval;}},
-    supervisorField(function(ctx){return !!ctx.f.protEval;})
+    opT("EVALUACION","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaEval",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,visible:si("AREA")},
+    opT("EVALUACION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progEval=""; return next;},true),
+    {id:"progEval",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"ensayoEval",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protEval",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
   ],
   output:[
-    function(ctx){return "MATERIAL: "+ctx.f.materialEval;},
-    function(ctx){return "ÁREA: "+ctx.f.areaEval+" m²";},
-    function(ctx){return "PROGRESIVA: "+ctx.f.progEval;},
-    function(ctx){return "ENSAYO: "+ctx.f.ensayoEval;},
-    function(ctx){return "PROTOCOLO: "+ctx.f.protEval;},
+    function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: "+ctx.f.materialEval:null;},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaEval+" m²":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progEval:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoEval:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protEval:null;},
     function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
   ]
 };
@@ -809,17 +899,35 @@ var INITIAL_FORM = {
   material:"",procedencia:"",espesorM:"",capa:"",capasBP:"",cota:"",area:"",ensayo:"",protocolo:"",
   bpTipo:"",parcial:"NO",parcialTexto:"",nroEnsayoChk:"NO",nroEnsayo:"",progresiva:"",
   detalleRell:"",sinDetalleRell:"SÍ",progFillBP:"NO",bermaPos:"",detalleBerma:"",
+  capaTxt:"",espVar:"",
   subtipo:"",tuberia:"",longTub:"",longTub2:"",grava:"",areaSub:"",linea:"",ensayoSub:"NO",protSub:"",
   areaFund:"",cotaSup:"",cotaInf:"",protFund:"",detalleFund:"",sinDetalleFund:"SÍ",
   cotasFill:"NO",progFill:"NO",progFund:"",
   materialEval:"",areaEval:"",progEval:"",ensayoEval:"SÍ",protEval:"",
   areaOver:"",ensayoOver:"SÍ",protOver:"",
+  opProc:"NO",opCapa:"NO",opEsp:"NO",opArea:"NO",opCota:"NO",opProg:"NO",opLinea:"NO",opLong:"NO",opGrava:"NO",
   supervisor:""
 };
-var RESET_DEFAULTS = {ensayoSub:"NO",parcial:"NO",cotasFill:"NO",progFill:"NO",nroEnsayoChk:"NO",progFillBP:"NO"};
+var RESET_DEFAULTS = {ensayoSub:"NO",parcial:"NO",cotasFill:"NO",progFill:"NO",nroEnsayoChk:"NO",progFillBP:"NO",
+  opProc:"NO",opCapa:"NO",opEsp:"NO",opArea:"NO",opCota:"NO",opProg:"NO",opLinea:"NO",opLong:"NO",opGrava:"NO"};
 
+/* qué campos se ven: condición propia + (seq) todo lo anterior completo */
+function visibilidad(schema,ctx){
+  var ok = true;
+  return schema.fields.map(function(field){
+    var vis = field.visible ? !!field.visible(ctx) : true;
+    if(vis && field.seq && !ok) vis = false;
+    if(vis){
+      var req = field.required ? field.required(ctx) : true;
+      if(req && !(field.valid ? field.valid(ctx) : !!ctx.f[field.id])) ok = false;
+    }
+    return vis;
+  });
+}
 function validForm(schema,ctx){
-  return schema.fields.every(function(field){
+  var vis = visibilidad(schema,ctx);
+  return schema.fields.every(function(field,i){
+    if(!vis[i]) return true;
     var req = field.required?field.required(ctx):true;
     if(!req) return true;
     return field.valid?field.valid(ctx):!!ctx.f[field.id];
@@ -990,8 +1098,9 @@ function buildCtx(){
 }
 function renderSchema(schema,ctx,container){
   var n = 2;
-  schema.fields.forEach(function(field){
-    if(field.visible && !field.visible(ctx)) return;
+  var vis = visibilidad(schema,ctx);
+  schema.fields.forEach(function(field,fi){
+    if(!vis[fi]) return;
     var info = null;
     if(field.type==="info"){
       var lb = typeof field.infoLabel==="function"?field.infoLabel(ctx):field.infoLabel;
@@ -1014,6 +1123,10 @@ function renderSchema(schema,ctx,container){
       ctl = detalleOpcCtl(field,val,function(v){
         state.form[field.id]=v; state.form[field.sinId]=v?"":"SÍ"; delete state.copiados[field.id];
         updateOutput(); renderIfNeeded(); });
+    } else if(field.type==="capa"){
+      ctl = capaCtl(field,ctx,val);
+    } else if(field.type==="espesor"){
+      ctl = espesorCtl(field,ctx,val);
     } else {
       ctl = textCtl(val,field.placeholder,field.type==="number",
         function(v){ state.form[field.id]=v; delete state.copiados[field.id];
@@ -1028,6 +1141,41 @@ function renderSchema(schema,ctx,container){
     }
     container.appendChild(fieldWrap(n+". "+label,ctl));
   });
+}
+
+/* capa: número, o texto libre con el botón OTRO (ej. NIVELANTE 01) */
+function aplicarTexto(field,v){
+  state.form[field.id]=v; delete state.copiados[field.id];
+  if(field.afterChange) state.form=field.afterChange(v,state.form,{estructura:state.estructura,tipo:state.tipo});
+  syncInputs(); updateOutput(); renderIfNeeded();
+}
+function capaCtl(field,ctx,val){
+  var txt = ctx.f.capaTxt==="SÍ";
+  var i = textCtl(val,txt?"Ej: NIVELANTE 01":field.placeholder,!txt,function(v){ aplicarTexto(field,v); });
+  i.setAttribute("data-fid",field.id); i.setAttribute("data-fk",field.id);
+  var b = el("button",{class:"sinbtn"+(txt?" on":""),type:"button",title:txt?"Volver a número de capa":"Escribir otra cosa, ej. NIVELANTE 01"},[txt?"N°":"OTRO"]);
+  b.addEventListener("click",function(){
+    state.form.capaTxt = txt?"":"SÍ"; delete state.copiados.capaTxt;
+    state.form.capa = ""; delete state.copiados[field.id];
+    if(field.afterChange) state.form = field.afterChange("",state.form,{estructura:state.estructura,tipo:state.tipo});
+    render();
+    var n = document.querySelector('[data-fk="'+field.id+'"]'); if(n) n.focus();
+  });
+  return el("div",{class:"row"},[i,b]);
+}
+/* espesor: fijo del material o escrito, con el botón VARIABLE */
+function espesorCtl(field,ctx,val){
+  var esVar = ctx.f.espVar==="SÍ", campo;
+  if(esVar) campo = el("div",{class:"fijo"},["VARIABLE"]);
+  else if(ctx.d.espesorManualNeeded){
+    campo = textCtl(val,field.placeholder,false,function(v){ aplicarTexto(field,v); });
+    campo.setAttribute("data-fid",field.id); campo.setAttribute("data-fk",field.id);
+  } else campo = el("div",{class:"fijo"},[ctx.d.espesorAuto||"—"]);
+  var b = el("button",{class:"sinbtn"+(esVar?" on":""),type:"button"},["VARIABLE"]);
+  b.addEventListener("click",function(){
+    state.form.espVar = esVar?"":"SÍ"; delete state.copiados.espVar; delete state.copiados[field.id]; render();
+  });
+  return el("div",{class:"row"},[campo,b]);
 }
 
 function syncInputs(){
@@ -1048,8 +1196,9 @@ function visibleSignature(){
   var schema = SCHEMAS[state.tipo];
   if(!schema) return "";
   var ctx = buildCtx();
-  return schema.fields.map(function(f){
-    var vis = f.visible?f.visible(ctx):true;
+  var visArr = visibilidad(schema,ctx);
+  return schema.fields.map(function(f,fi){
+    var vis = visArr[fi];
     var parts = [f.id, vis?"1":"0"];
     if(vis){
       if(f.type==="info"){
@@ -1061,6 +1210,8 @@ function visibleSignature(){
         if(f.type==="select"||f.type==="btns")
           parts.push((typeof f.options==="function"?f.options(ctx):f.options||[]).join("|"), String(ctx.f[f.id]||""));
         if(f.type==="toggle") parts.push(String(ctx.f[f.id]||""));
+        if(f.type==="capa") parts.push(String(ctx.f.capaTxt));
+        if(f.type==="espesor") parts.push(String(ctx.f.espVar), ctx.d.espesorManualNeeded?"m":ctx.d.espesorAuto);
       }
     }
     return parts.join("~");
@@ -1179,7 +1330,7 @@ function nombreFoto(){
   var p = [cfg.tipos[state.tipo].corto];
   if(state.tipo==="RELLENO"){
     if(f.material) p.push(f.material);
-    if(ctx.d.capaFinal && ctx.d.capaFinal!=="UNICA") p.push("CAPA "+ctx.d.capaFinal);
+    if(ctx.d.capaFinal && ctx.d.capaFinal!=="UNICA") p.push(/^\d+(\.\d+)?$/.test(ctx.d.capaFinal)?"CAPA "+ctx.d.capaFinal:ctx.d.capaFinal);
     if(f.bpTipo) p.push(f.bpTipo);
   } else if(f.subtipo) p.push(f.subtipo);
   p.push(fr?(fr.corto||fr.nombre):"");
@@ -1367,7 +1518,7 @@ function duplicar(it){
   if(datos){
     Object.keys(INITIAL_FORM).forEach(function(k){ if(datos.form && datos.form[k]!=null) state.form[k] = datos.form[k]; });
   } else {
-    var vals = valsDesdeTexto(it.texto,tipo);
+    var vals = valsDesdeTexto(it.texto,tipo,est);
     SCHEMAS[tipo].fields.forEach(function(f){
       if(!vals.hasOwnProperty(f.id)) return;
       state.form[f.id] = vals[f.id];
@@ -1376,6 +1527,8 @@ function duplicar(it){
     });
     state.form.sinDetalleRell = state.form.detalleRell?"":"SÍ";
     state.form.sinDetalleFund = state.form.detalleFund?"":"SÍ";
+    if(vals.capaTxt) state.form.capaTxt = vals.capaTxt;
+    if(vals.espVar) state.form.espVar = vals.espVar;
   }
   if(prefs.supervisor && !state.form.supervisor) state.form.supervisor = prefs.supervisor;
   state.copiados = {__frente:1,__tipo:1};
@@ -1384,7 +1537,7 @@ function duplicar(it){
   state.view = "main"; render(); window.scrollTo(0,0);
 }
 /* reconstruye los campos a partir del texto (liberaciones subidas antes de esta versión) */
-function valsDesdeTexto(texto,tipo){
+function valsDesdeTexto(texto,tipo,frId){
   var c = camposMapa(texto), v = {};
   var tl = c["TIPO DE LIBERACIÓN"]||"", base = cfg.tipos[tipo].largo;
   var extra = tl.indexOf(base)===0 ? tl.slice(base.length).trim() : "";
@@ -1406,8 +1559,12 @@ function valsDesdeTexto(texto,tipo){
         } else if(p.length) v.detalleRell = p.join(" - ");
       }
       if(parc){ v.parcial = "SÍ"; v.parcialTexto = parc[1]; }
-      if(c["CAPA"] && c["CAPA"]!=="UNICA"){ v.capa = c["CAPA"]; v.capasBP = c["CAPA"]; }
-      set("espesorM",c["ESPESOR"]); set("procedencia",c["PROCEDENCIA"]);
+      if(c["CAPA"] && c["CAPA"]!=="UNICA"){
+        v.capa = c["CAPA"]; v.capasBP = c["CAPA"];
+        if(isNaN(c["CAPA"])) v.capaTxt = "SÍ";
+      }
+      if(c["ESPESOR"]==="VARIABLE") v.espVar = "SÍ"; else set("espesorM",c["ESPESOR"]);
+      set("procedencia",c["PROCEDENCIA"]);
       if(c["COTA"] && c["COTA"]!=="VARIABLE") v.cota = u("COTA");
       set("area",u("ÁREA"));
       v.progFillBP = c["PROGRESIVA"]?"SÍ":"NO"; set("progresiva",c["PROGRESIVA"]);
@@ -1444,6 +1601,13 @@ function valsDesdeTexto(texto,tipo){
       set("ensayoSub",c["ENSAYO"]); set("protSub",c["PROTOCOLO"]);
       break;
   }
+  var fr = getFrente(frId), presente = {PROC:["PROCEDENCIA"],CAPA:["CAPA"],ESP:["ESPESOR"],AREA:["ÁREA"],COTA:["COTA"],
+    PROG:["PROGRESIVA"],LINEA:["LÍNEA"],LONG:["LONG. TUB"],GRAVA:["GRAVA Y GEOTEXTIL","FUNDACIÓN","GRAVA"]};
+  Object.keys(OPID[tipo]||{}).forEach(function(k){
+    var op = OPID[tipo][k];
+    if(op in v || estadoLinea(fr,tipo,k)!=="O" || !presente[k]) return;
+    v[op] = Object.keys(c).some(function(t){ return presente[k].some(function(x){ return t.indexOf(x)===0; }); })?"SÍ":"NO";
+  });
   return v;
 }
 function renderDia(app){
@@ -1566,7 +1730,7 @@ function interpretarLib(it){
   var cota = c["COTA SUP."]? sinUnidad(c["COTA SUP."])+" - "+sinUnidad(c["COTA INF."]) :
              c["COTA"]? (c["COTA"]==="VARIABLE"?"Variable":sinUnidad(c["COTA"])) : "";
   var sec = /SECTOR\s+(\S+)/.exec(est), fase = /FASE\s+(\S+)/.exec(est);
-  var esp = c["ESPESOR"]? numero(c["ESPESOR"]) : null;
+  var esp = c["ESPESOR"] && c["ESPESOR"]!=="VARIABLE" ? numero(c["ESPESOR"]) : null;
   var area = c["ÁREA"]||c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||"";
 
   var desc;
@@ -1587,7 +1751,7 @@ function interpretarLib(it){
     capa: c["CAPA"]?(c["CAPA"]==="UNICA"?"Única":c["CAPA"]):"-",
     sector: sec?oracion(sec[1]):"-", fase: fase?fase[1]:"-",
     cantera: c["PROCEDENCIA"]?nombrePropio(c["PROCEDENCIA"]):"-",
-    area: numero(area), espesor: esp!=null?Math.round(esp*1000):null,
+    area: numero(area), espesor: c["ESPESOR"]==="VARIABLE"?"Variable":(esp!=null?Math.round(esp*1000):null),
     longitud: longs.map(function(k){return sinUnidad(c[k]);}).join(" / "),
     diametro: diam, grava: numero(c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||""),
     progCota: c["PROGRESIVA"]||cota||"-",
@@ -1828,7 +1992,7 @@ function abrirConfig(){
 function setMsg(lines,kind){ ed.msg=lines; ed.msgKind=kind||""; }
 function touch(){
   if(state.view==="config"){ ed.dirty=true; updateSavebar(); }
-  else if(state.view==="frente") ed.frDirty=true;
+  else if(state.view==="frente"||state.view==="lineas") ed.frDirty=true;
 }
 function markDirty(){ ed.dirty=true; }
 function updateSavebar(){
@@ -2138,7 +2302,7 @@ function salirConfig(){
 /* ── editor de un frente ── */
 function editarFrente(i){
   ed.fi = i;
-  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],bp:"",procDefault:[],materiales:[]}
+  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],bp:"",procDefault:[],materiales:[],lineas:{}}
               : clone(ed.cfg.frentes[i]);
   ed.frDirty = false; ed.msg = null;
   state.view = "frente"; render(); window.scrollTo(0,0);
@@ -2147,6 +2311,7 @@ function aplicarFrente(){
   var f = ed.fr;
   f.nombre = f.nombre.trim(); f.corto = (f.corto||"").trim();
   f.materiales.forEach(function(m){ m.nombre=m.nombre.trim(); m.espesor=(m.espesor||"").trim(); m.procFija=(m.procFija||"").trim(); });
+  f.lineas = sanLineas(f.lineas);
   var errs = validateFrente(f, ed.fi<0?ed.cfg.frentes.length:ed.fi);
   if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
   if(ed.fi<0) ed.cfg.frentes.push(f); else ed.cfg.frentes[ed.fi] = f;
@@ -2178,6 +2343,7 @@ function renderFrente(app){
       f.tipos = TIPO_KEYS.filter(function(x){ return x===k?!on:f.tipos.indexOf(x)>=0; });
       chg();
     })),
+    fieldWrap("Líneas del texto",listaLineas(f),"Entra a cada liberación para elegir qué líneas salen en el texto."),
     fieldWrap("Estructuras de suelo de baja permeabilidad",
       optsCtl(f.bp,BP_MODOS.map(function(m){return m.k;}),function(v){f.bp=v;chg();},
         {labelFn:function(k){return findBy(BP_MODOS,"k",k).t;}}),
@@ -2215,6 +2381,11 @@ function renderFrente(app){
     } else {
       sub.appendChild(infoBox("Automático","espesor 3/4 m alternado, cota desde 2773 msnm en capa 6, sin procedencia"));
     }
+    if(m.tipo==="ESTANDAR" || m.tipo==="APILAMIENTO"){
+      m.cotasCapa = m.cotasCapa||[];
+      sub.appendChild(fieldWrap("Cotas por capa",cfgArea(m.cotasCapa,"16 = 2811\nNIVELANTE 01 = 2810.5",p+"cc",function(a){m.cotasCapa=a;},{up:true}),
+        "Una por línea: capa = cota. Al liberar, la cota aparece sola; si la capa no está aquí, se usa el cálculo."));
+    }
     if(m.tipo==="ESTANDAR"){
       var refVal = findBy(C.cotasBase,"id",m.cotaRef)?m.cotaRef:"";
       sub.appendChild(fieldWrap("Cálculo de cota",optsCtl(refVal,[""].concat(C.cotasBase.map(function(r){return r.id;})),
@@ -2229,7 +2400,7 @@ function renderFrente(app){
   app.appendChild(secCard("Materiales de capa de relleno",null,[
     mats,
     el("button",{class:"add",type:"button",onclick:function(){
-      f.materiales.push({nombre:"",tipo:"ESTANDAR",espesor:"",procFija:"",procOpciones:[],cotaRef:"",parcial:false}); chg();
+      f.materiales.push({nombre:"",tipo:"ESTANDAR",espesor:"",procFija:"",procOpciones:[],cotaRef:"",parcial:false,cotasCapa:[]}); chg();
     }},["+ Agregar material"])
   ]));
 
@@ -2237,6 +2408,88 @@ function renderFrente(app){
     el("span",null,["Edición de frente"]),
     el("button",{class:"b-sec",type:"button",onclick:cancelarFrente},["Cancelar"]),
     el("button",{class:"b-pri",type:"button",onclick:aplicarFrente},["Aplicar"])
+  ]));
+}
+
+/* ── líneas del texto por liberación ── */
+function resumenLineas(f,k){
+  var o = (f.lineas&&f.lineas[k])||{}, por = {O:[],N:[],S:[]};
+  (LINEAS[k]||[]).forEach(function(d){
+    var v = o[d[0]]; if(!v || v===(d[3]||"S")) return;
+    por[v].push(d[1].replace(/\s*\(.*\)$/,""));
+  });
+  var t = [];
+  if(por.N.length) t.push("Nunca: "+por.N.join(", "));
+  if(por.O.length) t.push("Opcional: "+por.O.join(", "));
+  if(por.S.length) t.push("Siempre: "+por.S.join(", "));
+  return t.join(" · ")||"Como viene por defecto";
+}
+function listaLineas(f){
+  var w = el("div");
+  if(!f.tipos.length) w.appendChild(el("div",{class:"sec-d"},["Elige primero los tipos de liberación."]));
+  f.tipos.forEach(function(k){
+    w.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[ed.cfg.tipos[k].corto]),el("span",null,[resumenLineas(f,k)])]),
+      iconBtn("Líneas ›","",function(){ ed.lt = k; ed.copiaSel = []; state.view = "lineas"; render(); window.scrollTo(0,0); })
+    ]));
+  });
+  return w;
+}
+function renderLineas(app){
+  var f = ed.fr, k = ed.lt, defs = LINEAS[k]||[];
+  f.lineas = f.lineas||{};
+  var cur = f.lineas[k]||{};
+  function volver(){ state.view="frente"; render(); window.scrollTo(0,0); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},[(f.corto||f.nombre||"FRENTE").toUpperCase()]),el("div",{class:"t"},[ed.cfg.tipos[k].corto])]),
+    el("button",{class:"hbtn",type:"button",onclick:volver},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+
+  var kids = [el("div",{class:"sec-d"},["Siempre: se pide y sale en el texto. Opcional: la app pregunta “¿Ingresar…?”. Nunca: no se pide ni sale. TIPO DE LIBERACIÓN, ESTRUCTURA y SUPERVISOR CQC salen siempre."])];
+  defs.forEach(function(d){
+    var v = cur[d[0]] || (d[3]==="AUTO"?"":(d[3]||"S"));
+    kids.push(fieldWrap(d[1],optsCtl(v,d[2],function(nv){
+      f.lineas[k] = f.lineas[k]||{};
+      if(!nv || (nv===(d[3]||"S") && d[3]!=="AUTO")) delete f.lineas[k][d[0]];
+      else f.lineas[k][d[0]] = nv;
+      if(!Object.keys(f.lineas[k]).length) delete f.lineas[k];
+      ed.frDirty = true; render();
+    },{labelFn:function(x){return ESTADO_TXT[x];},allowUnset:d[3]==="AUTO"}),
+      d[3]==="AUTO"&&!cur[d[0]]?d[4]:(d[4]&&v===d[3]?d[4]:null)));
+  });
+  kids.push(el("div",{class:"btns",style:"margin-top:4px"},[
+    el("button",{class:"b-sec",type:"button",onclick:function(){ delete f.lineas[k]; ed.frDirty=true; render(); }},["Restablecer"])
+  ]));
+  app.appendChild(secCard("Líneas del texto",null,kids));
+
+  var otros = ed.cfg.frentes.filter(function(o){ return o.id!==f.id && o.tipos.indexOf(k)>=0; });
+  if(otros.length){
+    ed.copiaSel = (ed.copiaSel||[]).filter(function(id){ return !!findBy(otros,"id",id); });
+    var bCp = el("button",{class:"b-pri",type:"button",disabled:!ed.copiaSel.length},
+      [ed.copiaSel.length?"Copiar a "+ed.copiaSel.length+" frente"+(ed.copiaSel.length>1?"s":""):"Elige frentes"]);
+    bCp.addEventListener("click",function(){
+      var n = 0;
+      ed.copiaSel.forEach(function(id){
+        var o = findBy(ed.cfg.frentes,"id",id); if(!o) return;
+        o.lineas = o.lineas||{};
+        if(f.lineas[k]) o.lineas[k] = clone(f.lineas[k]); else delete o.lineas[k];
+        n++;
+      });
+      ed.copiaSel = []; ed.dirty = true; ed.frDirty = true;
+      setMsg(["Configuración de “"+ed.cfg.tipos[k].corto+"” copiada a "+n+" frente"+(n>1?"s":"")+". Pulsa Aplicar y luego Guardar."],"ok");
+      render(); window.scrollTo(0,0);
+    });
+    app.appendChild(secCard("Copiar a otros frentes","Aplica esta misma configuración de líneas en otros frentes que tienen esta liberación.",[
+      multiCtl(ed.copiaSel,otros.map(function(o){return o.id;}),function(id){ var o=findBy(otros,"id",id); return o.corto||o.nombre; },
+        function(id){ var i=ed.copiaSel.indexOf(id); if(i>=0) ed.copiaSel.splice(i,1); else ed.copiaSel.push(id); render(); }),
+      el("div",{class:"btns"},[bCp])
+    ]));
+  }
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,["Líneas de "+ed.cfg.tipos[k].corto.toLowerCase()]),
+    el("button",{class:"b-pri",type:"button",onclick:volver},["Listo"])
   ]));
 }
 
@@ -2253,6 +2506,7 @@ function render(){
   app.innerHTML = "";
   if(state.view==="config") renderConfig(app);
   else if(state.view==="frente") renderFrente(app);
+  else if(state.view==="lineas") renderLineas(app);
   else if(state.view==="hoy") renderDia(app);
   else { lastVisibleSig = visibleSignature(); renderMain(app); }
 
