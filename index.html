@@ -134,7 +134,8 @@
   input.cp{background:#fffbeb;border-color:#f59e0b}
   .fijo{flex:1;min-width:0;padding:11px 12px;border-radius:8px;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-size:15px;font-weight:600}
   .opts button.on.cp{background:#f59e0b;border-color:#f59e0b;color:#fff}
-  .recientes{margin:4px 0 18px;padding-top:14px;border-top:1px solid #eef0f3}
+  .recientes{margin:0 0 16px;padding-bottom:6px;border-bottom:1px solid #eef0f3}
+  .recientes .mas{margin-top:2px}
   .rec{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f3f5}
   .rec:first-of-type{border-top:none}
   .rec .tx{flex:1;min-width:0}
@@ -1474,12 +1475,12 @@ function renderMain(app){
       el("button",{type:"button","aria-label":"Quitar resaltado",onclick:function(){ state.copiados={}; state.origen=""; render(); }},["✕"])]):null,
     fechaBtn(), turnoBtn()
   ]));
+  if(!state.tipo){ var rec = bloqueRecientes(); if(rec) card.appendChild(rec); }
   card.appendChild(fieldWrap("1. Frente",
     optsCtl(state.estructura,cfg.frentes.map(function(f){return f.id;}),function(v){
       state.estructura=v; state.tipo=""; prefs.frente=v; savePrefs(); resetForm(); render();
     },{labelFn:function(id){ var f=getFrente(id); return f?(f.corto||f.nombre):id; },cp:!!state.copiados.__frente})));
 
-  if(!state.tipo){ var rec = bloqueRecientes(); if(rec) card.appendChild(rec); }
   var fr = getFrente(state.estructura);
   if(fr){
     card.appendChild(fieldWrap("2. Tipo de Liberación",
