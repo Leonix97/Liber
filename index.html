@@ -123,12 +123,28 @@
   .turno svg{width:17px;height:17px;flex:none}
   .turno.dia{background:#fffbeb;color:#92400e;border-color:#fcd34d}
   .turno.noche{background:#1e293b;color:#e0e7ff;border-color:#1e293b}
+  .fechabtn{text-transform:none;letter-spacing:normal;margin:0;position:relative;display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:7px 12px 7px 10px;font-size:13px;
+            font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid #d1d5db;background:#fff;color:#374151}
+  .fechabtn svg{width:16px;height:16px;flex:none}
+  .fechabtn.manual{background:#fffbeb;border-color:#f59e0b;color:#92400e}
+  .fechabtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;cursor:pointer}
   .copia{flex:1;min-width:0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:6px}
   .copia i{width:10px;height:10px;border-radius:3px;background:#fde68a;border:1px solid #f59e0b;flex:none}
   .copia button{border:none;background:none;color:#92400e;font-size:15px;cursor:pointer;padding:0 2px}
   input.cp{background:#fffbeb;border-color:#f59e0b}
   .fijo{flex:1;min-width:0;padding:11px 12px;border-radius:8px;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-size:15px;font-weight:600}
   .opts button.on.cp{background:#f59e0b;border-color:#f59e0b;color:#fff}
+  .recientes{margin:4px 0 18px;padding-top:14px;border-top:1px solid #eef0f3}
+  .rec{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f3f5}
+  .rec:first-of-type{border-top:none}
+  .rec .tx{flex:1;min-width:0}
+  .rec .tx b{display:block;font-size:12.5px;line-height:1.35;color:#111827;font-weight:700}
+  .rec .tx span{display:block;font-size:11.5px;color:#6b7280;margin-top:2px}
+  .iman{flex:none;width:40px;height:40px;border-radius:10px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;
+        display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .iman svg{width:20px;height:20px}
+  .mas{display:block;width:100%;margin-top:8px;padding:10px;border:none;background:none;color:#2563eb;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+  .lib .iman{margin-top:6px;width:36px;height:36px}
   .mini{border:none;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;border-radius:6px;padding:5px 9px;margin-top:6px;cursor:pointer;font-family:inherit}
   .buscar{margin-bottom:12px}
   .buscar input{padding-left:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center/17px}
@@ -172,18 +188,20 @@ var STORE_CFG = "genlib.config.v1", STORE_PREFS = "genlib.prefs.v1";
    S = siempre · O = opcional (la app pregunta) · N = nunca · AUTO = como funcionaba antes */
 var SON = ["S","O","N"], SN = ["S","N"];
 var LINEAS = {
-  RELLENO:[["MAT","Material",SN],["PROC","Procedencia",SON],["CAPA","Capa",SON],["ESP","Espesor",SON],
+  RELLENO:[["DET","Detalle",["O","N"],"AUTO","Sin elegir: solo en zanja de anclaje, berma y plataforma."],
+           ["PARC","Liberación parcial",["O","N"],"AUTO","Sin elegir: solo en materiales con liberación parcial activada."],
+           ["MAT","Material",SN],["PROC","Procedencia",SON],["CAPA","Capa",SON],["ESP","Espesor",SON],
            ["AREA","Área",SON],["COTA","Cota",SON],
            ["PROG","Progresiva",SON,"AUTO","Sin elegir: zanja de anclaje siempre, suelo BP opcional, el resto nunca."],
            ["ENS","Ensayo",SN],["NENS","N° de ensayo",SON,"O"],["PROT","Protocolo",SN]],
-  SUBDRENES:[["LONG","Long. de tubería (se calcula con la progresiva)",SN],["AREA","Área",SON],["LINEA","Línea",SON],
+  SUBDRENES:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["LONG","Long. de tubería (se calcula con la progresiva)",SN],["AREA","Área",SON],["LINEA","Línea",SON],
              ["COTA","Cota (VARIABLE)",SN],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
-  SIST_SUBD:[["AREA","Área (solo fundación)",SON],["LONG","Long. de tubería",SON],["GRAVA","Grava y geotextil / Fundación (m²)",SON],
+  SIST_SUBD:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área (solo fundación)",SON],["LONG","Long. de tubería",SON],["GRAVA","Grava y geotextil / Fundación (m²)",SON],
              ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
-  FUNDACION:[["AREA","Área",SON],["COTA","Cotas sup. / inf.",SON,"O","Opcional: si no se ingresan, sale COTA: VARIABLE."],
+  FUNDACION:[["DET","Detalle",["O","N"],"O"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área",SON],["COTA","Cotas sup. / inf.",SON,"O","Opcional: si no se ingresan, sale COTA: VARIABLE."],
              ["PROG","Progresiva",SON,"O"],["ENS","Ensayo (NO)",SN],["PROT","Protocolo",SN]],
-  EVALUACION:[["MAT","Material",SN],["AREA","Área",SON],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
-  OVERLINER:[["MAT","Material",SN],["ESP","Espesor",SN],["AREA","Área",SON],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]]
+  EVALUACION:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["MAT","Material",SN],["AREA","Área",SON],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  OVERLINER:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["MAT","Material",SN],["ESP","Espesor",SN],["AREA","Área",SON],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]]
 };
 /* campo del formulario que guarda la respuesta "¿Ingresar …?" de cada línea opcional */
 var OPID = {
@@ -195,6 +213,9 @@ var OPID = {
   OVERLINER:{AREA:"opArea"}
 };
 var ESTADO_TXT = {S:"Siempre",O:"Opcional",N:"Nunca"};
+var ESTADO_SINO = {O:"Preguntar",N:"No"};
+var DETID = {RELLENO:"detalleRell",FUNDACION:"detalleFund"}, SINID = {RELLENO:"sinDetalleRell",FUNDACION:"sinDetalleFund"};
+var STORE_REC = "genlib.recientes.v1";
 var STORE_CONN = "genlib.conn.v1", STORE_EDITOR = "genlib.editor.v1", STORE_META = "genlib.cfgmeta.v1", STORE_COLA = "genlib.cola.v1";
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -436,7 +457,7 @@ function guardarCola(){ return lsSet(STORE_COLA,JSON.stringify(cola)); }
 var enviandoCola = false;
 function enviarItem(it){
   return api("addLib",{uid:it.uid,texto:it.texto,campos:it.campos,foto:it.foto,nombreFoto:it.nombreFoto,
-                       turno:it.turno||"",form:it.form||""},90000);
+                       turno:it.turno||"",fecha:it.fecha||"",form:it.form||""},90000);
 }
 function procesarCola(){
   if(enviandoCola || !cola.length || !conectado()) return;
@@ -444,7 +465,7 @@ function procesarCola(){
   if(it.error) return;
   enviandoCola = true;
   enviarItem(it).then(function(){
-    cola.shift(); guardarCola(); enviandoCola=false; refrescarAviso(); procesarCola();
+    cola.shift(); guardarCola(); enviandoCola=false; recientes.t=0; refrescarAviso(); procesarCola();
   },function(e){
     enviandoCola=false;
     if(e.server){ it.error=e.message; guardarCola(); }
@@ -554,7 +575,12 @@ function derive(f,frId,tipo){
   /* líneas del texto */
   var L = function(k){
     var s = estadoLinea(fr,tipo,k);
-    if(s==="AUTO") s = esZanja?"S":((isSueloBP && tipo==="RELLENO")?"O":"N");
+    if(s==="AUTO"){
+      if(k==="PROG") s = esZanja?"S":((isSueloBP && tipo==="RELLENO")?"O":"N");
+      else if(k==="DET") s = (showZanja && !!bp && bp!==BP_TIPO.BANQUETA)?"O":"N";
+      else if(k==="PARC") s = (!!matData && matData.parcial && mt==="ESTANDAR")?"O":"N";
+      else s = "S";
+    }
     return s;
   };
   var on = function(k){
@@ -562,7 +588,7 @@ function derive(f,frId,tipo){
     return s==="S" || (s==="O" && f[op]==="SÍ");
   };
 
-  var showParcial = !!matData && matData.parcial && mt==="ESTANDAR" && tipo==="RELLENO";
+  var showParcial = L("PARC")==="O";
   var esParcial = showParcial && f.parcial==="SÍ";
 
   var capasBPMode = (esZanja||esBerma) && !isInterlift;
@@ -635,6 +661,20 @@ function opT(tipo,k,label,base,afterChange,seq){
 function no(k){ return function(ctx){ return ctx.d.L(k)!=="N"; }; }
 function si(k){ return function(ctx){ return ctx.d.on(k); }; }
 
+/* detalle y liberación parcial (para los tipos que no los traen propios) */
+function camposParcial(){
+  return [
+    {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",visible:function(ctx){return ctx.d.showParcial;},
+     afterChange:function(val,next){ if(val!=="SÍ") next.parcialTexto=""; return next; }},
+    {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
+     visible:function(ctx){return ctx.d.esParcial;}}
+  ];
+}
+function camposDetParc(){
+  return [{id:"detalle",type:"detalleOpc",sinId:"sinDetalle",label:"Detalle",placeholder:"Ej: TRAMO NORTE",
+           visible:function(ctx){return ctx.d.L("DET")==="O";},valid:function(){return true;}}].concat(camposParcial());
+}
+
 var SCHEMAS = {};
 
 (function(){
@@ -670,10 +710,10 @@ var SCHEMAS = {};
       {id:"detalleBerma",type:"text",label:"Otro detalle (opcional)",placeholder:"Ej: TRAMO NORTE",
        visible:function(ctx){return ctx.d.esBanqueta;},required:function(){return false;}},
       {id:"detalleRell",type:"detalleOpc",sinId:"sinDetalleRell",label:"Detalle adicional",placeholder:"Ej: TRAMO NORTE",
-       visible:function(ctx){return ctx.d.showZanja && !!ctx.f.bpTipo && !ctx.d.esBanqueta;},
+       visible:function(ctx){return ctx.d.L("DET")==="O" && baseMat(ctx) && !ctx.d.esBanqueta;},
        valid:function(){return true;}},
       {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",
-       visible:function(ctx){return ctx.d.showParcial;},
+       visible:function(ctx){return ctx.d.showParcial && !!ctx.f.material;},
        afterChange:function(val,next){ next.parcialTexto = val==="SÍ"?"HOMBRO":""; next.ensayo = val==="SÍ"?"NO":"SÍ"; return next;}},
       {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
        visible:function(ctx){return ctx.d.esParcial;}},
@@ -742,7 +782,7 @@ var SCHEMAS = {};
 })();
 
 SCHEMAS.SUBDRENES = {
-  fields:[
+  fields:camposDetParc().concat([
     {id:"subtipo",type:"btns",label:"Tipo de Subdren",
      options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
      resets:["tuberia","grava","linea","progresiva","ensayoSub","protSub"],
@@ -765,7 +805,7 @@ SCHEMAS.SUBDRENES = {
     {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
     {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
     supervisorField(null,true)
-  ],
+  ]),
   output:[
     function(ctx){return (ctx.d.esSoloFund||ctx.d.L("LONG")==="N")?null:"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.d.subLongTub+" m";},
     function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.grava+" m²":null;},
@@ -779,7 +819,7 @@ SCHEMAS.SUBDRENES = {
 };
 
 SCHEMAS.SIST_SUBD = {
-  fields:[
+  fields:camposDetParc().concat([
     {id:"subtipo",type:"btns",label:"Tipo de Subdren",
      options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
      resets:["tuberia","longTub","longTub2","grava","areaSub","linea","progresiva","ensayoSub","protSub"],
@@ -806,7 +846,7 @@ SCHEMAS.SIST_SUBD = {
     {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
     {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
     supervisorField(null,true)
-  ],
+  ]),
   output:[
     function(ctx){return (ctx.d.esSoloFund&&ctx.d.on("AREA"))?"ÁREA: "+ctx.f.areaSub+" m²":null;},
     function(ctx){return (ctx.d.esSoloFund||!ctx.d.on("LONG"))?null:(ctx.d.esDoble?"LONG. TUB (Ø100mm): "+ctx.f.longTub+" m":"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.f.longTub+" m");},
@@ -821,7 +861,7 @@ SCHEMAS.SIST_SUBD = {
 };
 
 SCHEMAS.OVERLINER = {
-  fields:[
+  fields:camposDetParc().concat([
     {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return cfg.overliner.material;},visible:no("MAT"),required:function(){return false;}},
     {id:"_espFijo",type:"info",infoLabel:"Espesor",compute:function(){return cfg.overliner.espesor;},visible:no("ESP"),required:function(){return false;}},
     {id:"_cotaFijo",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},visible:no("COTA"),required:function(){return false;}},
@@ -830,7 +870,7 @@ SCHEMAS.OVERLINER = {
     {id:"ensayoOver",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
     {id:"protOver",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
     supervisorField(null,true)
-  ],
+  ]),
   output:[
     function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: "+cfg.overliner.material:null;},
     function(ctx){return ctx.d.L("ESP")!=="N"?"ESPESOR: "+cfg.overliner.espesor:null;},
@@ -845,7 +885,7 @@ SCHEMAS.OVERLINER = {
 SCHEMAS.FUNDACION = {
   fields:[
     {id:"detalleFund",type:"detalleOpc",sinId:"sinDetalleFund",label:"Detalle de fundación",placeholder:"Ej: ZONA DE ESTRIBO",
-     valid:function(){return true;}},
+     visible:function(ctx){return ctx.d.L("DET")==="O";},valid:function(){return true;}}].concat(camposParcial(),[
     opT("FUNDACION","AREA","¿Ingresar área?",null,null,true),
     {id:"areaFund",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,visible:si("AREA")},
     opT("FUNDACION","COTA","¿Ingresar cotas sup./inf.?",null,function(val,next){ next.cotaSup=""; next.cotaInf=""; return next;},true),
@@ -861,7 +901,7 @@ SCHEMAS.FUNDACION = {
      visible:no("ENS"),required:function(){return false;}},
     {id:"protFund",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
     supervisorField(null,true)
-  ],
+  ]),
   output:[
     function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaFund+" m²":null;},
     function(ctx){return ctx.d.L("COTA")==="N"?null:(ctx.d.fundCotas?"COTA SUP.: "+ctx.f.cotaSup:"COTA: VARIABLE");},
@@ -874,7 +914,7 @@ SCHEMAS.FUNDACION = {
 };
 
 SCHEMAS.EVALUACION = {
-  fields:[
+  fields:camposDetParc().concat([
     {id:"materialEval",type:"select",label:"Material",
      options:function(){return cfg.materialesEval;}},
     opT("EVALUACION","AREA","¿Ingresar área?",null,null,true),
@@ -884,7 +924,7 @@ SCHEMAS.EVALUACION = {
     {id:"ensayoEval",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
     {id:"protEval",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
     supervisorField(null,true)
-  ],
+  ]),
   output:[
     function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: "+ctx.f.materialEval:null;},
     function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaEval+" m²":null;},
@@ -899,7 +939,7 @@ var INITIAL_FORM = {
   material:"",procedencia:"",espesorM:"",capa:"",capasBP:"",cota:"",area:"",ensayo:"",protocolo:"",
   bpTipo:"",parcial:"NO",parcialTexto:"",nroEnsayoChk:"NO",nroEnsayo:"",progresiva:"",
   detalleRell:"",sinDetalleRell:"SÍ",progFillBP:"NO",bermaPos:"",detalleBerma:"",
-  capaTxt:"",espVar:"",
+  capaTxt:"",espVar:"",detalle:"",sinDetalle:"SÍ",
   subtipo:"",tuberia:"",longTub:"",longTub2:"",grava:"",areaSub:"",linea:"",ensayoSub:"NO",protSub:"",
   areaFund:"",cotaSup:"",cotaInf:"",protFund:"",detalleFund:"",sinDetalleFund:"SÍ",
   cotasFill:"NO",progFill:"NO",progFund:"",
@@ -938,7 +978,7 @@ function validForm(schema,ctx){
    ESTADO
    ════════════════════════════════════════════════════════════════ */
 var state = { view:"main", estructura:"", tipo:"", form:clone(INITIAL_FORM), flash:"", foto:null, subida:null, dia:"",
-              turno:"", copiados:{}, origen:"" };
+              turno:"", copiados:{}, origen:"", fechaManual:"" };
 var progUI = {};
 var ed = null; // borrador de configuración
 
@@ -1231,13 +1271,15 @@ function computeTexto(){
     if(ctx.d.esBanqueta){
       if(state.form.bermaPos) parts.push(state.form.bermaPos);
       if(state.form.detalleBerma) parts.push(state.form.detalleBerma);
-    } else if(state.form.detalleRell){
+    } else if(ctx.d.L("DET")==="O" && state.form.detalleRell){
       parts.push(state.form.detalleRell);
     }
     tipoTexto += " ("+parts.join(" - ")+")";
+  } else {
+    var det = state.form[DETID[state.tipo]||"detalle"];
+    if(ctx.d.L("DET")==="O" && det) tipoTexto += " ("+det+")";
   }
-  else if(ctx.d.esParcial && state.tipo==="RELLENO") tipoTexto += " - PARCIAL ("+state.form.parcialTexto+")";
-  else if(state.tipo==="FUNDACION" && state.form.detalleFund) tipoTexto += " ("+state.form.detalleFund+")";
+  if(ctx.d.esParcial) tipoTexto += " - PARCIAL ("+state.form.parcialTexto+")";
   var lines = ["TIPO DE LIBERACIÓN: "+tipoTexto,"ESTRUCTURA: "+fr.nombre];
   schema.output.forEach(function(fn){ var l=fn(ctx); if(l) lines.push(l); });
   return lines.join("\n");
@@ -1346,10 +1388,12 @@ function subirLiberacion(){
   var sig = firmaSubida(texto);
   var it = {uid:newId(),texto:texto,campos:camposDeTexto(texto),nombreFoto:nombreFoto(),
             foto:state.foto?{data:state.foto.data,mime:state.foto.mime}:null,creado:Date.now(),
-            turno:state.turno,form:JSON.stringify({v:1,estructura:state.estructura,tipo:state.tipo,form:state.form})};
+            turno:state.turno,fecha:fechaActual(),form:JSON.stringify({v:1,estructura:state.estructura,tipo:state.tipo,form:state.form})};
   prefs.turno = state.turno; savePrefs();
   state.subida = {sig:sig,estado:"subiendo"}; updateOutput();
   enviarItem(it).then(function(j){
+    agregarReciente({id:j.id,fecha:it.fecha,hora:("0"+new Date().getHours()).slice(-2)+":"+("0"+new Date().getMinutes()).slice(-2),
+                     texto:it.texto,turno:it.turno,form:it.form});
     if(state.subida && state.subida.sig===sig) state.subida = {sig:sig,estado:"ok",id:j.id};
     updateOutput();
   },function(e){
@@ -1385,6 +1429,26 @@ function turnoInicial(){
   if(prefs.turno==="DÍA"||prefs.turno==="NOCHE") return prefs.turno;
   var h = new Date().getHours(); return (h>=7&&h<19)?"DÍA":"NOCHE";
 }
+/* fecha de la liberación: la del turno (noche conserva la fecha de inicio) o la que elija el usuario */
+var SVG_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+var DIAS_CORTOS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+function fechaActual(){ return state.fechaManual || fechaTurno(state.turno); }
+function fechaBtn(){
+  var f = fechaActual(), p = f.split("-"), d = new Date(+p[0],+p[1]-1,+p[2]);
+  var manual = !!state.fechaManual;
+  var w = el("label",{class:"fechabtn"+(manual?" manual":""),title:manual?"Fecha cambiada a mano":"Fecha del turno · toca para cambiarla"});
+  w.innerHTML = SVG_CAL+"<span>"+DIAS_CORTOS[d.getDay()]+" "+p[2]+"/"+p[1]+"</span>";
+  var i = el("input",{type:"date",value:f,max:hoyStr(),"aria-label":"Fecha de la liberación"});
+  i.addEventListener("click",function(e){ try{ if(i.showPicker){ e.preventDefault(); i.showPicker(); } }catch(err){} });
+  i.addEventListener("change",function(){
+    var v = i.value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+    state.fechaManual = (v===fechaTurno(state.turno)) ? "" : v;   // elegir la fecha del turno vuelve a automático
+    render();
+  });
+  w.appendChild(i);
+  return w;
+}
 function turnoBtn(){
   var esDia = state.turno!=="NOCHE";
   var b = el("button",{class:"turno "+(esDia?"dia":"noche"),type:"button","aria-label":"Cambiar de turno"});
@@ -1397,7 +1461,6 @@ function renderMain(app){
   app.appendChild(el("div",{class:"hdr"},[
     el("div",null,[el("div",{class:"k"},["HERRAMIENTA CQC"]),el("div",{class:"t"},["Generador de Liberación"])]),
     el("div",{class:"hgrp"},[
-      conectado()?el("button",{class:"hbtn",type:"button",onclick:abrirDia,"aria-label":"Liberaciones del día"},["📋 Hoy"]):null,
       el("button",{class:"hbtn",type:"button",onclick:abrirConfig,"aria-label":"Ajustes"},["⚙"])
     ])
   ]));
@@ -1409,13 +1472,14 @@ function renderMain(app){
   card.appendChild(el("div",{class:"trow"},[
     hayCopia?el("div",{class:"copia"},[el("i"),el("span",null,["Copiado"+(state.origen?" de "+state.origen:"")+" · lo resaltado aún no se modifica"]),
       el("button",{type:"button","aria-label":"Quitar resaltado",onclick:function(){ state.copiados={}; state.origen=""; render(); }},["✕"])]):null,
-    turnoBtn()
+    fechaBtn(), turnoBtn()
   ]));
   card.appendChild(fieldWrap("1. Frente",
     optsCtl(state.estructura,cfg.frentes.map(function(f){return f.id;}),function(v){
       state.estructura=v; state.tipo=""; prefs.frente=v; savePrefs(); resetForm(); render();
     },{labelFn:function(id){ var f=getFrente(id); return f?(f.corto||f.nombre):id; },cp:!!state.copiados.__frente})));
 
+  if(!state.tipo){ var rec = bloqueRecientes(); if(rec) card.appendChild(rec); }
   var fr = getFrente(state.estructura);
   if(fr){
     card.appendChild(fieldWrap("2. Tipo de Liberación",
@@ -1446,7 +1510,8 @@ function moverDia(n){
   var p = dia.fecha.split("-"), d = new Date(+p[0],+p[1]-1,+p[2]+n);
   cargarDia(d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2));
 }
-function abrirDia(){ state.view="hoy"; cargarDia(hoyStr()); window.scrollTo(0,0); }
+function fechaTurno(turno){ return (turno==="NOCHE" && new Date().getHours()<12) ? hoyStr(-1) : hoyStr(); }
+function abrirDia(){ state.view="hoy"; cargarDia(fechaActual()); window.scrollTo(0,0); }
 function cargarDia(f){
   dia.fecha=f; dia.estado="cargando"; dia.items=[]; render();
   api("listLibs",{fecha:f}).then(function(j){
@@ -1459,16 +1524,94 @@ function lineaDe(texto,clave){
   var l = (texto||"").split("\n").filter(function(x){return x.indexOf(clave+": ")===0;})[0];
   return l?l.slice(clave.length+2):"";
 }
+/* ── últimas liberaciones (pantalla de inicio) ── */
+var SVG_IMAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"/><path d="m5 8 4 4"/><path d="m12 15 4 4"/></svg>';
+function botonIman(it){
+  var b = el("button",{class:"iman",type:"button",title:"Copiar datos a una nueva liberación","aria-label":"Copiar datos"});
+  b.innerHTML = SVG_IMAN;
+  b.addEventListener("click",function(){ duplicar(it); });
+  return b;
+}
+/* "PAD 2E SUR, SUELO DE BAJA PERMEABILIDAD, ZANJA CAPA 2, PROG: 0+100 - 0+200" */
+function resumenLib(texto){
+  var c = camposMapa(texto), tl = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
+  var fr = findBy(cfg.frentes,"nombre",est), key = null, pt = {det:"",parcial:null};
+  TIPO_KEYS.forEach(function(k){ if(!key && tl.indexOf(cfg.tipos[k].largo)===0){ key=k; pt=partesTipo(tl,cfg.tipos[k].largo); } });
+  var p = [fr?(fr.corto||fr.nombre):est];
+  if(key==="EVALUACION") p.push("EVALUACIÓN"+(c["MATERIAL"]?" "+c["MATERIAL"]:""));
+  else if(c["MATERIAL"] && key!=="OVERLINER") p.push(c["MATERIAL"]);
+  else p.push(key?cfg.tipos[key].corto:tl);
+  var det = pt.det.replace("ZANJA DE ANCLAJE","ZANJA").replace("BERMA PERIMETRAL","BERMA").replace(/ - /g," ");
+  var capa = c["CAPA"] && c["CAPA"]!=="UNICA" ? (isNaN(c["CAPA"])?c["CAPA"]:"CAPA "+c["CAPA"]) : "";
+  var t3 = [det,capa].filter(Boolean).join(" "); if(t3) p.push(t3);
+  if(pt.parcial!=null) p.push("PARCIAL"+(pt.parcial?" "+pt.parcial:""));
+  var diams = Object.keys(c).filter(function(k){return k.indexOf("LONG. TUB")===0;})
+    .map(function(k){ var m=/Ø\s*([\d\/]+)/.exec(k); return m?"Ø"+m[1]:""; }).filter(Boolean);
+  if(diams.length) p.push(diams.join(" + "));
+  if(c["LÍNEA"]) p.push(c["LÍNEA"]);
+  if(c["PROGRESIVA"]) p.push("PROG: "+c["PROGRESIVA"]);
+  else if(c["COTA"] && c["COTA"]!=="VARIABLE") p.push("COTA: "+sinUnidad(c["COTA"]));
+  else if(c["ÁREA"]) p.push("ÁREA: "+c["ÁREA"]);
+  return p.join(", ");
+}
+var recientes = {items:lsJson(STORE_REC,[]), t:0, cargando:false};
+function guardarRecientes(){ lsSet(STORE_REC,JSON.stringify(recientes.items.map(function(x){
+  return {id:x.id,fecha:x.fecha,hora:x.hora,texto:x.texto,turno:x.turno,form:x.form}; }))); }
+function cargarRecientes(forzar){
+  if(!conectado() || recientes.cargando) return;
+  if(!forzar && Date.now()-recientes.t<60000) return;
+  recientes.cargando = true; recientes.t = Date.now();
+  api("ultimasLibs",{n:3}).catch(function(e){
+    // servidor sin actualizar: usa las del día
+    if(e.server && /desconocida/i.test(e.message))
+      return api("listLibs",{fecha:fechaActual()}).then(function(j){ return {items:(j.items||[]).slice(-3).reverse()}; });
+    throw e;
+  }).then(function(j){
+    recientes.cargando = false;
+    recientes.items = (j.items||[]).slice(0,3); guardarRecientes();
+    if(state.view==="main" && !state.tipo) render();
+  },function(){ recientes.cargando = false; });
+}
+function agregarReciente(it){
+  recientes.items = [it].concat(recientes.items.filter(function(x){ return x.id!==it.id; })).slice(0,3);
+  guardarRecientes();
+}
+function cuandoFue(it){
+  var f = it.fecha||"", t = f===hoyStr()?"Hoy":f===hoyStr(-1)?"Ayer":fechaCorta(f);
+  var tu = it.turno==="NOCHE"?"Noche":it.turno==="DÍA"?"Día":"";
+  return [[t,it.hora].filter(Boolean).join(" "),tu].filter(Boolean).join(" · ");
+}
+function bloqueRecientes(){
+  if(!conectado()){
+    return el("div",{class:"recientes"},[el("div",{class:"stat",style:"margin:0"},
+      ["Este celular no está conectado al sistema del equipo. Conéctalo en ⚙ para subir y ver las últimas liberaciones."])]);
+  }
+  cargarRecientes(false);
+  var w = el("div",{class:"recientes"},[el("label",null,["Últimas liberaciones"])]);
+  var lista = cola.slice().reverse().map(function(it){ return {it:it,pend:true}; })
+    .concat(recientes.items.map(function(it){ return {it:it,pend:false}; })).slice(0,3);
+  if(!lista.length) w.appendChild(el("div",{class:"stat",style:"margin:2px 0 0;text-align:left"},
+    [recientes.cargando?"Cargando…":"Aún no hay liberaciones registradas."]));
+  lista.forEach(function(x){
+    w.appendChild(el("div",{class:"rec"},[
+      el("div",{class:"tx"},[el("b",null,[resumenLib(x.it.texto),x.pend?el("span",{class:"tag"},["POR SUBIR"]):null]),
+        el("span",null,[x.pend?"Guardada en este celular":cuandoFue(x.it)])]),
+      botonIman(x.it)
+    ]));
+  });
+  w.appendChild(el("button",{class:"mas",type:"button",onclick:abrirDia},["Más liberaciones y fechas anteriores ›"]));
+  return w;
+}
+
 function fechaCorta(f){ var p=String(f||"").split("-"); return p.length===3?p[2]+"/"+p[1]:""; }
 function tarjetaLib(it,sub,pendiente){
   var texto = it.texto;
   var tipo = lineaDe(texto,"TIPO DE LIBERACIÓN"), est = lineaDe(texto,"ESTRUCTURA");
   var turno = it.turno==="NOCHE"?"☾ Noche":it.turno==="DÍA"?"☀ Día":"";
   var tx = el("div",{class:"tx"},[
-    el("b",null,[tipo||"Liberación",pendiente?el("span",{class:"tag"},["POR SUBIR"]):null]),
-    el("span",null,[est]),
+    el("b",null,[resumenLib(texto),pendiente?el("span",{class:"tag"},["POR SUBIR"]):null]),
     el("span",null,[[sub,turno].filter(Boolean).join(" · ")]),
-    el("button",{class:"mini",type:"button",onclick:function(){ duplicar(it); }},["⧉ Copiar datos"]),
+    botonIman(it),
     el("details",null,[el("summary",null,["Ver texto"]),el("pre",null,[texto])])
   ]);
   var kids = [tx];
@@ -1527,6 +1670,7 @@ function duplicar(it){
     });
     state.form.sinDetalleRell = state.form.detalleRell?"":"SÍ";
     state.form.sinDetalleFund = state.form.detalleFund?"":"SÍ";
+    state.form.sinDetalle = state.form.detalle?"":"SÍ";
     if(vals.capaTxt) state.form.capaTxt = vals.capaTxt;
     if(vals.espVar) state.form.espVar = vals.espVar;
   }
@@ -1536,12 +1680,19 @@ function duplicar(it){
   state.origen = it.id || "";
   state.view = "main"; render(); window.scrollTo(0,0);
 }
+/* separa "TIPO (DETALLE) - PARCIAL (X)" en sus partes */
+function partesTipo(tl, base){
+  var ex = tl.indexOf(base)===0 ? tl.slice(base.length).trim() : "";
+  var parcial = null, m = /\s*-\s*PARCIAL\s*\((.*)\)\s*$/.exec(ex);
+  if(m){ parcial = m[1]; ex = ex.slice(0,m.index).trim(); }
+  var d = /^\((.*)\)$/.exec(ex);
+  return {det:d?d[1]:"", parcial:parcial};
+}
 /* reconstruye los campos a partir del texto (liberaciones subidas antes de esta versión) */
 function valsDesdeTexto(texto,tipo,frId){
   var c = camposMapa(texto), v = {};
   var tl = c["TIPO DE LIBERACIÓN"]||"", base = cfg.tipos[tipo].largo;
-  var extra = tl.indexOf(base)===0 ? tl.slice(base.length).trim() : "";
-  var par = /^\((.*)\)$/.exec(extra), parc = /^- PARCIAL \((.*)\)$/.exec(extra);
+  var ex = partesTipo(tl, base), par = ex.det!==""?[null,ex.det]:null, parc = ex.parcial;
   function u(k){ return c[k]!=null ? sinUnidad(c[k]) : undefined; }
   function set(id,val){ if(val!=null && val!=="") v[id]=val; }
   var sup = (c["SUPERVISOR CQC"]||"").toUpperCase();
@@ -1552,13 +1703,15 @@ function valsDesdeTexto(texto,tipo,frId){
     case "RELLENO":
       set("material",c["MATERIAL"]);
       if(par){
-        var p = par[1].split(" - "); v.bpTipo = p.shift();
-        if(v.bpTipo===BP_TIPO.BANQUETA){
-          if(["INFERIOR","INTERMEDIA","SUPERIOR"].indexOf(p[0])>=0) v.bermaPos = p.shift();
-          if(p.length) v.detalleBerma = p.join(" - ");
-        } else if(p.length) v.detalleRell = p.join(" - ");
+        var p = par[1].split(" - ");
+        if(BP_PAD.concat(BP_INTERLIFT).indexOf(p[0])>=0){
+          v.bpTipo = p.shift();
+          if(v.bpTipo===BP_TIPO.BANQUETA){
+            if(["INFERIOR","INTERMEDIA","SUPERIOR"].indexOf(p[0])>=0) v.bermaPos = p.shift();
+            if(p.length) v.detalleBerma = p.join(" - ");
+          } else if(p.length) v.detalleRell = p.join(" - ");
+        } else v.detalleRell = par[1];
       }
-      if(parc){ v.parcial = "SÍ"; v.parcialTexto = parc[1]; }
       if(c["CAPA"] && c["CAPA"]!=="UNICA"){
         v.capa = c["CAPA"]; v.capasBP = c["CAPA"];
         if(isNaN(c["CAPA"])) v.capaTxt = "SÍ";
@@ -1573,7 +1726,6 @@ function valsDesdeTexto(texto,tipo,frId){
       set("protocolo",c["PROTOCOLO"]);
       break;
     case "FUNDACION":
-      if(par) v.detalleFund = par[1];
       set("areaFund",u("ÁREA"));
       v.cotasFill = c["COTA SUP."]?"SÍ":"NO"; set("cotaSup",u("COTA SUP.")); set("cotaInf",u("COTA INF."));
       v.progFill = c["PROGRESIVA"]?"SÍ":"NO"; set("progFund",c["PROGRESIVA"]);
@@ -1601,6 +1753,8 @@ function valsDesdeTexto(texto,tipo,frId){
       set("ensayoSub",c["ENSAYO"]); set("protSub",c["PROTOCOLO"]);
       break;
   }
+  if(par && tipo!=="RELLENO") v[DETID[tipo]||"detalle"] = par[1];
+  if(parc!=null){ v.parcial = "SÍ"; v.parcialTexto = parc; }
   var fr = getFrente(frId), presente = {PROC:["PROCEDENCIA"],CAPA:["CAPA"],ESP:["ESPESOR"],AREA:["ÁREA"],COTA:["COTA"],
     PROG:["PROGRESIVA"],LINEA:["LÍNEA"],LONG:["LONG. TUB"],GRAVA:["GRAVA Y GEOTEXTIL","FUNDACIÓN","GRAVA"]};
   Object.keys(OPID[tipo]||{}).forEach(function(k){
@@ -1612,7 +1766,7 @@ function valsDesdeTexto(texto,tipo,frId){
 }
 function renderDia(app){
   app.appendChild(el("div",{class:"hdr"},[
-    el("div",null,[el("div",{class:"k"},["EQUIPO CQC"]),el("div",{class:"t"},["Liberaciones del día"])]),
+    el("div",null,[el("div",{class:"k"},["EQUIPO CQC"]),el("div",{class:"t"},["Liberaciones"])]),
     el("button",{class:"hbtn",type:"button",onclick:function(){ state.view="main"; render(); window.scrollTo(0,0); }},["← Volver"])
   ]));
   var av = avisoCola(); if(av) app.appendChild(av);
@@ -1640,7 +1794,7 @@ function renderDia(app){
     iconBtn("›","",function(){ moverDia(1); },dia.fecha>=hoyStr()),
     iconBtn("↻","",function(){ cargarDia(dia.fecha); })
   ]));
-  if(dia.fecha===hoyStr()) cola.forEach(function(it){
+  cola.filter(function(it){ return (it.fecha||hoyStr())===dia.fecha; }).forEach(function(it){
     card.appendChild(tarjetaLib(it,"guardada en este celular",true));
   });
   if(dia.estado==="cargando") card.appendChild(el("div",{class:"stat"},["Cargando…"]));
@@ -1654,7 +1808,7 @@ function renderDia(app){
     var bRep = el("button",{class:"b-pri",type:"button"},["⬇ Reporte diario (.xlsx)"]);
     bRep.addEventListener("click",function(){ generarReporte(dia.fecha,bRep); });
     card.appendChild(el("div",{class:"btns"},[bRep]));
-    if(dia.fecha===hoyStr() && cola.length)
+    if(cola.some(function(it){ return (it.fecha||hoyStr())===dia.fecha; }))
       card.appendChild(el("div",{class:"stat warn"},["Las liberaciones por subir no entrarán al reporte hasta que se suban."]));
   }
   app.appendChild(card);
@@ -1704,10 +1858,10 @@ function sinUnidad(s){ return String(s||"").replace(/\s*(m²|m2|msnm|m)\s*$/i,""
 function interpretarLib(it){
   var c = camposMapa(it.texto);
   var tipoTxt = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
-  var key = null, detalle = "";
+  var key = null, detalle = "", parcial = null;
   TIPO_KEYS.forEach(function(k){
     var l = cfg.tipos[k].largo;
-    if(!key && tipoTxt.indexOf(l)===0){ key=k; detalle=tipoTxt.slice(l.length).replace(/^\s*-?\s*/,"").replace(/^\(|\)$/g,""); }
+    if(!key && tipoTxt.indexOf(l)===0){ key=k; var pt=partesTipo(tipoTxt,l); detalle=pt.det; parcial=pt.parcial; }
   });
   var fr = findBy(cfg.frentes,"nombre",est);
   var mat = c["MATERIAL"]||"";
@@ -1733,18 +1887,7 @@ function interpretarLib(it){
   var esp = c["ESPESOR"] && c["ESPESOR"]!=="VARIABLE" ? numero(c["ESPESOR"]) : null;
   var area = c["ÁREA"]||c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||"";
 
-  var desc;
-  var det = detalle?oracion(detalle):"";
-  switch(cat){
-    case "RELLENO": desc = "Liberación de "+mat.toLowerCase()+(det?" - "+det.toLowerCase():""); break;
-    case "SBP":     desc = "Suelo de baja permeabilidad"+(det?" en "+det.toLowerCase():""); break;
-    case "SOBRE":   desc = "Liberación de colocación de "+(mat||cfg.overliner.material).toLowerCase(); break;
-    case "FUND":    desc = "Liberación de fundación"+(det?" - "+det.toLowerCase():""); break;
-    case "EVAL":    desc = "Evaluación de material: "+mat.toLowerCase(); break;
-    case "FSUB":    desc = "Liberación de fundación de subdrén"+(c["LÍNEA"]?", línea "+c["LÍNEA"]:""); break;
-    case "SSUB":    desc = "Liberación de subdrén"+(c["LÍNEA"]?", línea "+c["LÍNEA"]:""); break;
-    default:        desc = oracion(tipoTxt);
-  }
+  var desc = descripcionLib(cat,key,c,mat,detalle,parcial,longs,diam);
   return {
     id:it.id, cat:cat, frente:fr, estructura:est, desc:desc, texto:it.texto,
     turno: it.turno==="NOCHE"?"Noche":it.turno==="DÍA"?"Día":(isNaN(h)?"":(h>=7&&h<19?"Día":"Noche")),
@@ -1758,6 +1901,34 @@ function interpretarLib(it){
     supervisor: nombrePropio(c["SUPERVISOR CQC"]||""),
     foto: it.fotoData||null
   };
+}
+
+/* "Liberación [parcial] de <qué> [en/, detalle][, capa N]" — el mismo texto va en la tabla y en la foto */
+function descripcionLib(cat,key,c,mat,detalle,parcial,longs,diam){
+  function low(s){ return String(s||"").toLowerCase(); }
+  var det = low(detalle).replace(/ - /g,", ");
+  var diamTxt = diam ? diam.replace(/\s*\/\s*/g," y ")+" mm" : "";
+  var capa = c["CAPA"] && c["CAPA"]!=="UNICA" ? (/^\d+(\.\d+)?$/.test(c["CAPA"])?"capa "+c["CAPA"]:low(c["CAPA"])) : "";
+  var obj, detUsado = false;
+  switch(cat){
+    case "RELLENO": obj = low(mat); break;
+    case "SBP":     obj = "suelo de baja permeabilidad"+(det?" en "+det:""); detUsado = true; break;
+    case "SOBRE":   obj = "colocación de "+low(mat||cfg.overliner.material); break;
+    case "FUND":    obj = "terreno de fundación"; break;
+    case "EVAL":    obj = "evaluación de material"+(mat?" "+low(mat):""); break;
+    case "SSUB": case "FSUB":
+      if(key==="SIST_SUBD")
+        obj = longs.length ? (c["FUNDACIÓN"]!=null?"fundación y tubería del ":"")+"sistema de subdrenaje"+(diamTxt?" de "+diamTxt:"")
+                           : "fundación del sistema de subdrenaje";
+      else obj = longs.length ? "instalación de subdren"+(diamTxt?" de "+diamTxt:"") : "fundación de subdren";
+      if(c["LÍNEA"]) obj += ", línea "+c["LÍNEA"];
+      break;
+    default: obj = low(c["TIPO DE LIBERACIÓN"]);
+  }
+  var d = "Liberación"+(parcial!=null?" parcial"+(parcial?" ("+low(parcial)+")":""):"")+" de "+obj;
+  if(det && !detUsado) d += ", "+det;
+  if(capa && (cat==="RELLENO"||cat==="SBP"||cat==="SOBRE")) d += ", "+capa;
+  return d;
 }
 
 /* ── definición de tablas, igual que el formato RD ── */
@@ -1800,7 +1971,7 @@ function armarReporte(fecha,items){
   nombres.forEach(function(n){
     REP_TABLAS.forEach(function(t){
       grupos[n].filter(function(l){return l.cat===t.cat;}).forEach(function(l){
-        if(l.foto){ nFoto++; l.nFoto=("0"+nFoto).slice(-2); l.desc += " (Foto "+l.nFoto+")"; }
+        if(l.foto){ nFoto++; l.nFoto=nFoto; }
       });
     });
   });
@@ -1958,14 +2129,15 @@ function hojaFotos(wb,x){
       if(i>0) saltoSi(17);
       [fotos[i],fotos[i+1]].forEach(function(l,lado){
         if(!l) return;
-        var c1 = lado?"H":"C", c2 = lado?"K":"F", cd = lado?"I":"D";
+        var c1 = lado?"H":"C", c2 = lado?"K":"F";
         celda(ws,c1+r+":"+c2+(r+13),"",{border:true});
-        celda(ws,c1+(r+14)+":"+c1+(r+15),"FOTO "+l.nFoto+".-",{v:"top",h:"left",border:true,size:10,wrap:false});
-        celda(ws,cd+(r+14)+":"+c2+(r+15),l.desc.replace(/\s*\(Foto \d+\)$/,"")+(l.sector!=="-"?", sector "+l.sector.toLowerCase():""),
-          {v:"top",h:"left",border:true,size:10});
+        celda(ws,c1+(r+14)+":"+c2+(r+15),l.desc,{v:"top",h:"left",border:true,size:10});
         ponerFoto(wb,ws,l,c1,c2,r,r+13,FILA);
       });
       for(var k=r;k<r+16;k++) ws.getRow(k).height = FILA;
+      // alto del pie según el texto más largo del par (≈ 50 caracteres por línea)
+      var lin = Math.max.apply(null,[fotos[i],fotos[i+1]].filter(Boolean).map(function(l){ return Math.ceil(l.desc.length/50); }));
+      if(lin>2){ ws.getRow(r+14).height = FILA*lin/2; ws.getRow(r+15).height = FILA*lin/2; }
       r += 17;
     }
   });
@@ -2419,8 +2591,8 @@ function resumenLineas(f,k){
     por[v].push(d[1].replace(/\s*\(.*\)$/,""));
   });
   var t = [];
-  if(por.N.length) t.push("Nunca: "+por.N.join(", "));
-  if(por.O.length) t.push("Opcional: "+por.O.join(", "));
+  if(por.N.length) t.push("No: "+por.N.join(", "));
+  if(por.O.length) t.push("Pregunta: "+por.O.join(", "));
   if(por.S.length) t.push("Siempre: "+por.S.join(", "));
   return t.join(" · ")||"Como viene por defecto";
 }
@@ -2456,7 +2628,7 @@ function renderLineas(app){
       else f.lineas[k][d[0]] = nv;
       if(!Object.keys(f.lineas[k]).length) delete f.lineas[k];
       ed.frDirty = true; render();
-    },{labelFn:function(x){return ESTADO_TXT[x];},allowUnset:d[3]==="AUTO"}),
+    },{labelFn:function(x){return (d[0]==="DET"||d[0]==="PARC"?ESTADO_SINO:ESTADO_TXT)[x];},allowUnset:d[3]==="AUTO"}),
       d[3]==="AUTO"&&!cur[d[0]]?d[4]:(d[4]&&v===d[3]?d[4]:null)));
   });
   kids.push(el("div",{class:"btns",style:"margin-top:4px"},[
