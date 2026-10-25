@@ -145,7 +145,12 @@
         display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
   .iman svg{width:20px;height:20px}
   .mas{display:block;width:100%;margin-top:8px;padding:10px;border:none;background:none;color:#2563eb;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
-  .lib .iman{margin-top:6px;width:36px;height:36px}
+  .lib .iman,.lib .borrar{width:36px;height:36px}
+  .acc{display:flex;gap:6px;flex:none;align-items:center}
+  .lib .acc{margin-top:6px}
+  .borrar{flex:none;width:40px;height:40px;border-radius:10px;border:1.5px solid #fecaca;background:#fff;color:#b91c1c;
+          font-size:16px;font-weight:800;cursor:pointer;padding:0;font-family:inherit}
+  .borrar:disabled{opacity:.5}
   .mini{border:none;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;border-radius:6px;padding:5px 9px;margin-top:6px;cursor:pointer;font-family:inherit}
   .buscar{margin-bottom:12px}
   .buscar input{padding-left:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center/17px}
@@ -162,9 +167,10 @@
 /* ════════════════════════════════════════════════════════════════
    CONSTANTES DE LÓGICA (no configurables: definen el comportamiento)
    ════════════════════════════════════════════════════════════════ */
-var TIPO_KEYS = ["RELLENO","SUBDRENES","SIST_SUBD","FUNDACION","EVALUACION","OVERLINER"];
+var TIPO_KEYS = ["RELLENO","SUBDRENES","SIST_SUBD","COLECCION","FUNDACION","EVALUACION","OVERLINER"];
 var SUBTIPO = { TOTAL:"SUBDREN TOTAL", FUND_TUB:"FUNDACIÓN Y TUBERÍA", SOLO_FUND:"SOLO FUNDACIÓN" };
 var DIAM_DOBLE = "100 y 450";
+var SUBCOL = { TUB:"SOLO TUBERÍA", OVER:"OVERLINER Y TUBERÍA" };
 var BP_TIPO = {
   ZANJA:"ZANJA DE ANCLAJE", BERMA:"BERMA PERIMETRAL", BANQUETA:"BANQUETA",
   PLATAFORMA:"PLATAFORMA", BERMA_IL:"BERMA"
@@ -197,6 +203,9 @@ var LINEAS = {
            ["ENS","Ensayo",SN],["NENS","N° de ensayo",SON,"O"],["PROT","Protocolo",SN]],
   SUBDRENES:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["LONG","Long. de tubería (se calcula con la progresiva)",SN],["AREA","Área",SON],["LINEA","Línea",SON],
              ["COTA","Cota (VARIABLE)",SN],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  COLECCION:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],
+             ["LONG","Diámetro y longitud de tubería",SN],["AREA","Área de grava (solo overliner y tubería)",SON],
+             ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN,"N"],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
   SIST_SUBD:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área (solo fundación)",SON],["LONG","Long. de tubería",SON],["GRAVA","Grava y geotextil / Fundación (m²)",SON],
              ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
   FUNDACION:[["DET","Detalle",["O","N"],"O"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área",SON],["COTA","Cotas sup. / inf.",SON,"O","Opcional: si no se ingresan, sale COTA: VARIABLE."],
@@ -209,6 +218,7 @@ var OPID = {
   RELLENO:{PROC:"opProc",CAPA:"opCapa",ESP:"opEsp",AREA:"opArea",COTA:"opCota",PROG:"progFillBP",NENS:"nroEnsayoChk"},
   SUBDRENES:{AREA:"opArea",LINEA:"opLinea",PROG:"opProg"},
   SIST_SUBD:{AREA:"opArea",LONG:"opLong",GRAVA:"opGrava",PROG:"opProg"},
+  COLECCION:{AREA:"opArea",PROG:"opProg"},
   FUNDACION:{AREA:"opArea",COTA:"cotasFill",PROG:"progFill"},
   EVALUACION:{AREA:"opArea",PROG:"opProg"},
   OVERLINER:{AREA:"opArea"}
@@ -228,55 +238,64 @@ function findBy(arr,key,val){ for(var i=0;i<arr.length;i++) if(arr[i][key]===val
    CONFIGURACIÓN DE FÁBRICA
    ════════════════════════════════════════════════════════════════ */
 function defaultConfig(){
-  var PROC_BP = ["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"];
-  function mat(nombre,tipo,o){ o=o||{};
-    return {nombre:nombre,tipo:tipo,espesor:o.espesor||"",procFija:o.procFija||"",
-            procOpciones:o.procOpciones||[],cotaRef:o.cotaRef||"",parcial:!!o.parcial}; }
-  function RE(ref){ return mat("RELLENO ESTRUCTURAL","ESTANDAR",{espesor:"0.5 m",cotaRef:ref}); }
-  function BP(){ return mat("SUELO DE BAJA PERMEABILIDAD","SUELO_BP",{procOpciones:PROC_BP.slice()}); }
-  function SR(){ return mat("SOBRERREVESTIMIENTO","VARIABLE",{espesor:"0.7 m",procFija:"CHANCADORA"}); }
+  /* material usado en un frente: procedencias elegidas, espesor y cota propios de ese frente */
+  function fm(mat,o){ o=o||{};
+    return {mat:mat,procs:o.procs||null,espesor:o.espesor||"",cotaAuto:!!o.cota,
+            cota:o.cota?{base:String(o.cota[0]),capaBase:String(o.cota[1]),paso:String(o.cota[2])}:{base:"",capaBase:"",paso:""},
+            cotasCapa:[],parcial:!!o.parcial}; }
   var PAD5 = ["RELLENO","SUBDRENES","FUNDACION","EVALUACION","OVERLINER"];
-  return {
-    version:1,
+  var c = {
+    version:2,
     tipos:{
       RELLENO:   {largo:"ACEPTACIÓN DE CAPA DE RELLENO",          corto:"CAPA DE RELLENO"},
       SUBDRENES: {largo:"INSTALACIÓN DE SUBDRENES",               corto:"INSTALACIÓN DE SUBDRENES"},
       SIST_SUBD: {largo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE",   corto:"SISTEMA DE SUBDRENAJE"},
+      COLECCION: {largo:"ACEPTACIÓN DEL SISTEMA DE COLECCIÓN DE SOLUCIÓN", corto:"SISTEMA DE COLECCIÓN DE SOLUCIÓN"},
       FUNDACION: {largo:"ACEPTACIÓN DE TERRENO DE FUNDACIÓN",     corto:"TERRENO DE FUNDACIÓN"},
       EVALUACION:{largo:"EVALUACIÓN DE MATERIAL",                 corto:"EVALUACIÓN DE MATERIAL"},
       OVERLINER: {largo:"ACEPTACIÓN DE COLOCACIÓN DE OVERLINER",  corto:"COLOCACIÓN DE OVERLINER"}
     },
     supervisores:["Dick Delgado","Gustavo Sánchez","Jaison Chavez","Kelly Rodriguez","Leonardo Tafur"],
-    procDefault:["PROPIO","CA-01"],
     materialesEval:["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"],
     lineas:{"100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],"300":["TB-PD-P-300-01","TB-PD-P-300-02"]},
     overliner:{material:"SOBRERREVESTIMIENTO",espesor:"0.7 m"},
     reporte:defaultReporte(),
-    cotasBase:[
-      {id:"ripios",        nombre:"RELLENO DE RIPIOS",      base:2573,  capaBase:9,  espesor:1},
-      {id:"controlado",    nombre:"RELLENO CONTROLADO",     base:2773,  capaBase:26, espesor:1},
-      {id:"estructural2e", nombre:"RELLENO ESTRUCTURAL 2E", base:2810.5,capaBase:15, espesor:0.5}
+    /* catálogo general: cualquier frente puede usar cualquier material */
+    materiales:[
+      {id:"m-relleno-estructural",nombre:"RELLENO ESTRUCTURAL",tipo:"ESTANDAR",procedencias:["PROPIO","CA-01"]},
+      {id:"m-suelo-bp",nombre:"SUELO DE BAJA PERMEABILIDAD",tipo:"SUELO_BP",procedencias:["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"]},
+      {id:"m-sobrerrevestimiento",nombre:"SOBRERREVESTIMIENTO",tipo:"VARIABLE",procedencias:["CHANCADORA"]},
+      {id:"m-relleno-controlado",nombre:"RELLENO CONTROLADO",tipo:"ESTANDAR",procedencias:["TAJO 5E","TAJO 4B","CANTERA 6"]},
+      {id:"m-apilamiento",nombre:"RELLENO MASIVO DE APILAMIENTO",tipo:"APILAMIENTO",procedencias:[]},
+      {id:"m-ripios",nombre:"RELLENO DE RIPIOS",tipo:"ESTANDAR",procedencias:["CANTERA CA-01"]}
     ],
     frentes:[
       {id:"pad2d",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2D SECTOR NORTE",corto:"PAD 2D NORTE",
-       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+       tipos:PAD5.concat(["COLECCION"]),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp"),fm("m-sobrerrevestimiento",{espesor:"0.7 m"})]},
       {id:"interlift",nombre:"CONSTRUCCIÓN DE INTERLIFT PAD 2D",corto:"INTERLIFT PAD 2D",
-       tipos:["RELLENO"],bp:"INTERLIFT",procDefault:[],materiales:[BP()]},
+       tipos:["RELLENO","COLECCION"],bp:"INTERLIFT",materiales:[fm("m-suelo-bp")]},
       {id:"pad2e",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR SUR",corto:"PAD 2E SUR",
-       tipos:["RELLENO","FUNDACION","OVERLINER"],bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+       tipos:["RELLENO","FUNDACION","OVERLINER"],bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp"),fm("m-sobrerrevestimiento",{espesor:"0.7 m"})]},
       {id:"pad2en",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR NORTE",corto:"PAD 2E NORTE",
-       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE("estructural2e"),BP(),SR()]},
+       tipos:PAD5.slice(),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp"),fm("m-sobrerrevestimiento",{espesor:"0.7 m"})]},
       {id:"tajo",nombre:"RELLENO INTERNO SUR - TAJO CHALARINA",corto:"TAJO CHALARINA",
-       tipos:["RELLENO","SIST_SUBD"],bp:"",procDefault:["TAJO 5E","TAJO 4B","CANTERA 6"],
-       materiales:[mat("RELLENO CONTROLADO","ESTANDAR",{espesor:"1 m",cotaRef:"controlado"}),
-                   mat("RELLENO MASIVO DE APILAMIENTO","APILAMIENTO")]},
+       tipos:["RELLENO","SIST_SUBD"],bp:"",
+       materiales:[fm("m-relleno-controlado",{espesor:"1 m",cota:[2773,26,1]}),fm("m-apilamiento")]},
       {id:"compensacion",nombre:"MATERIAL DE COMPENSACIÓN",corto:"MAT. COMPENSACIÓN",
-       tipos:["RELLENO"],bp:"",procDefault:[],
-       materiales:[mat("RELLENO DE RIPIOS","ESTANDAR",{espesor:"1 m",procFija:"CANTERA CA-01",cotaRef:"ripios",parcial:true}),SR()]},
+       tipos:["RELLENO"],bp:"",
+       materiales:[fm("m-ripios",{espesor:"1 m",cota:[2573,9,1],parcial:true}),fm("m-sobrerrevestimiento",{espesor:"0.7 m"})]},
       {id:"pad2f",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2F",corto:"PAD 2F",
-       tipos:PAD5.slice(),bp:"PAD",procDefault:[],materiales:[RE(""),BP(),SR()]}
+       tipos:PAD5.slice(),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m"}),fm("m-suelo-bp"),fm("m-sobrerrevestimiento",{espesor:"0.7 m"})]}
     ]
   };
+  /* sin lista propia = todas las procedencias del material */
+  c.frentes.forEach(function(f){ f.lineas = {}; f.materiales.forEach(function(x){
+    if(!x.procs){ var g = findBy(c.materiales,"id",x.mat); x.procs = g?g.procedencias.slice():[]; } }); });
+  return c;
 }
 
 var REP_CAMPOS = [
@@ -292,22 +311,33 @@ var REP_CAMPOS = [
 ];
 function defaultReporte(){ var r={}; REP_CAMPOS.forEach(function(c){ r[c[0]]=c[2]; }); return r; }
 
-/* normaliza cualquier configuración (guardada o importada) */
-function sanMat(m){
-  m=m||{};
-  var ks = COMPORTAMIENTOS.map(function(c){return c.k;});
-  return {nombre:String(m.nombre||"").trim(),tipo:ks.indexOf(m.tipo)>=0?m.tipo:"ESTANDAR",
-    espesor:String(m.espesor||"").trim(),procFija:String(m.procFija||"").trim(),
-    procOpciones:arrStr(m.procOpciones),cotaRef:String(m.cotaRef||""),parcial:!!m.parcial,
-    cotasCapa:arrStr(m.cotasCapa)};
+/* ── normaliza cualquier configuración (guardada, importada o de la versión anterior) ── */
+var TIPOS_MAT = ["ESTANDAR","SUELO_BP","VARIABLE","APILAMIENTO"];
+function slugMat(nombre){
+  return "m-"+String(nombre||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 }
-function sanFrente(f){
+function sanMatG(m){
+  m = m||{};
+  var nombre = String(m.nombre||"").trim().toUpperCase();
+  return {id:String(m.id||slugMat(nombre)),nombre:nombre,tipo:TIPOS_MAT.indexOf(m.tipo)>=0?m.tipo:"ESTANDAR",
+          procedencias:arrStr(m.procedencias).map(function(p){return p.toUpperCase();})};
+}
+function sanFM(x,mats){
+  x = x||{};
+  if(!findBy(mats,"id",x.mat)) return null;
+  var ct = x.cota||{};
+  return {mat:String(x.mat),procs:arrStr(x.procs),espesor:String(x.espesor||"").trim(),cotaAuto:!!x.cotaAuto,
+          cota:{base:String(ct.base==null?"":ct.base),capaBase:String(ct.capaBase==null?"":ct.capaBase),paso:String(ct.paso==null?"":ct.paso)},
+          cotasCapa:arrStr(x.cotasCapa),parcial:!!x.parcial};
+}
+function sanFrente(f,mats){
   f=f||{};
+  var vistos = {};
   return {id:String(f.id||newId()),nombre:String(f.nombre||"").trim(),corto:String(f.corto||"").trim(),
     tipos:arrStr(f.tipos).filter(function(k){return TIPO_KEYS.indexOf(k)>=0;}),
     bp:(f.bp==="PAD"||f.bp==="INTERLIFT")?f.bp:"",
-    procDefault:arrStr(f.procDefault),
-    materiales:Array.isArray(f.materiales)?f.materiales.map(sanMat).filter(function(m){return !!m.nombre;}):[],
+    materiales:(Array.isArray(f.materiales)?f.materiales:[]).map(function(x){ return sanFM(x,mats); })
+      .filter(function(x){ if(!x || vistos[x.mat]) return false; vistos[x.mat]=1; return true; }),
     lineas:sanLineas(f.lineas)};
 }
 function sanLineas(src){
@@ -321,16 +351,43 @@ function sanLineas(src){
   });
   return o;
 }
+/* versión anterior: cada frente tenía sus propios materiales y procedencias, y había referencias de cota generales */
+function migrarMateriales(c){
+  var refs = Array.isArray(c.cotasBase)?c.cotasBase:[];
+  var procGen = arrStr(c.procDefault); if(!procGen.length) procGen = ["PROPIO","CA-01"];
+  var mats = [];
+  var frentes = c.frentes.map(function(f){
+    f = f||{};
+    var procFr = arrStr(f.procDefault);
+    var nf = {}; Object.keys(f).forEach(function(k){ nf[k]=f[k]; });
+    nf.materiales = (Array.isArray(f.materiales)?f.materiales:[]).map(function(om){
+      om = om||{};
+      var nombre = String(om.nombre||"").trim().toUpperCase(); if(!nombre) return null;
+      var g = findBy(mats,"nombre",nombre);
+      if(!g){ g = {id:slugMat(nombre),nombre:nombre,tipo:TIPOS_MAT.indexOf(om.tipo)>=0?om.tipo:"ESTANDAR",procedencias:[]}; mats.push(g); }
+      var procs = String(om.procFija||"").trim() ? [String(om.procFija).trim().toUpperCase()]
+                : (arrStr(om.procOpciones).length ? arrStr(om.procOpciones) : (procFr.length?procFr:procGen));
+      if(g.tipo==="APILAMIENTO") procs = [];
+      procs = procs.map(function(p){return p.toUpperCase();});
+      procs.forEach(function(p){ if(g.procedencias.indexOf(p)<0) g.procedencias.push(p); });
+      var ref = om.cotaRef ? findBy(refs,"id",om.cotaRef) : null;
+      return {mat:g.id,procs:procs,espesor:om.espesor||"",cotaAuto:!!ref,
+              cota:ref?{base:ref.base,capaBase:ref.capaBase,paso:ref.espesor}:{base:"",capaBase:"",paso:""},
+              cotasCapa:arrStr(om.cotasCapa),parcial:!!om.parcial};
+    }).filter(Boolean);
+    return nf;
+  });
+  return {materiales:mats,frentes:frentes};
+}
 function sanitizeCfg(c){
   var d = defaultConfig();
   if(!c || typeof c!=="object") return d;
-  var o = {version:1,tipos:{}};
+  var o = {version:2,tipos:{}};
   TIPO_KEYS.forEach(function(k){
     var t = (c.tipos&&c.tipos[k])||{};
     o.tipos[k] = {largo:String(t.largo||"").trim()||d.tipos[k].largo,corto:String(t.corto||"").trim()||d.tipos[k].corto};
   });
   o.supervisores = arrStr(c.supervisores); if(!o.supervisores.length) o.supervisores = d.supervisores;
-  o.procDefault = arrStr(c.procDefault); if(!o.procDefault.length) o.procDefault = d.procDefault;
   o.materialesEval = arrStr(c.materialesEval); if(!o.materialesEval.length) o.materialesEval = d.materialesEval;
   o.lineas = c.lineas&&typeof c.lineas==="object"
     ? {"100":arrStr(c.lineas["100"]),"300":arrStr(c.lineas["300"])} : d.lineas;
@@ -339,14 +396,14 @@ function sanitizeCfg(c){
   var rp = c.reporte||{};
   o.reporte = {};
   REP_CAMPOS.forEach(function(f){ o.reporte[f[0]] = rp[f[0]]!=null&&String(rp[f[0]]).trim()!==""?String(rp[f[0]]).trim():d.reporte[f[0]]; });
-  o.cotasBase = Array.isArray(c.cotasBase)
-    ? c.cotasBase.map(function(r){ r=r||{}; return {id:String(r.id||newId()),nombre:String(r.nombre||"").trim(),
-        base:Number(r.base)||0,capaBase:Number(r.capaBase)||0,espesor:Number(r.espesor)||0}; })
-      .filter(function(r){return !!r.nombre;})
-    : d.cotasBase;
-  o.frentes = Array.isArray(c.frentes)
-    ? c.frentes.map(sanFrente).filter(function(f){return f.nombre && f.tipos.length;}) : d.frentes;
-  if(!o.frentes.length) o.frentes = d.frentes;
+  if(!Array.isArray(c.frentes)){ o.materiales = d.materiales; o.frentes = d.frentes; return o; }
+  var src = Array.isArray(c.materiales) ? {materiales:c.materiales,frentes:c.frentes} : migrarMateriales(c);
+  var vistos = {};
+  o.materiales = src.materiales.map(sanMatG).filter(function(m){
+    if(!m.nombre || vistos[m.id]) return false; vistos[m.id]=1; return true; });
+  o.frentes = src.frentes.map(function(f){ return sanFrente(f,o.materiales); })
+    .filter(function(f){return f.nombre && f.tipos.length;});
+  if(!o.frentes.length){ o.frentes = d.frentes; o.materiales = d.materiales; }
   return o;
 }
 
@@ -356,14 +413,13 @@ function validateFrente(f,i){
   if(!f.tipos.length) e.push(n+": elige al menos un tipo de liberación.");
   if(f.tipos.indexOf("RELLENO")>=0){
     if(!f.materiales.length) e.push(n+": “Capa de relleno” necesita al menos un material.");
-    var seen={};
-    f.materiales.forEach(function(m,j){
-      if(!m.nombre) e.push(n+": el material "+(j+1)+" no tiene nombre.");
-      else if(seen[m.nombre]) e.push(n+": el material “"+m.nombre+"” está repetido.");
-      seen[m.nombre]=1;
-      (m.cotasCapa||[]).forEach(function(l){
-        if(!RE_COTA_CAPA.test(l)) e.push(n+" · "+(m.nombre||"material")+": “"+l+"” no tiene el formato capa = cota.");
+    f.materiales.forEach(function(x){
+      var g = findBy(ed&&ed.cfg?ed.cfg.materiales:cfg.materiales,"id",x.mat), mn = g?g.nombre:"material";
+      (x.cotasCapa||[]).forEach(function(l){
+        if(!RE_COTA_CAPA.test(l)) e.push(n+" · "+mn+": “"+l+"” no tiene el formato capa = cota.");
       });
+      if(x.cotaAuto && (!isFinite(parseFloat(x.cota.base)) || !isFinite(parseFloat(x.cota.capaBase)) || !(parseFloat(x.cota.paso)>0)))
+        e.push(n+" · "+mn+": completa cota base, capa base y cuánto sube por capa.");
     });
   }
   return e;
@@ -371,17 +427,17 @@ function validateFrente(f,i){
 function validateCfg(c){
   var e=[];
   if(!c.frentes.length) e.push("Debe haber al menos un frente.");
+  var nombres = {};
+  c.materiales.forEach(function(m,i){
+    if(!String(m.nombre).trim()) e.push("Material "+(i+1)+": falta el nombre.");
+    else if(nombres[m.nombre]) e.push("El material “"+m.nombre+"” está repetido.");
+    nombres[m.nombre] = 1;
+  });
   c.frentes.forEach(function(f,i){ e = e.concat(validateFrente(f,i)); });
   if(!c.supervisores.length) e.push("Agrega al menos un supervisor.");
   TIPO_KEYS.forEach(function(k){
     if(!String(c.tipos[k].largo).trim()||!String(c.tipos[k].corto).trim())
       e.push("Tipo de liberación “"+(c.tipos[k].corto||k)+"”: los textos no pueden quedar vacíos.");
-  });
-  c.cotasBase.forEach(function(r,i){
-    var n = r.nombre||("Referencia "+(i+1));
-    if(!String(r.nombre).trim()) e.push("Referencia de cota "+(i+1)+": falta el nombre.");
-    if(!isFinite(parseFloat(r.base))||!isFinite(parseFloat(r.capaBase))||!(parseFloat(r.espesor)>0))
-      e.push(n+": completa cota base, capa base y espesor.");
   });
   if(!String(c.overliner.material).trim()||!String(c.overliner.espesor).trim())
     e.push("Overliner: completa material y espesor.");
@@ -503,21 +559,32 @@ function leerEnlace(){
 }
 
 function getFrente(id){ return findBy(cfg.frentes,"id",id); }
-function getMat(fr,nombre){ return fr?findBy(fr.materiales,"nombre",nombre):null; }
-function getRef(id){ return id?findBy(cfg.cotasBase,"id",id):null; }
+/* material tal como se usa en un frente: datos generales + lo que decide ese frente */
+function matEfectivo(x){
+  var g = findBy(cfg.materiales,"id",x.mat); if(!g) return null;
+  var procs = (x.procs||[]).filter(function(p){ return g.procedencias.indexOf(p)>=0; });
+  var ct = x.cota||{};
+  var cota = x.cotaAuto && isFinite(parseFloat(ct.base)) && isFinite(parseFloat(ct.capaBase)) && parseFloat(ct.paso)>0
+    ? {base:parseFloat(ct.base),capaBase:parseFloat(ct.capaBase),paso:parseFloat(ct.paso)} : null;
+  return {id:g.id,nombre:g.nombre,tipo:g.tipo,espesor:x.espesor||"",
+          procOpciones:procs.length>1?procs:[],procFija:procs.length===1?procs[0]:"",
+          cota:cota,cotasCapa:x.cotasCapa||[],parcial:!!x.parcial};
+}
+function matsFrente(fr){ return fr ? fr.materiales.map(matEfectivo).filter(Boolean) : []; }
+function getMat(fr,nombre){ return findBy(matsFrente(fr),"nombre",nombre); }
 
 /* ════════════════════════════════════════════════════════════════
    CÁLCULOS
    ════════════════════════════════════════════════════════════════ */
 function espesorApilamiento(c){ return (c-6)%3===2?4:3; }
 function cotaDesdeApilamiento(capa){ var c=2773; for(var i=7;i<=capa;i++) c+=espesorApilamiento(i); return c; }
-function cotaAuto(m){ return !!m && (m.tipo==="APILAMIENTO" || (m.tipo==="ESTANDAR" && !!getRef(m.cotaRef))); }
+function cotaAuto(m){ return !!m && (m.tipo==="APILAMIENTO" || (m.tipo==="ESTANDAR" && !!m.cota)); }
 function calcularCota(m,capaNum){
   if(!m || isNaN(capaNum)) return "";
   if(m.tipo==="APILAMIENTO") return capaNum<6?"":String(cotaDesdeApilamiento(capaNum));
-  var ref = getRef(m.cotaRef);
+  var ref = m.cota;
   if(!ref) return "";
-  return String(Math.round((ref.base+(capaNum-ref.capaBase)*ref.espesor)*1000)/1000);
+  return String(Math.round((ref.base+(capaNum-ref.capaBase)*ref.paso)*1000)/1000);
 }
 /* tabla "capa = cota" del material; devuelve null si la capa no está */
 var RE_COTA_CAPA = /^(.+?)\s*[=:;\t]\s*(-?\d+(?:[.,]\d+)?)\s*$/;
@@ -605,10 +672,10 @@ function derive(f,frId,tipo){
   var espesor = f.espVar==="SÍ" ? "VARIABLE" : (espesorManualNeeded ? (f.espesorM||"") : espesorAuto);
 
   var procFija = matData&&matData.procFija?matData.procFija:null;
-  var showProc = !isApilamiento && tipo==="RELLENO" && on("PROC");
+  var hayProc = !!matData && (!!matData.procFija || matData.procOpciones.length>0);
+  var showProc = !isApilamiento && tipo==="RELLENO" && on("PROC") && hayProc;
   var procFinal = isApilamiento?null:(procFija||f.procedencia);
-  var procOpciones = (matData&&matData.procOpciones.length?matData.procOpciones:null)
-      || (fr&&fr.procDefault.length?fr.procDefault:null) || cfg.procDefault;
+  var procOpciones = matData ? matData.procOpciones : [];
   var showSiguiente = !showProc || !!procFija || !!f.procedencia;
 
   var capaFinal = capaFija?"UNICA":(capasBPMode?f.capasBP:f.capa);
@@ -617,6 +684,7 @@ function derive(f,frId,tipo){
   var showProgRell = tipo==="RELLENO" && on("PROG");
 
   var esSoloFund = f.subtipo===SUBTIPO.SOLO_FUND;
+  var esOverCol = f.subtipoCol===SUBCOL.OVER;
   var esFundTub = f.subtipo===SUBTIPO.FUND_TUB;
   var isSist = tipo==="SIST_SUBD";
   var esDoble = isSist && f.tuberia===DIAM_DOBLE;
@@ -641,7 +709,7 @@ function derive(f,frId,tipo){
     cotaFinal:cotaFinal,cotaVar:cotaVar,showProgRell:showProgRell,
     esSoloFund:esSoloFund,esFundTub:esFundTub,esDoble:esDoble,gravaLabel:gravaLabel,
     tubLabel:tubLabel,tuberiaOpciones:tuberiaOpciones,fundCotas:fundCotas,
-    subLongTub:subLongTub,sup:sup,L:L,on:on,ensOk:ensOk,nroOk:nroOk};
+    subLongTub:subLongTub,sup:sup,L:L,on:on,ensOk:ensOk,nroOk:nroOk,esOverCol:esOverCol};
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -685,7 +753,7 @@ var SCHEMAS = {};
   SCHEMAS.RELLENO = {
     fields:[
       {id:"material",type:"select",label:"Material",
-       options:function(ctx){return ctx.d.fr?ctx.d.fr.materiales.map(function(m){return m.nombre;}):[];},
+       options:function(ctx){return matsFrente(ctx.d.fr).map(function(m){return m.nombre;});},
        afterChange:function(val,next,env){
          var md = getMat(getFrente(env.estructura),val);
          next.espesorM = (md&&md.tipo==="SUELO_BP")?"0.3 m":"";
@@ -768,7 +836,7 @@ var SCHEMAS = {};
     ],
     output:[
       function(ctx){return ctx.d.L("MAT")==="N"?null:"MATERIAL: "+ctx.f.material;},
-      function(ctx){return (ctx.d.isApilamiento||!ctx.d.on("PROC"))?null:"PROCEDENCIA: "+ctx.d.procFinal;},
+      function(ctx){return (ctx.d.isApilamiento||!ctx.d.on("PROC")||!ctx.d.procFinal)?null:"PROCEDENCIA: "+ctx.d.procFinal;},
       function(ctx){return ctx.d.on("CAPA")?"CAPA: "+ctx.d.capaFinal:null;},
       function(ctx){return ctx.d.on("ESP")?"ESPESOR: "+ctx.d.espesor:null;},
       function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.area+" m²":null;},
@@ -861,6 +929,35 @@ SCHEMAS.SIST_SUBD = {
   ]
 };
 
+SCHEMAS.COLECCION = {
+  fields:camposDetParc().concat([
+    {id:"subtipoCol",type:"btns",label:"Tipo de colección",
+     options:function(){return [SUBCOL.TUB,SUBCOL.OVER];},
+     afterChange:function(val,next){ next.areaCol=""; next.opArea="NO"; return next; }},
+    {id:"diamCol",type:"number",label:"Diámetro de tubería (mm)",placeholder:"Ej: 450",seq:true,visible:no("LONG")},
+    {id:"longCol",type:"number",label:"Longitud de tubería (m)",placeholder:"Ej: 5.70",seq:true,visible:no("LONG")},
+    opT("COLECCION","AREA","¿Ingresar área de grava?",function(ctx){return ctx.d.esOverCol;},null,true),
+    {id:"areaCol",type:"number",label:"Área de grava (m²)",placeholder:"Ej: 120.5",seq:true,
+     visible:function(ctx){return ctx.d.esOverCol && ctx.d.on("AREA");}},
+    opT("COLECCION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoCol",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protCol",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return ctx.d.L("LONG")!=="N"?"LONG. TUB (Ø"+ctx.f.diamCol+"mm): "+ctx.f.longCol+" m":null;},
+    function(ctx){return (ctx.d.esOverCol&&ctx.d.on("AREA"))?"ÁREA: "+ctx.f.areaCol+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoCol:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protCol:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
 SCHEMAS.OVERLINER = {
   fields:camposDetParc().concat([
     {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return cfg.overliner.material;},visible:no("MAT"),required:function(){return false;}},
@@ -946,6 +1043,7 @@ var INITIAL_FORM = {
   cotasFill:"NO",progFill:"NO",progFund:"",
   materialEval:"",areaEval:"",progEval:"",ensayoEval:"SÍ",protEval:"",
   areaOver:"",ensayoOver:"SÍ",protOver:"",
+  subtipoCol:"",diamCol:"",longCol:"",areaCol:"",ensayoCol:"NO",protCol:"",
   opProc:"NO",opCapa:"NO",opEsp:"NO",opArea:"NO",opCota:"NO",opProg:"NO",opLinea:"NO",opLong:"NO",opGrava:"NO",
   supervisor:""
 };
@@ -1375,7 +1473,8 @@ function nombreFoto(){
     if(f.material) p.push(f.material);
     if(ctx.d.capaFinal && ctx.d.capaFinal!=="UNICA") p.push(/^\d+(\.\d+)?$/.test(ctx.d.capaFinal)?"CAPA "+ctx.d.capaFinal:ctx.d.capaFinal);
     if(f.bpTipo) p.push(f.bpTipo);
-  } else if(f.subtipo) p.push(f.subtipo);
+  } else if(state.tipo==="COLECCION" && f.subtipoCol) p.push(f.subtipoCol+(f.diamCol?" Ø"+f.diamCol:""));
+  else if(f.subtipo) p.push(f.subtipo);
   p.push(fr?(fr.corto||fr.nombre):"");
   return p.filter(Boolean).join(" - ");
 }
@@ -1533,6 +1632,35 @@ function botonIman(it){
   b.addEventListener("click",function(){ duplicar(it); });
   return b;
 }
+/* ✕ eliminar: solo en modo editor */
+function botonBorrar(it,pendiente){
+  if(!editor || !conectado()) return null;
+  var b = el("button",{class:"borrar",type:"button",title:"Eliminar liberación","aria-label":"Eliminar liberación"},["✕"]);
+  b.addEventListener("click",function(){ eliminarLib(it,pendiente,b); });
+  return b;
+}
+function quitarDeListas(id){
+  function f(a){ return a.filter(function(x){ return x.id!==id; }); }
+  recientes.items = f(recientes.items); guardarRecientes();
+  dia.items = f(dia.items); busq.items = f(busq.items);
+}
+function eliminarLib(it,pendiente,btn){
+  var quien = resumenLib(it.texto);
+  if(pendiente){
+    if(!confirm("¿Quitar esta liberación que aún no se sube?\n\n"+quien)) return;
+    cola = cola.filter(function(x){ return x.uid!==it.uid; }); guardarCola(); render(); return;
+  }
+  if(!confirm("¿Eliminar esta liberación para todo el equipo?\n\n"+(it.id?it.id+" · ":"")+quien+"\n\nSu foto pasa a la papelera de Drive.")) return;
+  btn.disabled = true; btn.textContent = "…";
+  api("delLib",{pin:editor.pin,id:it.id}).then(function(){
+    quitarDeListas(it.id);
+    state.flash = "Liberación "+(it.id||"")+" eliminada.";
+    render();
+  },function(e){
+    btn.disabled = false; btn.textContent = "✕";
+    alert(/desconocida/i.test(e.message) ? "Para eliminar hay que actualizar el servidor (Code.gs)." : "No se pudo eliminar: "+e.message);
+  });
+}
 /* "PAD 2E SUR, SUELO DE BAJA PERMEABILIDAD, ZANJA CAPA 2, PROG: 0+100 - 0+200" */
 function resumenLib(texto){
   var c = camposMapa(texto), tl = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
@@ -1597,7 +1725,7 @@ function bloqueRecientes(){
     w.appendChild(el("div",{class:"rec"},[
       el("div",{class:"tx"},[el("b",null,[resumenLib(x.it.texto),x.pend?el("span",{class:"tag"},["POR SUBIR"]):null]),
         el("span",null,[x.pend?"Guardada en este celular":cuandoFue(x.it)])]),
-      botonIman(x.it)
+      el("div",{class:"acc"},[botonIman(x.it),botonBorrar(x.it,x.pend)])
     ]));
   });
   w.appendChild(el("button",{class:"mas",type:"button",onclick:abrirDia},["Más liberaciones y fechas anteriores ›"]));
@@ -1612,7 +1740,7 @@ function tarjetaLib(it,sub,pendiente){
   var tx = el("div",{class:"tx"},[
     el("b",null,[resumenLib(texto),pendiente?el("span",{class:"tag"},["POR SUBIR"]):null]),
     el("span",null,[[sub,turno].filter(Boolean).join(" · ")]),
-    botonIman(it),
+    el("div",{class:"acc"},[botonIman(it),botonBorrar(it,pendiente)]),
     el("details",null,[el("summary",null,["Ver texto"]),el("pre",null,[texto])])
   ]);
   var kids = [tx];
@@ -1746,6 +1874,12 @@ function valsDesdeTexto(texto,tipo,frId){
       set("progresiva",c["PROGRESIVA"]); set("grava",u("ÁREA")); set("linea",c["LÍNEA"]);
       set("ensayoSub",c["ENSAYO"]); set("protSub",c["PROTOCOLO"]);
       break;
+    case "COLECCION":
+      v.subtipoCol = c["ÁREA"]!=null ? SUBCOL.OVER : SUBCOL.TUB;
+      if(longs.length){ set("diamCol",diam(longs[0])); v.longCol = u(longs[0]); }
+      set("areaCol",u("ÁREA")); set("progresiva",c["PROGRESIVA"]);
+      set("ensayoCol",c["ENSAYO"]); set("protCol",c["PROTOCOLO"]);
+      break;
     case "SIST_SUBD":
       v.subtipo = !longs.length?SUBTIPO.SOLO_FUND:(c["FUNDACIÓN"]!=null?SUBTIPO.FUND_TUB:SUBTIPO.TOTAL);
       if(longs.length===2){ v.tuberia = DIAM_DOBLE; v.longTub = u(longs[0]); v.longTub2 = u(longs[1]); }
@@ -1875,6 +2009,7 @@ function interpretarLib(it){
   } else if(key==="OVERLINER") cat="SOBRE";
   else if(key==="FUNDACION") cat="FUND";
   else if(key==="EVALUACION") cat="EVAL";
+  else if(key==="COLECCION") cat="COL";
   else if(key==="SUBDRENES"||key==="SIST_SUBD")
     cat = Object.keys(c).some(function(k){return k.indexOf("LONG. TUB")===0;})?"SSUB":"FSUB";
   else cat="OTRO";
@@ -1917,6 +2052,9 @@ function descripcionLib(cat,key,c,mat,detalle,parcial,longs,diam){
     case "SOBRE":   obj = "colocación de "+low(mat||cfg.overliner.material); break;
     case "FUND":    obj = "terreno de fundación"; break;
     case "EVAL":    obj = "evaluación de material"+(mat?" "+low(mat):""); break;
+    case "COL":
+      obj = (c["ÁREA"]!=null?"overliner y tubería del ":"")+"sistema de colección de solución"+(diamTxt?" de "+diamTxt:"");
+      break;
     case "SSUB": case "FSUB":
       if(key==="SIST_SUBD")
         obj = longs.length ? (c["FUNDACIÓN"]!=null?"fundación y tubería del ":"")+"sistema de subdrenaje"+(diamTxt?" de "+diamTxt:"")
@@ -1941,6 +2079,7 @@ var REP_TABLAS = [
   {cat:"SOBRE",   titulo:"SOBRERREVESTIMIENTO", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
   {cat:"FSUB",    titulo:"FUNDACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["SECTOR","G","G","sector"],["LONGITUD","H","H","longitud"],["ÁREA (m2)","I","I","area"],["PROGRESIVA / COTA","J","L","progCota"]]},
   {cat:"SSUB",    titulo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["DIÁMETRO DE TUBERÍA (mm)","G","G","diametro"],["SECTOR","H","H","sector"],["LONGITUD","I","I","longitud"],["GRAVA Y GEOTEXTIL (m2)","J","J","grava"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"COL",     titulo:"ACEPTACIÓN DEL SISTEMA DE COLECCIÓN", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["DIÁMETRO DE TUBERÍA (mm)","G","G","diametro"],["SECTOR","H","H","sector"],["LONGITUD","I","I","longitud"],["ÁREA (m2)","J","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
   {cat:"OTRO",    titulo:"OTRAS LIBERACIONES", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","H","desc"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]}
 ];
 var COLW_RD = {A:2,B:4.4,C:9.4,D:12.4,E:13.4,F:12.4,G:13.6,H:12.6,I:11.4,J:13.4,K:11.6,L:21.6,M:3.6,N:21.4};
@@ -2166,6 +2305,7 @@ function setMsg(lines,kind){ ed.msg=lines; ed.msgKind=kind||""; }
 function touch(){
   if(state.view==="config"){ ed.dirty=true; updateSavebar(); }
   else if(state.view==="frente"||state.view==="lineas") ed.frDirty=true;
+  else if(state.view==="material") ed.matDirty=true;
 }
 function markDirty(){ ed.dirty=true; }
 function updateSavebar(){
@@ -2238,7 +2378,7 @@ function renderConfig(app){
       })
     ]));
   });
-  app.appendChild(secCard("Frentes","Cada frente define qué liberaciones ofrece y con qué materiales.",[
+  app.appendChild(secCard("Frentes","Cada frente define qué liberaciones ofrece. Dentro de cada liberación eliges sus materiales, procedencias, cotas y líneas.",[
     lista, el("button",{class:"add",type:"button",onclick:function(){editarFrente(-1);}},["+ Agregar frente"])
   ]));
 
@@ -2246,8 +2386,8 @@ function renderConfig(app){
   app.appendChild(secCard("Supervisores CQC","Uno por línea. El que elijas al liberar queda recordado.",[
     cfgArea(C.supervisores,"Nombre Apellido","c_sup",function(a){C.supervisores=a;})
   ]));
-  app.appendChild(secCard("Procedencias generales","Una por línea. Se usan cuando el frente o el material no tienen las suyas.",[
-    cfgArea(C.procDefault,"PROPIO","c_proc",function(a){C.procDefault=a;},{up:true})
+  app.appendChild(secCard("Materiales","Catálogo general: cualquier frente puede usarlos. Cada material tiene sus procedencias; en cada frente eliges cuáles aplican.",[
+    listaMateriales(C), el("button",{class:"add",type:"button",onclick:function(){editarMaterial(-1);}},["+ Agregar material"])
   ]));
 
   /* Tipos de liberación */
@@ -2275,30 +2415,6 @@ function renderConfig(app){
       {num:f[0]==="numRef"})));
   });
   app.appendChild(secCard("Reporte diario","Datos del encabezado del Excel. El N° del reporte avanza solo: N° de referencia + días desde su fecha.",[repWrap]));
-
-  /* Referencias de cota */
-  var refs = el("div");
-  C.cotasBase.forEach(function(r,i){
-    var usos = 0;
-    C.frentes.forEach(function(f){ f.materiales.forEach(function(m){ if(m.cotaRef===r.id) usos++; }); });
-    refs.appendChild(el("div",{class:"sub"},[
-      el("div",{class:"sub-h"},[el("div",{class:"n"},[(r.nombre||"Referencia "+(i+1))+(usos?" · "+usos+" material"+(usos>1?"es":""):"")]),
-        iconBtn("✕","del",function(){
-          if(confirm(usos?"La usan "+usos+" material(es); pasarán a cota manual. ¿Eliminar?":"¿Eliminar esta referencia?")){
-            C.cotasBase.splice(i,1); markDirty(); render(); }
-        })]),
-      fieldWrap("Nombre",cfgInput(r.nombre,"Ej: RELLENO CONTROLADO","c_rn"+i,function(v){r.nombre=v;},{up:true})),
-      el("div",{class:"grid3"},[
-        el("div",{class:"fld"},[el("label",null,["Cota base"]),cfgInput(r.base,"2773","c_rb"+i,function(v){r.base=v;},{num:true})]),
-        el("div",{class:"fld"},[el("label",null,["Capa base"]),cfgInput(r.capaBase,"26","c_rc"+i,function(v){r.capaBase=v;},{num:true})]),
-        el("div",{class:"fld"},[el("label",null,["Espesor (m)"]),cfgInput(r.espesor,"1","c_re"+i,function(v){r.espesor=v;},{num:true})])
-      ])
-    ]));
-  });
-  app.appendChild(secCard("Referencias de cota","Cota = cota base + (capa − capa base) × espesor. Se asignan a los materiales estándar.",[
-    refs, el("button",{class:"add",type:"button",onclick:function(){
-      C.cotasBase.push({id:newId(),nombre:"",base:"",capaBase:"",espesor:""}); markDirty(); render(); }},["+ Agregar referencia"])
-  ]));
 
   /* Líneas y evaluación */
   app.appendChild(secCard("Líneas de subdren","Una por línea, según el diámetro de tubería.",[
@@ -2475,7 +2591,7 @@ function salirConfig(){
 /* ── editor de un frente ── */
 function editarFrente(i){
   ed.fi = i;
-  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],bp:"",procDefault:[],materiales:[],lineas:{}}
+  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],bp:"",materiales:[],lineas:{}}
               : clone(ed.cfg.frentes[i]);
   ed.frDirty = false; ed.msg = null;
   state.view = "frente"; render(); window.scrollTo(0,0);
@@ -2483,7 +2599,7 @@ function editarFrente(i){
 function aplicarFrente(){
   var f = ed.fr;
   f.nombre = f.nombre.trim(); f.corto = (f.corto||"").trim();
-  f.materiales.forEach(function(m){ m.nombre=m.nombre.trim(); m.espesor=(m.espesor||"").trim(); m.procFija=(m.procFija||"").trim(); });
+  f.materiales.forEach(function(x){ x.espesor=(x.espesor||"").trim(); });
   f.lineas = sanLineas(f.lineas);
   var errs = validateFrente(f, ed.fi<0?ed.cfg.frentes.length:ed.fi);
   if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
@@ -2515,73 +2631,164 @@ function renderFrente(app){
       var on = f.tipos.indexOf(k)>=0;
       f.tipos = TIPO_KEYS.filter(function(x){ return x===k?!on:f.tipos.indexOf(x)>=0; });
       chg();
-    })),
-    fieldWrap("Líneas del texto",listaLineas(f),"Entra a cada liberación para elegir qué líneas salen en el texto."),
-    fieldWrap("Estructuras de suelo de baja permeabilidad",
-      optsCtl(f.bp,BP_MODOS.map(function(m){return m.k;}),function(v){f.bp=v;chg();},
-        {labelFn:function(k){return findBy(BP_MODOS,"k",k).t;}}),
-      "Opciones que aparecen al liberar suelo de baja permeabilidad en capa de relleno."),
-    fieldWrap("Procedencias del frente",cfgArea(f.procDefault,"Una por línea","fe_proc",function(a){f.procDefault=a;},{up:true}),
-      "Si queda vacío se usan las generales ("+C.procDefault.join(", ")+").")
+    }))
   ]));
-
-  var mats = el("div");
-  if(f.tipos.indexOf("RELLENO")<0){
-    mats.appendChild(el("div",{class:"sec-d"},["Los materiales solo se usan en “Capa de relleno”, que no está activada en este frente."]));
-  }
-  f.materiales.forEach(function(m,j){
-    var p = "fm"+j+"_";
-    var sub = el("div",{class:"sub"});
-    sub.appendChild(el("div",{class:"sub-h"},[
-      el("div",{class:"n"},["MATERIAL "+(j+1)]),
-      iconBtn("↑","",function(){mover(f.materiales,j,-1);},j===0),
-      iconBtn("↓","",function(){mover(f.materiales,j,1);},j===f.materiales.length-1),
-      iconBtn("✕","del",function(){
-        if(confirm("¿Eliminar el material “"+(m.nombre||"sin nombre")+"”?")){ f.materiales.splice(j,1); chg(); }
-      })
-    ]));
-    sub.appendChild(fieldWrap("Nombre",cfgInput(m.nombre,"Ej: RELLENO ESTRUCTURAL",p+"n",function(v){m.nombre=v;},{up:true})));
-    sub.appendChild(fieldWrap("Comportamiento",optsCtl(m.tipo,COMPORTAMIENTOS.map(function(c){return c.k;}),
-      function(v){m.tipo=v;chg();},{labelFn:function(k){return findBy(COMPORTAMIENTOS,"k",k).t;}})));
-    if(m.tipo!=="APILAMIENTO"){
-      sub.appendChild(fieldWrap("Espesor fijo",cfgInput(m.espesor,"Ej: 0.5 m",p+"e",function(v){m.espesor=v;}),
-        m.tipo==="SUELO_BP"?"Normalmente vacío: se propone 0.2 m en zanja y 0.3 m en lo demás, editable al liberar."
-                           :"Vacío = se escribe al liberar."));
-      sub.appendChild(fieldWrap("Procedencia fija",cfgInput(m.procFija,"Ej: CHANCADORA",p+"pf",function(v){m.procFija=v;},{up:true}),
-        "Si la llenas, no se pregunta la procedencia."));
-      sub.appendChild(fieldWrap("Opciones de procedencia",cfgArea(m.procOpciones,"Una por línea",p+"po",function(a){m.procOpciones=a;},{up:true}),
-        "Vacío = procedencias del frente."));
-    } else {
-      sub.appendChild(infoBox("Automático","espesor 3/4 m alternado, cota desde 2773 msnm en capa 6, sin procedencia"));
-    }
-    if(m.tipo==="ESTANDAR" || m.tipo==="APILAMIENTO"){
-      m.cotasCapa = m.cotasCapa||[];
-      sub.appendChild(fieldWrap("Cotas por capa",cfgArea(m.cotasCapa,"16 = 2811\nNIVELANTE 01 = 2810.5",p+"cc",function(a){m.cotasCapa=a;},{up:true}),
-        "Una por línea: capa = cota. Al liberar, la cota aparece sola; si la capa no está aquí, se usa el cálculo."));
-    }
-    if(m.tipo==="ESTANDAR"){
-      var refVal = findBy(C.cotasBase,"id",m.cotaRef)?m.cotaRef:"";
-      sub.appendChild(fieldWrap("Cálculo de cota",optsCtl(refVal,[""].concat(C.cotasBase.map(function(r){return r.id;})),
-        function(v){m.cotaRef=v;chg();},
-        {labelFn:function(id){ if(!id) return "Manual"; var r=findBy(C.cotasBase,"id",id); return r?(r.nombre||"(sin nombre)"):id; }}),
-        "Con una referencia, la cota se calcula sola al escribir la capa. Las referencias se editan en Ajustes."));
-      sub.appendChild(fieldWrap("Permite liberación parcial",toggleCtl(m.parcial?"SÍ":"NO",function(v){m.parcial=(v==="SÍ");chg();}),
-        "Agrega “¿Es liberación parcial?” (ej. HOMBRO); si es parcial, el ensayo pasa a NO."));
-    }
-    mats.appendChild(sub);
-  });
-  app.appendChild(secCard("Materiales de capa de relleno",null,[
-    mats,
-    el("button",{class:"add",type:"button",onclick:function(){
-      f.materiales.push({nombre:"",tipo:"ESTANDAR",espesor:"",procFija:"",procOpciones:[],cotaRef:"",parcial:false,cotasCapa:[]}); chg();
-    }},["+ Agregar material"])
-  ]));
+  app.appendChild(secCard("Liberaciones del frente","Entra a cada una para elegir sus materiales, cotas y las líneas que salen en el texto.",[listaLineas(f)]));
 
   app.appendChild(el("div",{class:"savebar"},[
     el("span",null,["Edición de frente"]),
     el("button",{class:"b-sec",type:"button",onclick:cancelarFrente},["Cancelar"]),
     el("button",{class:"b-pri",type:"button",onclick:aplicarFrente},["Aplicar"])
   ]));
+}
+
+/* ── catálogo de materiales ── */
+function usosMaterial(C,id){
+  return C.frentes.filter(function(f){ return f.materiales.some(function(x){ return x.mat===id; }); })
+    .map(function(f){ return f.corto||f.nombre; });
+}
+function listaMateriales(C){
+  var w = el("div");
+  if(!C.materiales.length) w.appendChild(el("div",{class:"sec-d"},["Aún no hay materiales."]));
+  C.materiales.forEach(function(m,i){
+    var tipo = findBy(COMPORTAMIENTOS,"k",m.tipo).t.split(" — ")[0];
+    w.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[m.nombre||"(sin nombre)"]),
+        el("span",null,[tipo+(m.procedencias.length?" · "+m.procedencias.join(", "):"")])]),
+      iconBtn("Editar","",function(){ editarMaterial(i); }),
+      iconBtn("✕","del",function(){
+        var u = usosMaterial(C,m.id);
+        if(!confirm("¿Eliminar el material “"+m.nombre+"”?"+(u.length?"\n\nSe quitará de: "+u.join(", "):""))) return;
+        C.materiales.splice(i,1);
+        C.frentes.forEach(function(f){ f.materiales = f.materiales.filter(function(x){ return x.mat!==m.id; }); });
+        markDirty(); render();
+      })
+    ]));
+  });
+  return w;
+}
+function editarMaterial(i){
+  ed.mi = i;
+  ed.mat = i<0 ? {id:newId(),nombre:"",tipo:"ESTANDAR",procedencias:[]} : clone(ed.cfg.materiales[i]);
+  ed.matDirty = false; ed.msg = null;
+  state.view = "material"; render(); window.scrollTo(0,0);
+}
+function cancelarMaterial(){
+  if(ed.matDirty && !confirm("¿Descartar los cambios de este material?")) return;
+  ed.mat = null; state.view = "config"; render(); window.scrollTo(0,0);
+}
+function aplicarMaterial(){
+  var m = ed.mat, C = ed.cfg;
+  m.nombre = m.nombre.trim().toUpperCase();
+  m.procedencias = arrStr(m.procedencias).map(function(p){ return p.toUpperCase(); });
+  var e = [];
+  if(!m.nombre) e.push("Falta el nombre del material.");
+  else if(C.materiales.some(function(o,j){ return j!==ed.mi && o.nombre===m.nombre; })) e.push("Ya existe un material llamado “"+m.nombre+"”.");
+  if(e.length){ setMsg(e,"err"); render(); window.scrollTo(0,0); return; }
+  if(m.tipo==="APILAMIENTO") m.procedencias = [];
+  if(ed.mi<0) C.materiales.push(m); else C.materiales[ed.mi] = m;
+  ed.mat = null; markDirty();
+  setMsg(["Material “"+m.nombre+"” listo. Pulsa Guardar para aplicar los cambios."],"ok");
+  state.view = "config"; render(); window.scrollTo(0,0);
+}
+function renderMaterial(app){
+  var m = ed.mat, C = ed.cfg;
+  function chg(){ ed.matDirty = true; render(); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN · MATERIAL"]),el("div",{class:"t"},[ed.mi<0?"Nuevo material":"Editar material"])]),
+    el("button",{class:"hbtn",type:"button",onclick:cancelarMaterial},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+  var kids = [
+    fieldWrap("Nombre",cfgInput(m.nombre,"Ej: RELLENO ESTRUCTURAL","ma_nom",function(v){m.nombre=v;ed.matDirty=true;},{up:true}),
+      "Así aparece en la línea MATERIAL del texto."),
+    fieldWrap("Comportamiento",optsCtl(m.tipo,COMPORTAMIENTOS.map(function(c){return c.k;}),
+      function(v){m.tipo=v;chg();},{labelFn:function(k){return findBy(COMPORTAMIENTOS,"k",k).t;}}))
+  ];
+  if(m.tipo!=="APILAMIENTO")
+    kids.push(fieldWrap("Procedencias",cfgArea(m.procedencias,"Una por línea","ma_proc",function(a){m.procedencias=a;ed.matDirty=true;},{up:true}),
+      "Todas las posibles para este material. En cada frente eliges cuáles aplican (las nuevas hay que activarlas en el frente)."));
+  else kids.push(infoBox("Apilamiento","espesor 3/4 m alternado, cota desde 2773 msnm en capa 6, sin procedencia"));
+  var u = usosMaterial(C,m.id);
+  kids.push(el("div",{class:"sec-d",style:"margin:4px 0 0"},[u.length?"Lo usan: "+u.join(", "):"Ningún frente lo usa todavía."]));
+  app.appendChild(secCard("Material",null,kids));
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,["Edición de material"]),
+    el("button",{class:"b-sec",type:"button",onclick:cancelarMaterial},["Cancelar"]),
+    el("button",{class:"b-pri",type:"button",onclick:aplicarMaterial},["Aplicar"])
+  ]));
+}
+
+/* ── materiales de la capa de relleno en este frente ── */
+function seccionMateriales(f){
+  var C = ed.cfg;
+  function chg(){ ed.frDirty = true; render(); }
+  var kids = [];
+  if(!C.materiales.length){
+    kids.push(el("div",{class:"sec-d"},["Primero agrega materiales en Ajustes › Materiales."]));
+    return secCard("Materiales",null,kids);
+  }
+  kids.push(fieldWrap("Materiales que usa este frente",multiCtl(f.materiales.map(function(x){return x.mat;}),
+    C.materiales.map(function(m){return m.id;}),
+    function(id){ return findBy(C.materiales,"id",id).nombre; },
+    function(id){
+      var i = -1; f.materiales.forEach(function(x,j){ if(x.mat===id) i=j; });
+      if(i>=0){
+        if(!confirm("¿Quitar este material del frente? Se pierde su configuración de cota y espesor.")) return;
+        f.materiales.splice(i,1);
+      } else {
+        var g = findBy(C.materiales,"id",id);
+        f.materiales.push({mat:id,procs:g.procedencias.slice(),espesor:"",cotaAuto:false,cota:{base:"",capaBase:"",paso:""},cotasCapa:[],parcial:false});
+      }
+      chg();
+    })));
+  f.materiales.forEach(function(x,j){
+    var g = findBy(C.materiales,"id",x.mat); if(!g) return;
+    var p = "lm"+j+"_";
+    var sub = el("div",{class:"sub"});
+    sub.appendChild(el("div",{class:"sub-h"},[
+      el("div",{class:"n"},[g.nombre]),
+      iconBtn("↑","",function(){mover(f.materiales,j,-1);},j===0),
+      iconBtn("↓","",function(){mover(f.materiales,j,1);},j===f.materiales.length-1)
+    ]));
+    if(g.tipo!=="APILAMIENTO"){
+      if(g.procedencias.length){
+        sub.appendChild(fieldWrap("Procedencias en este frente",multiCtl(x.procs,g.procedencias,function(v){return v;},function(v){
+          var i = x.procs.indexOf(v); if(i>=0) x.procs.splice(i,1); else x.procs.push(v);
+          x.procs = g.procedencias.filter(function(q){ return x.procs.indexOf(q)>=0; });
+          chg();
+        }),x.procs.length===1?"Con una sola, sale fija sin preguntar.":(x.procs.length?null:"Sin procedencias: no se pregunta ni sale en el texto.")));
+      } else sub.appendChild(el("div",{class:"sec-d"},["Este material no tiene procedencias; agrégalas en Ajustes › Materiales."]));
+      sub.appendChild(fieldWrap("Espesor en este frente",cfgInput(x.espesor,"Ej: 0.5 m",p+"e",function(v){x.espesor=v;}),
+        g.tipo==="SUELO_BP"?"Normalmente vacío: se propone 0.2 m en zanja y 0.3 m en lo demás, editable al liberar."
+                           :"Vacío = se escribe al liberar."));
+    } else sub.appendChild(infoBox("Automático","espesor 3/4 m alternado, cota desde 2773 msnm en capa 6"));
+    if(g.tipo==="ESTANDAR"){
+      sub.appendChild(fieldWrap("Cota automática por capa",toggleCtl(x.cotaAuto?"SÍ":"NO",function(v){x.cotaAuto=(v==="SÍ");chg();}),
+        x.cotaAuto?null:"En NO, la cota se escribe al liberar (o sale de la tabla de abajo)."));
+      if(x.cotaAuto){
+        sub.appendChild(el("div",{class:"grid3",style:"margin-bottom:6px"},[
+          el("div",{class:"fld"},[el("label",null,["Cota base"]),cfgInput(x.cota.base,"2810.5",p+"cb",function(v){x.cota.base=v;},{num:true})]),
+          el("div",{class:"fld"},[el("label",null,["En la capa"]),cfgInput(x.cota.capaBase,"15",p+"cc",function(v){x.cota.capaBase=v;},{num:true})]),
+          el("div",{class:"fld"},[el("label",null,["Sube por capa (m)"]),cfgInput(x.cota.paso,"0.5",p+"cp",function(v){x.cota.paso=v;},{num:true})])
+        ]));
+        sub.appendChild(el("div",{class:"fdesc",style:"margin:0 0 14px"},["Cota = cota base + (capa − capa base) × lo que sube por capa."]));
+      }
+    }
+    if(g.tipo==="ESTANDAR" || g.tipo==="APILAMIENTO")
+      sub.appendChild(fieldWrap("Cotas por capa",cfgArea(x.cotasCapa,"16 = 2811\nNIVELANTE 01 = 2810.5",p+"t",function(a){x.cotasCapa=a;},{up:true}),
+        "Una por línea: capa = cota. Tienen prioridad sobre el cálculo."));
+    if(g.tipo==="ESTANDAR")
+      sub.appendChild(fieldWrap("Permite liberación parcial",toggleCtl(x.parcial?"SÍ":"NO",function(v){x.parcial=(v==="SÍ");chg();}),
+        "Si “Liberación parcial” está sin elegir en las líneas, solo se pregunta en los materiales con SÍ."));
+    kids.push(sub);
+  });
+  kids.push(fieldWrap("Estructuras de suelo de baja permeabilidad",
+    optsCtl(f.bp,BP_MODOS.map(function(m){return m.k;}),function(v){f.bp=v;chg();},
+      {labelFn:function(k){return findBy(BP_MODOS,"k",k).t;}}),
+    "Opciones que aparecen al liberar suelo de baja permeabilidad."));
+  return secCard("Materiales",null,kids);
 }
 
 /* ── líneas del texto por liberación ── */
@@ -2603,7 +2810,7 @@ function listaLineas(f){
   f.tipos.forEach(function(k){
     w.appendChild(el("div",{class:"item"},[
       el("div",{class:"nm"},[el("b",null,[ed.cfg.tipos[k].corto]),el("span",null,[resumenLineas(f,k)])]),
-      iconBtn("Líneas ›","",function(){ ed.lt = k; ed.copiaSel = []; state.view = "lineas"; render(); window.scrollTo(0,0); })
+      iconBtn("Configurar ›","",function(){ ed.lt = k; ed.copiaSel = []; state.view = "lineas"; render(); window.scrollTo(0,0); })
     ]));
   });
   return w;
@@ -2620,6 +2827,7 @@ function renderLineas(app){
   if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
   ed.msg = null;
 
+  if(k==="RELLENO") app.appendChild(seccionMateriales(f));
   var kids = [el("div",{class:"sec-d"},["Siempre: se pide y sale en el texto. Opcional: la app pregunta “¿Ingresar…?”. Nunca: no se pide ni sale. TIPO DE LIBERACIÓN, ESTRUCTURA y SUPERVISOR CQC salen siempre."])];
   defs.forEach(function(d){
     var v = cur[d[0]] || (d[3]==="AUTO"?"":(d[3]||"S"));
@@ -2654,14 +2862,14 @@ function renderLineas(app){
       setMsg(["Configuración de “"+ed.cfg.tipos[k].corto+"” copiada a "+n+" frente"+(n>1?"s":"")+". Pulsa Aplicar y luego Guardar."],"ok");
       render(); window.scrollTo(0,0);
     });
-    app.appendChild(secCard("Copiar a otros frentes","Aplica esta misma configuración de líneas en otros frentes que tienen esta liberación.",[
+    app.appendChild(secCard("Copiar líneas a otros frentes","Aplica esta misma configuración de líneas en otros frentes que tienen esta liberación.",[
       multiCtl(ed.copiaSel,otros.map(function(o){return o.id;}),function(id){ var o=findBy(otros,"id",id); return o.corto||o.nombre; },
         function(id){ var i=ed.copiaSel.indexOf(id); if(i>=0) ed.copiaSel.splice(i,1); else ed.copiaSel.push(id); render(); }),
       el("div",{class:"btns"},[bCp])
     ]));
   }
   app.appendChild(el("div",{class:"savebar"},[
-    el("span",null,["Líneas de "+ed.cfg.tipos[k].corto.toLowerCase()]),
+    el("span",null,[ed.cfg.tipos[k].corto.charAt(0)+ed.cfg.tipos[k].corto.slice(1).toLowerCase()]),
     el("button",{class:"b-pri",type:"button",onclick:volver},["Listo"])
   ]));
 }
@@ -2680,6 +2888,7 @@ function render(){
   if(state.view==="config") renderConfig(app);
   else if(state.view==="frente") renderFrente(app);
   else if(state.view==="lineas") renderLineas(app);
+  else if(state.view==="material") renderMaterial(app);
   else if(state.view==="hoy") renderDia(app);
   else { lastVisibleSig = visibleSignature(); renderMain(app); }
 
