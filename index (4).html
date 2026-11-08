@@ -1,0 +1,3219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Liberaciones">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Generador de Liberaciones CQC</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e3a5f'/%3E%3Cpath d='M26 52l16 16 32-34' stroke='%23fff' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#f3f4f6;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       display:flex;justify-content:center;align-items:flex-start;
+       padding:max(16px,env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+  #app{width:100%;max-width:520px}
+  .card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+  .hdr{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);border-radius:14px;padding:20px 20px 20px 24px;margin-bottom:16px;color:#fff;
+       display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .hdr .k{font-size:11px;font-weight:700;letter-spacing:2px;opacity:.7;margin-bottom:4px}
+  .hdr .t{font-size:20px;font-weight:800}
+  .hbtn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:10px;
+       padding:9px 12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .fld{margin-bottom:16px}
+  label{display:block;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+  .fdesc{font-size:12px;color:#9ca3af;margin-top:6px;line-height:1.4}
+  input[type=search]{-webkit-appearance:none;appearance:none}
+  input[type=text],input[type=search],textarea{width:100%;padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;font-size:15px;
+       outline:none;background:#fff;color:#111827;font-family:inherit}
+  textarea{resize:vertical;line-height:1.5;font-size:14px}
+  input:focus,textarea:focus{border-color:#2563eb}
+  input.up,textarea.up{text-transform:uppercase}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>input{flex:1;min-width:0}
+  .dash{color:#6b7280;font-weight:700}
+
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opts button{flex:1 1 auto;min-width:calc(33.333% - 6px);padding:11px 10px;border-radius:9px;
+       border:1.5px solid #d1d5db;background:#fff;color:#374151;font-weight:600;font-size:13.5px;
+       cursor:pointer;font-family:inherit;white-space:normal;line-height:1.25;text-align:center}
+  .opts button:active{transform:scale(.98)}
+  .opts button.on{border-color:#2563eb;background:#2563eb;color:#fff}
+  .opts.wide button{flex:1 1 100%;min-width:0;text-align:left;padding:13px 14px;font-size:14px}
+  .opts.half button{min-width:calc(50% - 4px)}
+
+  .info{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:9px 12px;margin-bottom:16px;font-size:13px;color:#0369a1}
+  .info b{font-weight:700}
+  .sinbtn{padding:11px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;
+       font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit}
+  .sinbtn.on{border-color:#2563eb;background:#2563eb;color:#fff}
+  .out-t{font-size:11px;font-weight:700;color:#6b7280;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+  pre{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:13px;
+      line-height:1.7;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;color:#1e293b;margin:0;
+      -webkit-user-select:text;user-select:text}
+  .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btns button,.savebar button{padding:12px 14px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;flex:1;font-family:inherit}
+  .b-pri{background:#2563eb;color:#fff}
+  .b-ok{background:#16a34a;color:#fff}
+  .b-warn{background:#d97706;color:#fff}
+  .b-sec{background:#fff;color:#374151;border:1.5px solid #d1d5db!important}
+  .b-dng{background:#fff;color:#b91c1c;border:1.5px solid #fecaca!important}
+  .hint{text-align:center;font-size:12px;color:#9ca3af;margin-top:8px}
+
+  /* configuración */
+  .pleg-h{display:flex;align-items:center;gap:10px;cursor:pointer;margin:-4px 0;padding:4px 0;-webkit-user-select:none;user-select:none}
+  .pleg-h .sec-t{margin:0;flex:none}
+  .pleg-h .res{flex:1;min-width:0;font-size:12.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pleg-h .chev{flex:none;color:#2563eb;font-weight:800;font-size:13px}
+  .pleg.abierta .pleg-h{margin-bottom:10px}
+  .sec-t{font-size:15px;font-weight:800;color:#1e3a5f;margin:0 0 4px}
+  .sec-d{font-size:12.5px;color:#6b7280;margin:0 0 14px;line-height:1.45}
+  .item{display:flex;align-items:center;gap:6px;padding:10px 0;border-top:1px solid #eef0f3}
+  .item:first-child{border-top:none;padding-top:0}
+  .item .nm{flex:1;min-width:0}
+  .item .nm b{display:block;font-size:14px;color:#111827}
+  .item .nm span{display:block;font-size:11.5px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ib{border:1.5px solid #d1d5db;background:#fff;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:700;
+      cursor:pointer;color:#374151;font-family:inherit;flex:none}
+  .ib.del{color:#b91c1c;border-color:#fecaca}
+  .ib:disabled{opacity:.3;cursor:default}
+  .add{width:100%;margin-top:6px;padding:11px;border-radius:9px;border:1.5px dashed #93c5fd;background:#eff6ff;
+       color:#1d4ed8;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+  .sub{border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:12px;background:#fafbfc}
+  .sub-h{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+  .sub-h .n{flex:1;font-weight:800;font-size:13px;color:#374151;min-width:0}
+  .sub .fld:last-child{margin-bottom:0}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .grid3 .fld{margin-bottom:0}
+  .grid3 label{letter-spacing:.3px;font-size:10.5px}
+  .savebar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;
+       background:#1e293b;padding:10px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+  .savebar span{flex:1.3;color:#e2e8f0;font-size:13px;font-weight:600;padding-left:4px}
+  .savebar .b-sec{background:transparent;color:#e2e8f0;border:1.5px solid #475569!important}
+  .note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px;line-height:1.45}
+  .note.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+  .note.err{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+  .note ul{margin:4px 0 0;padding-left:18px}
+  .note button{margin-left:6px;border:none;background:none;color:inherit;font-weight:800;text-decoration:underline;cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+
+  /* subir / fotos / día */
+  .hgrp{display:flex;gap:6px}
+  .btns .icn{flex:0 0 52px;padding:0;font-size:21px;line-height:44px;background:#fff;border:1.5px solid #d1d5db!important;color:#374151}
+  .btns button:disabled{opacity:.6;cursor:default}
+  .foto{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:#374151;font-weight:600}
+  .foto img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb}
+  .foto span{flex:1}
+  .stat{font-size:12.5px;margin-top:10px;text-align:center;color:#6b7280}
+  .stat.ok{color:#15803d}.stat.err{color:#b91c1c}.stat.warn{color:#b45309}
+  .dnav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .dnav b{flex:1;text-align:center;font-size:15px;color:#1e3a5f}
+  .lib{display:flex;gap:12px;padding:12px 0;border-top:1px solid #eef0f3}
+  .lib:first-child{border-top:none;padding-top:0}
+  .lib .tx{flex:1;min-width:0}
+  .lib .tx b{display:block;font-size:13.5px;color:#111827;line-height:1.35}
+  .lib .tx span{display:block;font-size:12px;color:#6b7280;margin-top:3px}
+  .lib img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex:none}
+  .lib details{margin-top:6px}
+  .lib summary{font-size:12px;color:#2563eb;cursor:pointer;font-weight:600}
+  .lib pre{margin-top:6px;font-size:12px;padding:10px 12px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:#fef3c7;color:#92400e;margin-left:4px}
+  .trow{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:-4px 0 14px}
+  .turno{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:7px 13px 7px 10px;font-size:13px;font-weight:700;
+         cursor:pointer;font-family:inherit;border:1.5px solid}
+  .turno svg{width:17px;height:17px;flex:none}
+  .turno.dia{background:#fffbeb;color:#92400e;border-color:#fcd34d}
+  .turno.noche{background:#1e293b;color:#e0e7ff;border-color:#1e293b}
+  .fechabtn{text-transform:none;letter-spacing:normal;margin:0;position:relative;display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:7px 12px 7px 10px;font-size:13px;
+            font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid #d1d5db;background:#fff;color:#374151}
+  .fechabtn svg{width:16px;height:16px;flex:none}
+  .fechabtn.manual{background:#fffbeb;border-color:#f59e0b;color:#92400e}
+  .fechabtn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;cursor:pointer}
+  .copia{flex:1;min-width:0;font-size:12px;color:#92400e;display:flex;align-items:center;gap:6px}
+  .copia i{width:10px;height:10px;border-radius:3px;background:#fde68a;border:1px solid #f59e0b;flex:none}
+  .copia button{border:none;background:none;color:#92400e;font-size:15px;cursor:pointer;padding:0 2px}
+  input.cp{background:#fffbeb;border-color:#f59e0b}
+  .fijo{flex:1;min-width:0;padding:11px 12px;border-radius:8px;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-size:15px;font-weight:600}
+  .opts button.on.cp{background:#f59e0b;border-color:#f59e0b;color:#fff}
+  .recientes{margin:0 0 16px;padding-bottom:6px;border-bottom:1px solid #eef0f3}
+  .recientes .mas{margin-top:2px}
+  .rec{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f3f5}
+  .rec:first-of-type{border-top:none}
+  .rec .tx{flex:1;min-width:0}
+  .rec .tx b{display:block;font-size:12.5px;line-height:1.35;color:#111827;font-weight:700}
+  .rec .tx span{display:block;font-size:11.5px;color:#6b7280;margin-top:2px}
+  .iman{flex:none;width:40px;height:40px;border-radius:10px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;
+        display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+  .iman svg{width:20px;height:20px}
+  .mas{display:block;width:100%;margin-top:8px;padding:10px;border:none;background:none;color:#2563eb;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
+  .lib .iman,.lib .borrar{width:36px;height:36px}
+  .acc{display:flex;gap:6px;flex:none;align-items:center}
+  .lib .acc{margin-top:6px}
+  .borrar{flex:none;width:40px;height:40px;border-radius:10px;border:1.5px solid #fecaca;background:#fff;color:#b91c1c;
+          font-size:16px;font-weight:800;cursor:pointer;padding:0;font-family:inherit}
+  .borrar:disabled{opacity:.5}
+  .mini{border:none;background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:12px;border-radius:6px;padding:5px 9px;margin-top:6px;cursor:pointer;font-family:inherit}
+  .buscar{margin-bottom:12px}
+  .buscar input{padding-left:36px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px center/17px}
+  a.lnk{display:block;text-align:center;color:#2563eb;font-weight:700;font-size:14px;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="inCam" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="inGal" accept="image/*" style="display:none">
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════════
+   CONSTANTES DE LÓGICA (no configurables: definen el comportamiento)
+   ════════════════════════════════════════════════════════════════ */
+var TIPO_KEYS = ["RELLENO","SUBDRENES","SIST_SUBD","COLECCION","FUNDACION","EVALUACION","OVERLINER"];
+var SUBTIPO = { TOTAL:"SUBDREN TOTAL", FUND_TUB:"FUNDACIÓN Y TUBERÍA", SOLO_FUND:"SOLO FUNDACIÓN" };
+var DIAM_DOBLE = "100 y 450";
+var SUBCOL = { TUB:"SOLO TUBERÍA", OVER:"OVERLINER Y TUBERÍA" };
+var BP_TIPO = {
+  ZANJA:"ZANJA DE ANCLAJE", BERMA:"BERMA PERIMETRAL", BANQUETA:"BANQUETA",
+  PLATAFORMA:"PLATAFORMA", BERMA_IL:"BERMA"
+};
+var BP_PAD = [BP_TIPO.ZANJA, BP_TIPO.BERMA, BP_TIPO.BANQUETA];
+var BP_INTERLIFT = [BP_TIPO.PLATAFORMA, BP_TIPO.BERMA_IL];
+var COMPORTAMIENTOS = [
+  {k:"ESTANDAR",    t:"Estándar — capa numerada, cota calculada o manual"},
+  {k:"SUELO_BP",    t:"Suelo de baja permeabilidad — capa única, cota variable, zanja / berma / banqueta"},
+  {k:"VARIABLE",    t:"Capa única y cota variable (como sobrerrevestimiento)"},
+  {k:"APILAMIENTO", t:"Apilamiento — espesor 3/4 m alternado, cota calculada, sin procedencia"}
+];
+var BP_MODOS = [
+  {k:"",          t:"Ninguna"},
+  {k:"PAD",       t:"Pad: zanja de anclaje / berma perimetral / banqueta"},
+  {k:"INTERLIFT", t:"Interlift: plataforma / berma"}
+];
+var STORE_CFG = "genlib.config.v1", STORE_PREFS = "genlib.prefs.v1";
+
+/* Líneas del texto que se pueden configurar por frente y liberación.
+   [clave, nombre, estados permitidos, predeterminado, nota del predeterminado]
+   S = siempre · O = opcional (la app pregunta) · N = nunca · AUTO = como funcionaba antes */
+var SON = ["S","O","N"], SN = ["S","N"];
+var LINEAS = {
+  RELLENO:[["DET","Detalle",["O","N"],"AUTO","Sin elegir: solo cuando se elige una estructura sin ubicaciones."],
+           ["PARC","Liberación parcial",["O","N"],"AUTO","Sin elegir: solo en materiales con liberación parcial activada."],
+           ["MAT","Material",SN],["PROC","Procedencia",SON],["CAPA","Capa",SON],["ESP","Espesor",SON],
+           ["AREA","Área",SON],["COTA","Cota",SON],
+           ["PROG","Progresiva",SON,"AUTO","Sin elegir: siempre en estructuras que la piden, opcional en las demás estructuras, nunca sin estructura."],
+           ["ENS","Ensayo",SN],["NENS","N° de ensayo",SON,"O"],["PROT","Protocolo",SN]],
+  SUBDRENES:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["LONG","Long. de tubería (se calcula con la progresiva)",SN],["AREA","Área",SON],["LINEA","Línea",SON],
+             ["COTA","Cota (VARIABLE)",SN],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  COLECCION:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],
+             ["LONG","Diámetro y longitud de tubería",SN],["AREA","Área de overliner (solo overliner y tubería)",SON],
+             ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN,"N"],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  SIST_SUBD:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área (solo fundación)",SON],["LONG","Long. de tubería",SON],["GRAVA","Grava y geotextil / Fundación (m²)",SON],
+             ["PROG","Progresiva",SON,"N"],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  FUNDACION:[["DET","Detalle",["O","N"],"O"],["PARC","Liberación parcial",["O","N"],"N"],["AREA","Área",SON],["COTA","Cotas sup. / inf.",SON,"O","Opcional: si no se ingresan, sale COTA: VARIABLE."],
+             ["PROG","Progresiva",SON,"O"],["ENS","Ensayo (NO)",SN],["PROT","Protocolo",SN]],
+  EVALUACION:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["MAT","Material",SN],["AREA","Área",SON],["PROG","Progresiva",SON],["ENS","Ensayo",SN],["PROT","Protocolo",SN]],
+  OVERLINER:[["DET","Detalle",["O","N"],"N"],["PARC","Liberación parcial",["O","N"],"N"],["MAT","Material",SN],["ESP","Espesor",SN],["AREA","Área",SON],["COTA","Cota (VARIABLE)",SN],["ENS","Ensayo",SN],["PROT","Protocolo",SN]]
+};
+/* campo del formulario que guarda la respuesta "¿Ingresar …?" de cada línea opcional */
+var OPID = {
+  RELLENO:{PROC:"opProc",CAPA:"opCapa",ESP:"opEsp",AREA:"opArea",COTA:"opCota",PROG:"progFillBP",NENS:"nroEnsayoChk"},
+  SUBDRENES:{AREA:"opArea",LINEA:"opLinea",PROG:"opProg"},
+  SIST_SUBD:{AREA:"opArea",LONG:"opLong",GRAVA:"opGrava",PROG:"opProg"},
+  COLECCION:{AREA:"opArea",PROG:"opProg"},
+  FUNDACION:{AREA:"opArea",COTA:"cotasFill",PROG:"progFill"},
+  EVALUACION:{AREA:"opArea",PROG:"opProg"},
+  OVERLINER:{AREA:"opArea"}
+};
+var ESTADO_TXT = {S:"Siempre",O:"Opcional",N:"Nunca"};
+var ESTADO_SINO = {O:"Preguntar",N:"No"};
+var DETID = {RELLENO:"detalleRell",FUNDACION:"detalleFund"}, SINID = {RELLENO:"sinDetalleRell",FUNDACION:"sinDetalleFund"};
+var STORE_REC = "genlib.recientes.v1";
+var STORE_CONN = "genlib.conn.v1", STORE_EDITOR = "genlib.editor.v1", STORE_META = "genlib.cfgmeta.v1", STORE_COLA = "genlib.cola.v1";
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function newId(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function arrStr(a){ return Array.isArray(a)?a.map(function(x){return String(x).trim();}).filter(function(x){return !!x;}):[]; }
+function findBy(arr,key,val){ for(var i=0;i<arr.length;i++) if(arr[i][key]===val) return arr[i]; return null; }
+
+/* ════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN DE FÁBRICA
+   ════════════════════════════════════════════════════════════════ */
+function defaultConfig(){
+  /* material usado en un frente: procedencias elegidas, espesor y cota propios de ese frente */
+  var TIPO_DE = {"m-relleno-estructural":"ESTANDAR","m-suelo-bp":"SUELO_BP","m-sobrerrevestimiento":"VARIABLE",
+                 "m-relleno-controlado":"ESTANDAR","m-apilamiento":"APILAMIENTO","m-ripios":"ESTANDAR"};
+  function fm(mat,o){ o=o||{};
+    return {mat:mat,tipo:TIPO_DE[mat]||"ESTANDAR",procs:o.procs||null,espesor:o.espesor||"",cotaAuto:!!o.cota,
+            cota:o.cota?{base:String(o.cota[0]),capaBase:String(o.cota[1]),paso:String(o.cota[2])}:{base:"",capaBase:"",paso:""},
+            cotasCapa:[],parcial:!!o.parcial}; }
+  var PAD5 = ["RELLENO","SUBDRENES","FUNDACION","EVALUACION","OVERLINER"];
+  var c = {
+    version:2,
+    tipos:{
+      RELLENO:   {largo:"ACEPTACIÓN DE CAPA DE RELLENO",          corto:"CAPA DE RELLENO"},
+      SUBDRENES: {largo:"INSTALACIÓN DE SUBDRENES",               corto:"INSTALACIÓN DE SUBDRENES"},
+      SIST_SUBD: {largo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE",   corto:"SISTEMA DE SUBDRENAJE"},
+      COLECCION: {largo:"ACEPTACIÓN DEL SISTEMA DE COLECCIÓN DE SOLUCIÓN", corto:"SISTEMA DE COLECCIÓN DE SOLUCIÓN"},
+      FUNDACION: {largo:"ACEPTACIÓN DE TERRENO DE FUNDACIÓN",     corto:"TERRENO DE FUNDACIÓN"},
+      EVALUACION:{largo:"EVALUACIÓN DE MATERIAL",                 corto:"EVALUACIÓN DE MATERIAL"},
+      OVERLINER: {largo:"ACEPTACIÓN DE COLOCACIÓN DE OVERLINER",  corto:"COLOCACIÓN DE OVERLINER"}
+    },
+    supervisores:["Dick Delgado","Gustavo Sánchez","Jaison Chavez","Kelly Rodriguez","Leonardo Tafur"],
+    materialesEval:["ADECUADO","INADECUADO","TOP SOIL","MATERIAL COMÚN","ROCA FIJA","ROCA RIPABLE"],
+    lineas:{"100":["TB-PD-P-100-01","TB-PD-P-100-02","TB-PD-P-100-03"],"300":["TB-PD-P-300-01","TB-PD-P-300-02"]},
+    diametros:["100","300","450"],
+    reporte:defaultReporte(),
+    /* lista general de procedencias y catálogo de materiales (cada uno elige sus procedencias de la lista) */
+    procedencias:["PROPIO","CA-01","CANTERA CA-01","DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5","CHANCADORA","TAJO 5E","TAJO 4B","CANTERA 6"],
+    materiales:[
+      {id:"m-relleno-estructural",nombre:"RELLENO ESTRUCTURAL",procs:["PROPIO","CA-01"]},
+      {id:"m-suelo-bp",nombre:"SUELO DE BAJA PERMEABILIDAD",procs:["DME CHOLOQUE","TAJO MINA 4C","STOCKPILE 5"]},
+      {id:"m-relleno-controlado",nombre:"RELLENO CONTROLADO",procs:["TAJO 5E","TAJO 4B","CANTERA 6"]},
+      {id:"m-apilamiento",nombre:"RELLENO MASIVO DE APILAMIENTO",procs:[]},
+      {id:"m-ripios",nombre:"RELLENO DE RIPIOS",procs:["CANTERA CA-01"]}
+    ],
+    frentes:[
+      {id:"pad2d",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2D SECTOR NORTE",corto:"PAD 2D NORTE",
+       tipos:PAD5.concat(["COLECCION"]),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp")]},
+      {id:"interlift",nombre:"CONSTRUCCIÓN DE INTERLIFT PAD 2D",corto:"INTERLIFT PAD 2D",
+       tipos:["RELLENO","COLECCION"],bp:"INTERLIFT",materiales:[fm("m-suelo-bp")]},
+      {id:"pad2e",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR SUR",corto:"PAD 2E SUR",
+       tipos:["RELLENO","FUNDACION","OVERLINER"],bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp")]},
+      {id:"pad2en",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2E SECTOR NORTE",corto:"PAD 2E NORTE",
+       tipos:PAD5.slice(),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m",cota:[2810.5,15,0.5]}),fm("m-suelo-bp")]},
+      {id:"tajo",nombre:"RELLENO INTERNO SUR - TAJO CHALARINA",corto:"TAJO CHALARINA",
+       tipos:["RELLENO","SIST_SUBD"],bp:"",
+       materiales:[fm("m-relleno-controlado",{espesor:"1 m",cota:[2773,26,1]}),fm("m-apilamiento")]},
+      {id:"compensacion",nombre:"MATERIAL DE COMPENSACIÓN",corto:"MAT. COMPENSACIÓN",
+       tipos:["RELLENO"],bp:"",
+       materiales:[fm("m-ripios",{espesor:"1 m",cota:[2573,9,1],parcial:true})]},
+      {id:"pad2f",nombre:"PAD DE LIXIVIACIÓN 2 FASE 2F",corto:"PAD 2F",
+       tipos:PAD5.slice(),bp:"PAD",
+       materiales:[fm("m-relleno-estructural",{espesor:"0.5 m"}),fm("m-suelo-bp")]}
+    ]
+  };
+  /* sin lista propia = todas las procedencias del material */
+  c.frentes.forEach(function(f){ f.lineas = {}; f.materiales.forEach(function(x){
+    if(!x.procs){ var g = findBy(c.materiales,"id",x.mat); x.procs = g&&g.procs?g.procs.slice():[]; } }); });
+  c.materiales.forEach(function(m){ delete m.procs; });
+  c.version = 4;
+  c.frentes.forEach(function(f){
+    f.overliner = {espModo:"FIJO",espesor:"0.7 m"};
+    f.diams = {SUBDRENES:["100","300"],SIST_SUBD:["100","450"],COLECCION:["450"]};
+  });
+  c.estructuras = ESTRUCTURAS_FABRICA.map(function(e){ return clone(e); });
+  c.frentes.forEach(function(f){ f.materiales = f.materiales.map(function(x){ return fmNuevo(x,f.bp); }); delete f.bp; });
+  return c;
+}
+
+var REP_CAMPOS = [
+  ["codigo","Código del reporte","RD-ST.QC-PAD2-F2EE2SN"],
+  ["numRef","N° de referencia","503"],
+  ["fechaRef","Fecha de ese N° (AAAA-MM-DD)","2026-10-19"],
+  ["contratista","Contratista","STRACON PERU S.A."],
+  ["cliente","Cliente","PAN AMERICAN SILVER PERU S.A.C."],
+  ["unidad","Unidad minera","SHAHUINDO S.A.C."],
+  ["cqa","Supervisión CQA","ANDDES"],
+  ["area","Área","CONTROL DE CALIDAD"],
+  ["responsable","Responsable de calidad","Víctor Cedrón Briceño"]
+];
+function defaultReporte(){ var r={}; REP_CAMPOS.forEach(function(c){ r[c[0]]=c[2]; }); return r; }
+
+/* ── estructuras (lista general) y formato del material en cada frente ── */
+var ESTRUCTURAS_FABRICA = [
+  {id:"e-zanja",nombre:"ZANJA DE ANCLAJE",ubicaciones:[]},
+  {id:"e-berma-perimetral",nombre:"BERMA PERIMETRAL",ubicaciones:[]},
+  {id:"e-banqueta",nombre:"BANQUETA",ubicaciones:["INFERIOR","INTERMEDIA","SUPERIOR"]},
+  {id:"e-plataforma",nombre:"PLATAFORMA",ubicaciones:[]},
+  {id:"e-berma",nombre:"BERMA",ubicaciones:[]}
+];
+var MODOS_CAPA = ["ILIM","RANGO","UNICA"], MODOS_ESP = ["FIJO","MANUAL","PATRON"], MODOS_COTA = ["CALC","MANUAL","VARIABLE"];
+var TXT_CAPA = {"":"Igual al material",ILIM:"Ilimitadas",RANGO:"Definidas",UNICA:"Única"};
+var TXT_ESP = {FIJO:"Fijo",MANUAL:"Se escribe al liberar",PATRON:"Patrón por fórmula"};
+var TXT_COTA = {CALC:"Calculada",MANUAL:"Se escribe al liberar",VARIABLE:"VARIABLE"};
+function capasDe(m,min,max){ return {modo:m,min:String(min==null?"1":min),max:String(max==null?"3":max)}; }
+/* versión anterior (comportamiento estándar / suelo BP / variable / apilamiento + modo PAD o INTERLIFT del frente) → formato nuevo */
+function fmNuevo(x,bp){
+  var t = x.tipo||"ESTANDAR", ct = x.cota||{}, tabla = arrStr(x.cotasCapa);
+  var r = {mat:String(x.mat),procs:arrStr(x.procs),parcial:!!x.parcial,
+    capas:capasDe((t==="SUELO_BP"||t==="VARIABLE")?"UNICA":"ILIM"),
+    esp: t==="APILAMIENTO" ? {modo:"PATRON",valor:"",formula:"(c-6)%3==2 ? 4 : 3"}
+       : (String(x.espesor||"").trim() ? {modo:"FIJO",valor:String(x.espesor).trim(),formula:""}
+                                        : {modo:"MANUAL",valor:t==="SUELO_BP"?"0.3 m":"",formula:""}),
+    cota:{modo:"MANUAL",base:"",capaBase:"",paso:"",tabla:tabla},
+    ests:[]};
+  if(t==="APILAMIENTO") r.cota = {modo:"CALC",base:"2773",capaBase:"6",paso:"",tabla:tabla};
+  else if(t==="SUELO_BP"||t==="VARIABLE") r.cota.modo = "VARIABLE";
+  else if(x.cotaAuto) r.cota = {modo:"CALC",base:String(ct.base==null?"":ct.base),capaBase:String(ct.capaBase==null?"":ct.capaBase),
+                                paso:String(ct.paso==null?"":ct.paso),tabla:tabla};
+  if(t==="SUELO_BP" && bp==="PAD") r.ests = [
+    {est:"e-zanja",capas:capasDe("RANGO",1,3),espesor:"0.2 m",prog:true},
+    {est:"e-berma-perimetral",capas:capasDe("RANGO",1,4),espesor:"0.3 m",prog:false},
+    {est:"e-banqueta",capas:capasDe("UNICA"),espesor:"0.3 m",prog:false}];
+  if(t==="SUELO_BP" && bp==="INTERLIFT") r.ests = [
+    {est:"e-plataforma",capas:capasDe("UNICA"),espesor:"0.3 m",prog:false},
+    {est:"e-berma",capas:capasDe("ILIM"),espesor:"0.3 m",prog:false}];
+  return r;
+}
+function sanCapas(c,permiteVacio){
+  c = c||{};
+  var m = MODOS_CAPA.indexOf(c.modo)>=0 ? c.modo : (permiteVacio?"":"ILIM");
+  return {modo:m,min:String(c.min==null?"1":c.min).trim(),max:String(c.max==null?"3":c.max).trim()};
+}
+
+/* ── normaliza cualquier configuración (guardada, importada o de la versión anterior) ── */
+var TIPOS_MAT = ["ESTANDAR","SUELO_BP","VARIABLE","APILAMIENTO"];
+function slugMat(nombre){
+  return "m-"+String(nombre||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+}
+function sanMatG(m){
+  m = m||{};
+  var nombre = String(m.nombre||"").trim().toUpperCase();
+  return {id:String(m.id||slugMat(nombre)),nombre:nombre};
+}
+function sanFM(x,mats,tipoAnt,bp,ests){
+  x = x||{};
+  if(!findBy(mats,"id",x.mat)) return null;
+  if(!x.capas){   // formato anterior
+    var t = TIPOS_MAT.indexOf(x.tipo)>=0 ? x.tipo : (TIPOS_MAT.indexOf((tipoAnt||{})[x.mat])>=0 ? tipoAnt[x.mat] : "ESTANDAR");
+    var y = {}; Object.keys(x).forEach(function(k){ y[k]=x[k]; }); y.tipo = t;
+    x = fmNuevo(y,bp);
+  }
+  var e = x.esp||{}, ct = x.cota||{};
+  return {mat:String(x.mat),procs:arrStr(x.procs).map(function(q){return q.toUpperCase();}).filter(function(q,i,a){return a.indexOf(q)===i;}),
+    parcial:!!x.parcial,capas:sanCapas(x.capas),
+    esp:{modo:MODOS_ESP.indexOf(e.modo)>=0?e.modo:"MANUAL",valor:String(e.valor||"").trim(),formula:String(e.formula||"").trim()},
+    cota:{modo:MODOS_COTA.indexOf(ct.modo)>=0?ct.modo:"MANUAL",base:String(ct.base==null?"":ct.base).trim(),
+          capaBase:String(ct.capaBase==null?"":ct.capaBase).trim(),paso:String(ct.paso==null?"":ct.paso).trim(),tabla:arrStr(ct.tabla)},
+    ests:(Array.isArray(x.ests)?x.ests:[]).filter(function(q){ return q && findBy(ests,"id",q.est); })
+      .map(function(q){ var cq = sanCapas(q.capas,true); if(!cq.modo) cq = sanCapas(x.capas);
+        return {est:String(q.est),capas:cq,espModo:q.espModo==="FIJO"?"FIJO":"MANUAL",espesor:String(q.espesor||"").trim(),prog:!!q.prog}; })};
+}
+var DIAMS_TIPO = {SUBDRENES:["100","300"],SIST_SUBD:["100","450"],COLECCION:["450"]};
+function sanFrente(f,mats,tipoAnt,ests,ovAnt,pool){
+  f=f||{};
+  var vistos = {};
+  return {id:String(f.id||newId()),nombre:String(f.nombre||"").trim(),corto:String(f.corto||"").trim(),
+    tipos:arrStr(f.tipos).filter(function(k){return TIPO_KEYS.indexOf(k)>=0;}),
+    materiales:(Array.isArray(f.materiales)?f.materiales:[]).map(function(x){ return sanFM(x,mats,tipoAnt,f.bp,ests); })
+      .filter(function(x){ if(!x || vistos[x.mat]) return false; vistos[x.mat]=1; return true; }),
+    lineas:sanLineas(f.lineas),
+    overliner:(function(ov){ ov = ov||{}; return {espModo:ov.espModo==="MANUAL"?"MANUAL":"FIJO",
+      espesor:ov.espesor!=null?String(ov.espesor).trim():String(ovAnt||"0.7 m")}; })(f.overliner),
+    diams:(function(dm){ var r = {}; dm = dm||{};
+      Object.keys(DIAMS_TIPO).forEach(function(t){
+        var a = Array.isArray(dm[t]) ? arrStr(dm[t]) : DIAMS_TIPO[t].slice();
+        r[t] = (pool||[]).filter(function(x){ return a.indexOf(x)>=0; });   // en el orden de la lista general
+      }); return r; })(f.diams)};
+}
+function sanLineas(src){
+  var o = {};
+  if(!src || typeof src!=="object") return o;
+  TIPO_KEYS.forEach(function(t){
+    var x = src[t]; if(!x || typeof x!=="object") return;
+    var y = {};
+    (LINEAS[t]||[]).forEach(function(d){ if(d[2].indexOf(x[d[0]])>=0) y[d[0]] = x[d[0]]; });
+    if(Object.keys(y).length) o[t] = y;
+  });
+  return o;
+}
+/* versión anterior: cada frente tenía sus propios materiales y procedencias, y había referencias de cota generales */
+function migrarMateriales(c){
+  var refs = Array.isArray(c.cotasBase)?c.cotasBase:[];
+  var procGen = arrStr(c.procDefault); if(!procGen.length) procGen = ["PROPIO","CA-01"];
+  var mats = [];
+  var frentes = c.frentes.map(function(f){
+    f = f||{};
+    var procFr = arrStr(f.procDefault);
+    var nf = {}; Object.keys(f).forEach(function(k){ nf[k]=f[k]; });
+    nf.materiales = (Array.isArray(f.materiales)?f.materiales:[]).map(function(om){
+      om = om||{};
+      var nombre = String(om.nombre||"").trim().toUpperCase(); if(!nombre) return null;
+      var g = findBy(mats,"nombre",nombre);
+      if(!g){ g = {id:slugMat(nombre),nombre:nombre,tipo:TIPOS_MAT.indexOf(om.tipo)>=0?om.tipo:"ESTANDAR",procedencias:[]}; mats.push(g); }
+      var procs = String(om.procFija||"").trim() ? [String(om.procFija).trim().toUpperCase()]
+                : (arrStr(om.procOpciones).length ? arrStr(om.procOpciones) : (procFr.length?procFr:procGen));
+      var tipoFm = TIPOS_MAT.indexOf(om.tipo)>=0 ? om.tipo : "ESTANDAR";
+      if(tipoFm==="APILAMIENTO") procs = [];
+      procs = procs.map(function(p){return p.toUpperCase();});
+      procs.forEach(function(p){ if(g.procedencias.indexOf(p)<0) g.procedencias.push(p); });
+      var ref = om.cotaRef ? findBy(refs,"id",om.cotaRef) : null;
+      return {mat:g.id,tipo:tipoFm,procs:procs,espesor:om.espesor||"",cotaAuto:!!ref,
+              cota:ref?{base:ref.base,capaBase:ref.capaBase,paso:ref.espesor}:{base:"",capaBase:"",paso:""},
+              cotasCapa:arrStr(om.cotasCapa),parcial:!!om.parcial};
+    }).filter(Boolean);
+    return nf;
+  });
+  return {materiales:mats,frentes:frentes};
+}
+function sanitizeCfg(c){
+  var d = defaultConfig();
+  if(!c || typeof c!=="object") return d;
+  var o = {version:4,tipos:{}};
+  TIPO_KEYS.forEach(function(k){
+    var t = (c.tipos&&c.tipos[k])||{};
+    o.tipos[k] = {largo:String(t.largo||"").trim()||d.tipos[k].largo,corto:String(t.corto||"").trim()||d.tipos[k].corto};
+  });
+  o.supervisores = arrStr(c.supervisores); if(!o.supervisores.length) o.supervisores = d.supervisores;
+  o.materialesEval = arrStr(c.materialesEval); if(!o.materialesEval.length) o.materialesEval = d.materialesEval;
+  o.diametros = (Array.isArray(c.diametros) ? arrStr(c.diametros) : d.diametros.slice())
+    .map(function(x){ return x.replace(/[^\d.]/g,""); }).filter(function(x,i,a){ return !!x && a.indexOf(x)===i; })
+    .sort(function(a,b){ return parseFloat(a)-parseFloat(b); });
+  var srcL = (c.lineas && typeof c.lineas==="object") ? c.lineas : d.lineas;
+  o.lineas = {};
+  o.diametros.forEach(function(x){ o.lineas[x] = arrStr(srcL[x]); });
+  /* versiones anteriores: el espesor del overliner era uno solo para todos los frentes */
+  var ovAnt = String(((c.overliner||{}).espesor)||"0.7 m").trim();
+  var rp = c.reporte||{};
+  o.reporte = {};
+  REP_CAMPOS.forEach(function(f){ o.reporte[f[0]] = rp[f[0]]!=null&&String(rp[f[0]]).trim()!==""?String(rp[f[0]]).trim():d.reporte[f[0]]; });
+  if(!Array.isArray(c.frentes)){ o.procedencias = d.procedencias; o.materiales = d.materiales; o.frentes = d.frentes; o.estructuras = d.estructuras; return o; }
+  var src = Array.isArray(c.materiales) ? {materiales:c.materiales,frentes:c.frentes} : migrarMateriales(c);
+  /* versiones anteriores: el comportamiento estaba en el material */
+  var tipoAnt = {};
+  src.materiales.forEach(function(m){ if(m && m.tipo) tipoAnt[String(m.id||slugMat(String(m.nombre||"").trim().toUpperCase()))] = m.tipo; });
+  var vistos = {};
+  o.materiales = src.materiales.map(sanMatG).filter(function(m){
+    if(!m.nombre || vistos[m.id]) return false; vistos[m.id]=1; return true; });
+  /* lista general de procedencias: la guardada manda; si no existe, se arma con las de los materiales */
+  if(Array.isArray(c.procedencias)) o.procedencias = arrStr(c.procedencias).map(function(p){return p.toUpperCase();});
+  else { o.procedencias = []; src.materiales.forEach(function(m){ arrStr((m||{}).procedencias).forEach(function(p){ p=p.toUpperCase(); if(o.procedencias.indexOf(p)<0) o.procedencias.push(p); }); }); }
+  o.procedencias = o.procedencias.filter(function(p,i,a){ return a.indexOf(p)===i; });
+  /* lista general de estructuras */
+  var vistosE = {};
+  o.estructuras = (Array.isArray(c.estructuras)?c.estructuras:ESTRUCTURAS_FABRICA).map(function(e){
+    e = e||{}; var n = String(e.nombre||"").trim().toUpperCase();
+    return {id:String(e.id||("e-"+slugMat(n).slice(2))),nombre:n,ubicaciones:arrStr(e.ubicaciones).map(function(u){return u.toUpperCase();})};
+  }).filter(function(e){ if(!e.nombre || vistosE[e.id]) return false; vistosE[e.id]=1; return true; });
+  o.frentes = src.frentes.map(function(f){ return sanFrente(f,o.materiales,tipoAnt,o.estructuras,ovAnt,o.diametros); })
+    .filter(function(f){return f.nombre && f.tipos.length;});
+  o.frentes.forEach(function(f){ f.materiales.forEach(function(x){
+    x.procs.forEach(function(q){ if(o.procedencias.indexOf(q)<0) o.procedencias.push(q); }); }); });
+  if(!o.frentes.length){ o.frentes = d.frentes; o.materiales = d.materiales; o.procedencias = d.procedencias; o.estructuras = d.estructuras; }
+  return o;
+}
+
+function validateFrente(f,i){
+  var e=[], n=f.corto||f.nombre||("Frente "+(i+1));
+  if(!f.nombre) e.push(n+": falta el nombre completo.");
+  if(!f.tipos.length) e.push(n+": elige al menos un tipo de liberación.");
+  if(f.tipos.indexOf("RELLENO")>=0){
+    if(!f.materiales.length) e.push(n+": “Capa de relleno” necesita al menos un material.");
+    var C = ed&&ed.cfg?ed.cfg:cfg;
+    function rango(c,q){
+      if(c.modo!=="RANGO") return;
+      var a = parseInt(c.min,10), b = parseInt(c.max,10);
+      if(!(a>=0) || !(b>=a) || b-a>40) e.push(q+": el rango de capas debe ir de un número a otro mayor (ej. 1 a 3).");
+    }
+    f.materiales.forEach(function(x){
+      var g = findBy(C.materiales,"id",x.mat), q = n+" · "+(g?g.nombre:"material");
+      rango(x.capas,q);
+      x.ests.forEach(function(s){ var p = findBy(C.estructuras,"id",s.est); rango(s.capas,q+" · "+(p?p.nombre:"estructura")); });
+      if(!x.ests.length && x.esp.modo==="FIJO" && !x.esp.valor) e.push(q+": falta el espesor fijo.");
+      x.ests.forEach(function(s){ var pe = findBy(C.estructuras,"id",s.est);
+        if(s.espModo==="FIJO" && !s.espesor) e.push(q+" · "+(pe?pe.nombre:"estructura")+": falta el espesor fijo."); });
+      if(!x.ests.length && x.esp.modo==="PATRON"){
+        var ok = RE_FORMULA.test(x.esp.formula||"");
+        for(var c=1;ok && c<=12;c++){ var v = evalFormula(x.esp.formula,c); if(!(v>0)) ok = false; }
+        if(!ok) e.push(q+": la fórmula del espesor no es válida (usa c para la capa, ej. (c-6)%3==2 ? 4 : 3).");
+      }
+      (x.cota.tabla||[]).forEach(function(l){
+        if(!RE_COTA_CAPA.test(l)) e.push(q+": “"+l+"” no tiene el formato capa = cota.");
+      });
+      if(x.cota.modo==="CALC"){
+        if(!isFinite(parseFloat(x.cota.base)) || !isFinite(parseFloat(x.cota.capaBase)))
+          e.push(q+": completa la cota base y la capa en que está.");
+        else if(!(parseFloat(x.cota.paso)>0) && x.esp.modo==="MANUAL")
+          e.push(q+": para calcular la cota con espesor escrito al liberar, indica cuánto sube por capa.");
+      }
+    });
+  }
+  if(f.tipos.indexOf("OVERLINER")>=0 && f.overliner.espModo==="FIJO" && !f.overliner.espesor)
+    e.push(n+" · Colocación de overliner: falta el espesor fijo.");
+  ["SUBDRENES","SIST_SUBD","COLECCION"].forEach(function(t){
+    if(f.tipos.indexOf(t)>=0 && !(f.diams[t]||[]).length)
+      e.push(n+" · "+((ed&&ed.cfg?ed.cfg:cfg).tipos[t].corto)+": elige al menos un diámetro de tubería.");
+  });
+  return e;
+}
+function validateCfg(c){
+  var e=[];
+  if(!c.frentes.length) e.push("Debe haber al menos un frente.");
+  var nombres = {};
+  c.materiales.forEach(function(m,i){
+    if(!String(m.nombre).trim()) e.push("Material "+(i+1)+": falta el nombre.");
+    else if(nombres[m.nombre]) e.push("El material “"+m.nombre+"” está repetido.");
+    nombres[m.nombre] = 1;
+  });
+  c.frentes.forEach(function(f,i){ e = e.concat(validateFrente(f,i)); });
+  if(!c.supervisores.length) e.push("Agrega al menos un supervisor.");
+  TIPO_KEYS.forEach(function(k){
+    if(!String(c.tipos[k].largo).trim()||!String(c.tipos[k].corto).trim())
+      e.push("Tipo de liberación “"+(c.tipos[k].corto||k)+"”: los textos no pueden quedar vacíos.");
+  });
+  c.estructuras.forEach(function(s,i){ if(!String(s.nombre).trim()) e.push("Estructura "+(i+1)+": falta el nombre."); });
+  if(!c.diametros.length) e.push("Agrega al menos un diámetro de tubería.");
+  return e;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ALMACENAMIENTO
+   ════════════════════════════════════════════════════════════════ */
+var storageOk = (function(){ try{ localStorage.setItem("genlib.t","1"); localStorage.removeItem("genlib.t"); return true; }catch(e){ return false; } })();
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+function loadCfg(){
+  var raw = lsGet(STORE_CFG);
+  if(!raw) return defaultConfig();
+  try{ return sanitizeCfg(JSON.parse(raw)); }catch(e){ return defaultConfig(); }
+}
+var cfg = loadCfg();
+var prefs = (function(){ try{ return JSON.parse(lsGet(STORE_PREFS)||"{}")||{}; }catch(e){ return {}; } })();
+function savePrefs(){ lsSet(STORE_PREFS,JSON.stringify(prefs)); }
+function lsJson(k,def){ try{ var v=JSON.parse(lsGet(k)||"null"); return v==null?def:v; }catch(e){ return def; } }
+
+/* ════════════════════════════════════════════════════════════════
+   SISTEMA DEL EQUIPO (Google Apps Script)
+   ════════════════════════════════════════════════════════════════ */
+var conexion = lsJson(STORE_CONN,null);          // {url,key}
+var editor = lsJson(STORE_EDITOR,null);          // {pin,nombre}
+var cfgMeta = lsJson(STORE_META,{version:0});    // versión de la config compartida
+var cola = lsJson(STORE_COLA,[]);                // liberaciones esperando señal
+function conectado(){ return !!(conexion && conexion.url && conexion.key); }
+
+function api(action,data,ms){
+  if(!conectado()) return Promise.reject(new Error("La app no está conectada al sistema del equipo"));
+  var body = {action:action,key:conexion.key};
+  Object.keys(data||{}).forEach(function(k){ body[k]=data[k]; });
+  var ctl = window.AbortController?new AbortController():null;
+  var t = ctl?setTimeout(function(){ ctl.abort(); },ms||30000):null;
+  return fetch(conexion.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(body),redirect:"follow",signal:ctl?ctl.signal:undefined})
+    .then(function(r){ if(!r.ok) throw new Error("El servidor respondió "+r.status); return r.json(); },
+          function(){ throw new Error("Sin señal o el servidor no responde"); })
+    .then(function(j){
+      if(t) clearTimeout(t);
+      if(!j.ok && !j.conflict){ var e=new Error(j.error||"Error del servidor"); e.server=true; throw e; }
+      return j;
+    },function(e){ if(t) clearTimeout(t); throw e; });
+}
+
+function aplicarCfgRemota(j){
+  cfg = sanitizeCfg(j.config);
+  lsSet(STORE_CFG,JSON.stringify(cfg));
+  cfgMeta = {version:j.version,fecha:j.fecha||"",por:j.por||""};
+  lsSet(STORE_META,JSON.stringify(cfgMeta));
+  var fr = getFrente(state.estructura);
+  if(!fr){ state.estructura=""; state.tipo=""; resetForm(); }
+  else if(fr.tipos.indexOf(state.tipo)<0){ state.tipo=""; resetForm(); }
+}
+var ultimaSync = 0;
+function syncConfig(forzar){
+  if(!conectado() || (!forzar && Date.now()-ultimaSync<60000)) return Promise.resolve(false);
+  ultimaSync = Date.now();
+  return api("getConfig").then(function(j){
+    if(j.config && j.version!==cfgMeta.version){
+      aplicarCfgRemota(j);
+      if(state.view==="main"){ state.flash="Configuración del equipo actualizada (v"+j.version+(j.por?" · "+j.por:"")+")."; render(); }
+      return true;
+    }
+    return false;
+  }).catch(function(){ return false; });
+}
+
+/* ── cola de liberaciones sin señal ── */
+function guardarCola(){ return lsSet(STORE_COLA,JSON.stringify(cola)); }
+var enviandoCola = false;
+function enviarItem(it){
+  return api("addLib",{uid:it.uid,texto:it.texto,campos:it.campos,foto:it.foto,nombreFoto:it.nombreFoto,
+                       turno:it.turno||"",fecha:it.fecha||"",form:it.form||""},90000);
+}
+function procesarCola(){
+  if(enviandoCola || !cola.length || !conectado()) return;
+  var it = cola[0];
+  if(it.error) return;
+  enviandoCola = true;
+  enviarItem(it).then(function(){
+    cola.shift(); guardarCola(); enviandoCola=false; recientes.t=0; refrescarAviso(); procesarCola();
+  },function(e){
+    enviandoCola=false;
+    if(e.server){ it.error=e.message; guardarCola(); }
+    refrescarAviso();
+  });
+}
+function reintentarCola(){ cola.forEach(function(i){ delete i.error; }); guardarCola(); procesarCola(); refrescarAviso(); }
+function refrescarAviso(){
+  if(state.view==="main" || state.view==="hoy") render();
+}
+function avisoCola(){
+  if(!cola.length) return null;
+  var err = cola.filter(function(i){return i.error;})[0];
+  var n = el("div",{class:"note"+(err?" err":"")},[
+    (err?"No se pudo subir: "+err.error+". ":"⏳ ")+cola.length+(cola.length>1?" liberaciones esperan":" liberación espera")+" señal para subir."]);
+  n.appendChild(el("button",{type:"button",onclick:reintentarCola},["Reintentar"]));
+  return n;
+}
+
+/* ── enlace de conexión para el equipo (#conectar=...) ── */
+function enlaceConexion(){
+  var b64 = btoa(unescape(encodeURIComponent(JSON.stringify({u:conexion.url,k:conexion.key}))));
+  return location.origin+location.pathname+"#conectar="+encodeURIComponent(b64);
+}
+function leerEnlace(){
+  var m = /[#&]conectar=([^&]+)/.exec(location.hash||"");
+  if(!m) return false;
+  try{
+    var o = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+    if(o.u && o.k){ conexion={url:o.u,key:o.k}; lsSet(STORE_CONN,JSON.stringify(conexion)); }
+  }catch(e){}
+  try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){}
+  return conectado();
+}
+
+function getFrente(id){ return findBy(cfg.frentes,"id",id); }
+/* material tal como se usa en un frente: datos generales + lo que decide ese frente */
+function matEfectivo(x){
+  var g = findBy(cfg.materiales,"id",x.mat); if(!g) return null;
+  var procs = (x.procs||[]).slice();
+  var ests = (x.ests||[]).map(function(e){
+    var p = findBy(cfg.estructuras,"id",e.est); if(!p) return null;
+    return {nombre:p.nombre,ubicaciones:p.ubicaciones||[],capas:(e.capas&&e.capas.modo)?e.capas:null,
+            espModo:e.espModo==="FIJO"?"FIJO":"MANUAL",espesor:e.espesor||"",prog:!!e.prog};
+  }).filter(Boolean);
+  return {id:g.id,nombre:g.nombre,procOpciones:procs.length>1?procs:[],procFija:procs.length===1?procs[0]:"",
+          parcial:!!x.parcial,capas:x.capas,esp:x.esp,cota:x.cota,ests:ests};
+}
+function matsFrente(fr){ return fr ? fr.materiales.map(matEfectivo).filter(Boolean) : []; }
+function getMat(fr,nombre){ return findBy(matsFrente(fr),"nombre",nombre); }
+
+/* ════════════════════════════════════════════════════════════════
+   CÁLCULOS
+   ════════════════════════════════════════════════════════════════ */
+/* fórmula de espesor por capa: solo números, la variable c y operadores (ej. (c-6)%3==2 ? 4 : 3) */
+var RE_FORMULA = /^[\sc0-9.+\-*\/%()<>=!?:&|]+$/;
+function evalFormula(fx,c){
+  if(!fx || !RE_FORMULA.test(fx)) return NaN;
+  try{ var v = Function("c","return ("+fx+");")(c); return (typeof v==="number" && isFinite(v)) ? v : NaN; }catch(e){ return NaN; }
+}
+function numM(s){ var m = /-?\d+(\.\d+)?/.exec(String(s||"").replace(",",".")); return m ? parseFloat(m[0]) : NaN; }
+function fmtM(n){ return String(Math.round(n*1000)/1000)+" m"; }
+/* espesor numérico de una capa (fijo o por patrón); NaN si se escribe al liberar */
+function espesorDeCapa(m,c){
+  if(!m || !m.esp) return NaN;
+  if(m.esp.modo==="PATRON") return evalFormula(m.esp.formula,c);
+  if(m.esp.modo==="FIJO") return numM(m.esp.valor);
+  return NaN;
+}
+/* tabla "capa = cota" del material; devuelve null si la capa no está */
+var RE_COTA_CAPA = /^(.+?)\s*[=:;\t]\s*(-?\d+(?:[.,]\d+)?)\s*$/;
+function cotaDeTabla(m,capa){
+  var tabla = m && m.cota ? m.cota.tabla : null;
+  if(!tabla || !tabla.length) return null;
+  var k = String(capa==null?"":capa).trim().toUpperCase();
+  if(!k) return null;
+  for(var i=0;i<tabla.length;i++){
+    var p = RE_COTA_CAPA.exec(tabla[i]); if(!p) continue;
+    var c = p[1].trim().toUpperCase();
+    if(c===k || (c!=="" && !isNaN(c) && !isNaN(k) && Number(c)===Number(k))) return p[2].replace(",",".");
+  }
+  return null;
+}
+/* cota para una capa: tabla primero; si es calculada, cota base ± espesores de las capas (o paso fijo).
+   null = no tocar la cota escrita */
+function cotaParaCapa(m,capa,esTexto){
+  if(!m || !m.cota || m.cota.modo==="VARIABLE") return null;
+  var t = cotaDeTabla(m,capa);
+  if(t!=null) return t;
+  if(m.cota.modo!=="CALC") return m.cota.tabla.length ? "" : null;
+  if(esTexto) return "";
+  var n = parseFloat(capa), base = parseFloat(m.cota.base), cb = parseFloat(m.cota.capaBase), paso = parseFloat(m.cota.paso);
+  if(isNaN(n) || !isFinite(base) || !isFinite(cb)) return "";
+  var v = base, i, e;
+  if(paso>0) v = base+(n-cb)*paso;
+  else if(n>=cb){ for(i=cb+1;i<=n;i++){ e = espesorDeCapa(m,i); if(isNaN(e)) return ""; v += e; } }
+  else { for(i=n+1;i<=cb;i++){ e = espesorDeCapa(m,i); if(isNaN(e)) return ""; v -= e; } }
+  return String(Math.round(v*1000)/1000);
+}
+function progLongitud(prog){
+  if(!prog) return "";
+  function est(s){ var p=s.trim().split("+"); return p.length===2?parseFloat(p[0])*1000+parseFloat(p[1]):parseFloat(s); }
+  var parts=prog.split(" - ");
+  if(parts.length!==2) return "";
+  var a=est(parts[0]), b=est(parts[1]);
+  if(isNaN(a)||isNaN(b)) return "";
+  return Math.abs(b-a).toFixed(2);
+}
+
+/* estado configurado de una línea (S siempre, O opcional, N nunca, AUTO como siempre funcionó) */
+function defLinea(tipo,k){ return findBy((LINEAS[tipo]||[]).map(function(d){return {k:d[0],d:d};}),"k",k); }
+function estadoLinea(fr,tipo,k){
+  var x = defLinea(tipo,k); if(!x) return "S";
+  var v = fr && fr.lineas && fr.lineas[tipo] && fr.lineas[tipo][k];
+  return x.d[2].indexOf(v)>=0 ? v : (x.d[3]||"S");
+}
+
+function derive(f,frId,tipo){
+  var fr = getFrente(frId);
+  var matData = fr&&f.material?getMat(fr,f.material):null;
+  var ests = (matData && tipo==="RELLENO") ? matData.ests : [];
+  var showZanja = ests.length>0;                      // el material lleva estructuras
+  var bp = f.bpTipo||"";
+  var estSel = showZanja ? findBy(ests,"nombre",bp) : null;
+  var esZanja = !!estSel && estSel.prog;              // la estructura pide progresiva siempre
+  var esBanqueta = !!estSel && estSel.ubicaciones.length>0;
+  var bpTipos = ests.map(function(e){ return e.nombre; });
+
+  /* líneas del texto */
+  var L = function(k){
+    var s = estadoLinea(fr,tipo,k);
+    if(s==="AUTO"){
+      if(k==="PROG") s = esZanja?"S":(showZanja?"O":"N");
+      else if(k==="DET") s = (showZanja && !!bp && !esBanqueta)?"O":"N";
+      else if(k==="PARC") s = (!!matData && matData.parcial)?"O":"N";
+      else s = "S";
+    }
+    return s;
+  };
+  var on = function(k){
+    var s = L(k), op = (OPID[tipo]||{})[k];
+    return s==="S" || (s==="O" && f[op]==="SÍ");
+  };
+
+  var showParcial = L("PARC")==="O";
+  var esParcial = showParcial && f.parcial==="SÍ";
+
+  var capasCfg = (estSel && estSel.capas) || (matData ? matData.capas : {modo:"ILIM",min:"1",max:"3"});
+  var capasBPMode = capasCfg.modo==="RANGO";
+  var cMin = parseInt(capasCfg.min,10), cMax = parseInt(capasCfg.max,10);
+  if(!(cMin>=0)) cMin = 1; if(!(cMax>=cMin)) cMax = cMin; if(cMax-cMin>40) cMax = cMin+40;
+  var capasBPOpts = []; for(var ci=cMin; ci<=cMax; ci++) capasBPOpts.push(String(ci));
+  var capaFija = capasCfg.modo==="UNICA";
+
+  var capaVal = capasBPMode ? f.capasBP : f.capa;
+  var espesorManualNeeded = !!matData && (estSel ? estSel.espModo!=="FIJO" : matData.esp.modo==="MANUAL");
+  var espesorAuto = "";
+  if(estSel){ if(estSel.espModo==="FIJO") espesorAuto = estSel.espesor; }
+  else if(matData && matData.esp.modo==="FIJO") espesorAuto = matData.esp.valor;
+  else if(matData && matData.esp.modo==="PATRON" && capaVal && f.capaTxt!=="SÍ"){
+    var ev = evalFormula(matData.esp.formula,parseFloat(capaVal)); if(!isNaN(ev)) espesorAuto = fmtM(ev);
+  }
+  var espesor = f.espVar==="SÍ" ? "VARIABLE" : (espesorManualNeeded ? (f.espesorM||"") : espesorAuto);
+
+  var procFija = matData&&matData.procFija?matData.procFija:null;
+  var hayProc = !!matData && (!!matData.procFija || matData.procOpciones.length>0);
+  var showProc = tipo==="RELLENO" && on("PROC") && hayProc;
+  var procFinal = procFija||f.procedencia;
+  var procOpciones = matData ? matData.procOpciones : [];
+  var showSiguiente = !showProc || !!procFija || !!f.procedencia;
+
+  var capaFinal = capaFija?"UNICA":(capasBPMode?f.capasBP:f.capa);
+  var cotaVar = !!matData && matData.cota.modo==="VARIABLE";
+  var cotaFinal = cotaVar?"VARIABLE":f.cota;
+  var showProgRell = tipo==="RELLENO" && on("PROG");
+
+  var esSoloFund = f.subtipo===SUBTIPO.SOLO_FUND;
+  var esOverCol = f.subtipoCol===SUBCOL.OVER;
+  var esFundTub = f.subtipo===SUBTIPO.FUND_TUB;
+  var isSist = tipo==="SIST_SUBD";
+  var esDoble = isSist && f.tuberia===DIAM_DOBLE;
+  var gravaLabel = esFundTub?"FUNDACIÓN":(isSist?"GRAVA Y GEOTEXTIL":"GRAVA");
+  var tubLabel = f.tuberia===DIAM_DOBLE?"Ø100/450 mm":"Ø"+f.tuberia+"mm";
+  var dSel = (fr && fr.diams) ? (fr.diams[isSist?"SIST_SUBD":"SUBDRENES"]||[]) : [];
+  var tuberiaOpciones = dSel.slice();
+  if(isSist && dSel.indexOf("100")>=0 && dSel.indexOf("450")>=0) tuberiaOpciones.push(DIAM_DOBLE);
+  var diamsCol = (fr && fr.diams) ? (fr.diams.COLECCION||[]) : [];
+  var ovl = (fr && fr.overliner) || {espModo:"FIJO",espesor:""};
+  var espOver = ovl.espModo==="FIJO" ? ovl.espesor : (f.espOver||"");
+  var fundCotas = tipo==="FUNDACION" && on("COTA");
+  var subLongTub = progLongitud(f.progresiva);
+  var sup = f.supervisor?f.supervisor.toUpperCase():"";
+
+  /* puertas de la capa de relleno */
+  var ensOk = L("ENS")==="N" || !!f.ensayo;
+  var nroOk = !on("NENS") || !!f.nroEnsayo;
+
+  return {fr:fr,matData:matData,hayProc:hayProc,bpTipos:bpTipos,showZanja:showZanja,estSel:estSel,
+    esZanja:esZanja,esBanqueta:esBanqueta,
+    capasBPMode:capasBPMode,capasBPOpts:capasBPOpts,
+    showParcial:showParcial,esParcial:esParcial,capaFija:capaFija,
+    espesorManualNeeded:espesorManualNeeded,espesor:espesor,espesorAuto:espesorAuto,procFija:procFija,showProc:showProc,
+    procFinal:procFinal,procOpciones:procOpciones,showSiguiente:showSiguiente,capaFinal:capaFinal,
+    cotaFinal:cotaFinal,cotaVar:cotaVar,showProgRell:showProgRell,
+    esSoloFund:esSoloFund,esFundTub:esFundTub,esDoble:esDoble,gravaLabel:gravaLabel,
+    tubLabel:tubLabel,tuberiaOpciones:tuberiaOpciones,fundCotas:fundCotas,diamsCol:diamsCol,ovl:ovl,espOver:espOver,
+    subLongTub:subLongTub,sup:sup,L:L,on:on,ensOk:ensOk,nroOk:nroOk,esOverCol:esOverCol};
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ESQUEMAS DE CADA TIPO DE LIBERACIÓN
+   seq:true = aparece solo cuando todo lo anterior está completo
+   ════════════════════════════════════════════════════════════════ */
+function supervisorField(visible,seq){
+  return {id:"supervisor",type:"select",label:"Supervisor CQC",seq:!!seq,
+    options:function(){return cfg.supervisores;},visible:visible,
+    afterChange:function(val,next){ prefs.supervisor=val; savePrefs(); return next; }};
+}
+/* pregunta "¿Ingresar …?" para una línea opcional */
+function opT(tipo,k,label,base,afterChange,seq){
+  return {id:OPID[tipo][k],type:"toggle",label:label,seq:!!seq,
+    visible:function(ctx){ return ctx.d.L(k)==="O" && (!base || base(ctx)); },
+    afterChange:afterChange};
+}
+function no(k){ return function(ctx){ return ctx.d.L(k)!=="N"; }; }
+function si(k){ return function(ctx){ return ctx.d.on(k); }; }
+
+/* detalle y liberación parcial (para los tipos que no los traen propios) */
+function camposParcial(){
+  return [
+    {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",visible:function(ctx){return ctx.d.showParcial;},
+     afterChange:function(val,next){ if(val!=="SÍ") next.parcialTexto=""; return next; }},
+    {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
+     visible:function(ctx){return ctx.d.esParcial;}}
+  ];
+}
+function camposDetParc(){
+  return [{id:"detalle",type:"detalleOpc",sinId:"sinDetalle",label:"Detalle",placeholder:"Ej: TRAMO NORTE",
+           visible:function(ctx){return ctx.d.L("DET")==="O";},valid:function(){return true;}}].concat(camposParcial());
+}
+
+var SCHEMAS = {};
+
+(function(){
+  function baseMat(ctx){ return !!ctx.f.material && (!ctx.d.showZanja || !!ctx.f.bpTipo); }
+  function g1(ctx){ return ctx.d.showSiguiente; }
+  function procBase(ctx){ return baseMat(ctx) && ctx.d.hayProc; }
+  function cotaDe(next,env,capa){
+    var md = getMat(getFrente(env.estructura),next.material);
+    var t = cotaParaCapa(md,capa,next.capaTxt==="SÍ");
+    if(t!=null) next.cota = t;
+    return next;
+  }
+  SCHEMAS.RELLENO = {
+    fields:[
+      {id:"material",type:"select",label:"Material",
+       options:function(ctx){return matsFrente(ctx.d.fr).map(function(m){return m.nombre;});},
+       afterChange:function(val,next,env){
+         var md = getMat(getFrente(env.estructura),val);
+         next.espesorM = (md && md.esp.modo==="MANUAL") ? md.esp.valor : "";
+         next.procedencia="";next.protocolo="";next.bpTipo="";next.progresiva="";
+         next.parcial="NO";next.parcialTexto="";next.nroEnsayoChk="NO";next.nroEnsayo="";next.capasBP="";
+         next.detalleRell="";next.sinDetalleRell="SÍ";next.progFillBP="NO";next.bermaPos="";next.detalleBerma="";
+         next.capa="";next.cota="";next.ensayo="SÍ";next.capaTxt="";next.espVar="";
+         return next;}},
+      {id:"bpTipo",type:"btns",label:"Tipo de estructura",
+       options:function(ctx){return ctx.d.bpTipos||[];},
+       visible:function(ctx){return ctx.d.showZanja;},
+       afterChange:function(val,next,env){
+         next.capa="";next.capasBP="";next.progresiva="";next.progFillBP="NO";next.capaTxt="";
+         next.bermaPos="";next.detalleBerma="";next.detalleRell="";next.sinDetalleRell="SÍ";
+         var md = getMat(getFrente(env.estructura),next.material);
+         var e = md ? findBy(md.ests,"nombre",val) : null;
+         next.espesorM = e ? (e.espModo==="MANUAL" ? e.espesor : "") : (md && md.esp.modo==="MANUAL" ? md.esp.valor : "");
+         return next;}},
+      {id:"bermaPos",type:"btns",label:"Ubicación",
+       options:function(ctx){return ctx.d.estSel?ctx.d.estSel.ubicaciones:[];},
+       visible:function(ctx){return ctx.d.esBanqueta;},
+       valid:function(ctx){return !!ctx.f.bermaPos || !!ctx.f.detalleBerma;}},
+      {id:"detalleBerma",type:"text",label:"Otro detalle (opcional)",placeholder:"Ej: TRAMO NORTE",
+       visible:function(ctx){return ctx.d.esBanqueta;},required:function(){return false;}},
+      {id:"detalleRell",type:"detalleOpc",sinId:"sinDetalleRell",label:"Detalle adicional",placeholder:"Ej: TRAMO NORTE",
+       visible:function(ctx){return ctx.d.L("DET")==="O" && baseMat(ctx) && !ctx.d.esBanqueta;},
+       valid:function(){return true;}},
+      {id:"parcial",type:"toggle",label:"¿Es liberación parcial?",
+       visible:function(ctx){return ctx.d.showParcial && !!ctx.f.material;},
+       afterChange:function(val,next){ next.parcialTexto = val==="SÍ"?"HOMBRO":""; next.ensayo = val==="SÍ"?"NO":"SÍ"; return next;}},
+      {id:"parcialTexto",type:"text",label:"Detalle de liberación parcial",placeholder:"Ej: HOMBRO",
+       visible:function(ctx){return ctx.d.esParcial;}},
+      opT("RELLENO","CAPA","¿Ingresar capa?",baseMat),
+      {id:"capa",type:"capa",label:"Capa",placeholder:"Ej: 9",
+       visible:function(ctx){return baseMat(ctx) && ctx.d.on("CAPA") && !ctx.d.capasBPMode;},
+       info:function(ctx){return ctx.d.capaFija?{label:"Capa",value:"UNICA"}:null;},
+       valid:function(ctx){return !!ctx.d.capaFinal;},
+       afterChange:function(val,next,env){ return cotaDe(next,env,val); }},
+      {id:"capasBP",type:"btns",label:"N° de capas",
+       options:function(ctx){return ctx.d.capasBPOpts;},
+       visible:function(ctx){return ctx.d.capasBPMode && ctx.d.on("CAPA");},
+       afterChange:function(val,next,env){ return cotaDe(next,env,val); }},
+      opT("RELLENO","ESP","¿Ingresar espesor?",baseMat),
+      {id:"espesorM",type:"espesor",label:"Espesor",placeholder:"Ej: 0.3 m",
+       visible:function(ctx){return baseMat(ctx) && ctx.d.on("ESP");},
+       valid:function(ctx){return !!ctx.d.espesor;}},
+      opT("RELLENO","PROC","¿Ingresar procedencia?",procBase),
+      {id:"procedencia",type:"select",label:"Procedencia",
+       options:function(ctx){return ctx.d.procOpciones;},
+       visible:function(ctx){return procBase(ctx) && ctx.d.showProc;},
+       info:function(ctx){return ctx.d.procFija?{label:"Procedencia",value:ctx.d.procFija}:null;},
+       valid:function(ctx){return !!ctx.d.procFinal;}},
+      opT("RELLENO","COTA","¿Ingresar cota?",g1),
+      {id:"cota",type:"number",label:"Cota (msnm)",placeholder:"Ej: 2573",
+       visible:function(ctx){return g1(ctx) && ctx.d.on("COTA");},
+       info:function(ctx){return ctx.d.cotaVar?{label:"Cota",value:"VARIABLE"}:null;},
+       valid:function(ctx){return !!ctx.d.cotaFinal;}},
+      opT("RELLENO","AREA","¿Ingresar área?",g1),
+      {id:"area",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",
+       visible:function(ctx){return g1(ctx) && ctx.d.on("AREA");}},
+      opT("RELLENO","PROG","¿Ingresar progresiva?",g1,function(val,next){ next.progresiva=""; return next; }),
+      {id:"progresiva",type:"progresiva",label:"Progresiva",
+       visible:function(ctx){return g1(ctx) && ctx.d.showProgRell;}},
+      {id:"ensayo",type:"toggle",label:"¿Aplica Ensayo?",
+       visible:function(ctx){return g1(ctx) && ctx.d.L("ENS")!=="N";}},
+      opT("RELLENO","NENS","¿Ingresar N° de ensayo?",function(ctx){return g1(ctx) && ctx.d.ensOk;},
+          function(val,next){ next.nroEnsayo=""; return next; }),
+      {id:"nroEnsayo",type:"text",label:"N° de ensayo",placeholder:"Ej: DM-001",
+       visible:function(ctx){return g1(ctx) && ctx.d.ensOk && ctx.d.on("NENS");}},
+      {id:"protocolo",type:"toggle",label:"Protocolo",
+       visible:function(ctx){return ctx.d.L("PROT")!=="N" && g1(ctx) && ctx.d.ensOk && ctx.d.nroOk;}},
+      supervisorField(function(ctx){
+        return ctx.d.L("PROT")==="N" ? (g1(ctx) && ctx.d.ensOk && ctx.d.nroOk) : !!ctx.f.protocolo; })
+    ],
+    output:[
+      function(ctx){return ctx.d.L("MAT")==="N"?null:"MATERIAL: "+ctx.f.material;},
+      function(ctx){return (!ctx.d.on("PROC")||!ctx.d.procFinal)?null:"PROCEDENCIA: "+ctx.d.procFinal;},
+      function(ctx){return ctx.d.on("CAPA")?"CAPA: "+ctx.d.capaFinal:null;},
+      function(ctx){return ctx.d.on("ESP")?"ESPESOR: "+ctx.d.espesor:null;},
+      function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.area+" m²":null;},
+      function(ctx){return ctx.d.on("COTA")?"COTA: "+ctx.d.cotaFinal+(ctx.d.cotaFinal==="VARIABLE"?"":" msnm"):null;},
+      function(ctx){return ctx.d.showProgRell?"PROGRESIVA: "+ctx.f.progresiva:null;},
+      function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayo:null;},
+      function(ctx){return ctx.d.on("NENS")?"N° ENSAYO: "+ctx.f.nroEnsayo:null;},
+      function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protocolo:null;},
+      function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+    ]
+  };
+})();
+
+SCHEMAS.SUBDRENES = {
+  fields:camposDetParc().concat([
+    {id:"subtipo",type:"btns",label:"Tipo de Subdren",
+     options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
+     resets:["tuberia","grava","linea","progresiva","ensayoSub","protSub"],
+     afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",seq:true,
+     options:function(ctx){return ctx.d.tuberiaOpciones;},resets:["linea"]},
+    opT("SUBDRENES","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,
+     visible:function(ctx){return ctx.d.on("PROG") || (ctx.d.L("LONG")!=="N" && !ctx.d.esSoloFund);}},
+    {id:"_longCalc",type:"info",infoLabel:function(ctx){return "Long. tubería ("+ctx.d.tubLabel+")";},
+     compute:function(ctx){return ctx.d.subLongTub?ctx.d.subLongTub+" m":"—";},
+     visible:function(ctx){return !!ctx.f.progresiva && !ctx.d.esSoloFund && ctx.d.L("LONG")!=="N";},required:function(){return false;}},
+    opT("SUBDRENES","AREA","¿Ingresar área?",null,null,true),
+    {id:"grava",type:"number",label:"Área (m²)",placeholder:"Ej: 139.80",seq:true,visible:si("AREA")},
+    opT("SUBDRENES","LINEA","¿Ingresar línea?",null,null,true),
+    {id:"linea",type:"select",label:"Línea",seq:true,visible:si("LINEA"),
+     options:function(ctx){return cfg.lineas[ctx.f.tuberia]||[];}},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return (ctx.d.esSoloFund||ctx.d.L("LONG")==="N")?null:"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.d.subLongTub+" m";},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.grava+" m²":null;},
+    function(ctx){return ctx.d.on("LINEA")?"LÍNEA: "+ctx.f.linea:null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoSub:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protSub:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.SIST_SUBD = {
+  fields:camposDetParc().concat([
+    {id:"subtipo",type:"btns",label:"Tipo de Subdren",
+     options:function(){return [SUBTIPO.TOTAL,SUBTIPO.FUND_TUB,SUBTIPO.SOLO_FUND];},
+     resets:["tuberia","longTub","longTub2","grava","areaSub","linea","progresiva","ensayoSub","protSub"],
+     afterChange:function(val,next){ next.ensayoSub="NO"; next.protSub = val===SUBTIPO.TOTAL?"SÍ":""; return next;}},
+    {id:"tuberia",type:"btns",label:"Tubería (diámetro)",seq:true,
+     options:function(ctx){return ctx.d.tuberiaOpciones;},resets:["linea","longTub2"]},
+    opT("SIST_SUBD","AREA","¿Ingresar área?",function(ctx){return ctx.d.esSoloFund;},null,true),
+    {id:"areaSub",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,
+     visible:function(ctx){return ctx.d.esSoloFund && ctx.d.on("AREA");}},
+    opT("SIST_SUBD","LONG","¿Ingresar longitud de tubería?",function(ctx){return !ctx.d.esSoloFund;},null,true),
+    {id:"longTub",type:"number",placeholder:"Ej: 108.2",seq:true,
+     label:function(ctx){return ctx.d.esDoble?"Longitud tubería Ø100 (m)":"Longitud de tubería (m)";},
+     visible:function(ctx){return !ctx.d.esSoloFund && ctx.d.on("LONG");}},
+    {id:"longTub2",type:"number",label:"Longitud tubería Ø450 (m)",placeholder:"Ej: 95.40",seq:true,
+     visible:function(ctx){return ctx.d.esDoble && !ctx.d.esSoloFund && ctx.d.on("LONG");}},
+    opT("SIST_SUBD","GRAVA","¿Ingresar grava / fundación?",function(ctx){return !ctx.d.esSoloFund;},null,true),
+    {id:"grava",type:"number",placeholder:"Ej: 139.80",seq:true,
+     label:function(ctx){return ctx.d.gravaLabel+" (m²)";},
+     visible:function(ctx){return !ctx.d.esSoloFund && ctx.d.on("GRAVA");}},
+    opT("SIST_SUBD","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoSub",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protSub",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return (ctx.d.esSoloFund&&ctx.d.on("AREA"))?"ÁREA: "+ctx.f.areaSub+" m²":null;},
+    function(ctx){return (ctx.d.esSoloFund||!ctx.d.on("LONG"))?null:(ctx.d.esDoble?"LONG. TUB (Ø100mm): "+ctx.f.longTub+" m":"LONG. TUB ("+ctx.d.tubLabel+"): "+ctx.f.longTub+" m");},
+    function(ctx){return (ctx.d.esDoble&&!ctx.d.esSoloFund&&ctx.d.on("LONG"))?"LONG. TUB (Ø450mm): "+ctx.f.longTub2+" m":null;},
+    function(ctx){return (ctx.d.esSoloFund||!ctx.d.on("GRAVA"))?null:ctx.d.gravaLabel+": "+ctx.f.grava+" m²";},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoSub:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protSub:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.COLECCION = {
+  fields:camposDetParc().concat([
+    {id:"subtipoCol",type:"btns",label:"Tipo de colección",
+     options:function(){return [SUBCOL.TUB,SUBCOL.OVER];},
+     afterChange:function(val,next){ next.areaCol=""; next.opArea="NO"; return next; }},
+    {id:"diamCol",type:"btns",label:"Diámetro de tubería (mm)",seq:true,visible:no("LONG"),
+     options:function(ctx){ var o = ctx.d.diamsCol.slice(); if(ctx.f.diamCol && o.indexOf(ctx.f.diamCol)<0) o.push(ctx.f.diamCol); return o; }},
+    {id:"longCol",type:"number",label:"Longitud de tubería (m)",placeholder:"Ej: 5.70",seq:true,visible:no("LONG")},
+    opT("COLECCION","AREA","¿Ingresar área de overliner?",function(ctx){return ctx.d.esOverCol;},null,true),
+    {id:"areaCol",type:"number",label:"Área de overliner (m²)",placeholder:"Ej: 120.5",seq:true,
+     visible:function(ctx){return ctx.d.esOverCol && ctx.d.on("AREA");}},
+    opT("COLECCION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progresiva=""; return next; },true),
+    {id:"progresiva",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_cotaVar",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},seq:true,
+     visible:no("COTA"),required:function(){return false;}},
+    {id:"ensayoCol",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protCol",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return ctx.d.L("LONG")!=="N"?"LONG. TUB (Ø"+ctx.f.diamCol+"mm): "+ctx.f.longCol+" m":null;},
+    function(ctx){return (ctx.d.esOverCol&&ctx.d.on("AREA"))?"ÁREA: "+ctx.f.areaCol+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progresiva:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoCol:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protCol:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.OVERLINER = {
+  fields:camposDetParc().concat([
+    {id:"_matFijo",type:"info",infoLabel:"Material",compute:function(){return "OVERLINER";},visible:no("MAT"),required:function(){return false;}},
+    {id:"espOver",type:"text",label:"Espesor",placeholder:"Ej: 0.7 m",visible:no("ESP"),
+     info:function(ctx){return ctx.d.ovl.espModo==="FIJO"?{label:"Espesor",value:ctx.d.ovl.espesor}:null;},
+     valid:function(ctx){return !!ctx.d.espOver;}},
+    {id:"_cotaFijo",type:"info",infoLabel:"Cota",compute:function(){return "VARIABLE";},visible:no("COTA"),required:function(){return false;}},
+    opT("OVERLINER","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaOver",type:"number",label:"Área (m²)",placeholder:"Ej: 1500",seq:true,visible:si("AREA")},
+    {id:"ensayoOver",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protOver",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: OVERLINER":null;},
+    function(ctx){return ctx.d.L("ESP")!=="N"?"ESPESOR: "+ctx.d.espOver:null;},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaOver+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")!=="N"?"COTA: VARIABLE":null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoOver:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protOver:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.FUNDACION = {
+  fields:[
+    {id:"detalleFund",type:"detalleOpc",sinId:"sinDetalleFund",label:"Detalle de fundación",placeholder:"Ej: ZONA DE ESTRIBO",
+     visible:function(ctx){return ctx.d.L("DET")==="O";},valid:function(){return true;}}].concat(camposParcial(),[
+    opT("FUNDACION","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaFund",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,visible:si("AREA")},
+    opT("FUNDACION","COTA","¿Ingresar cotas sup./inf.?",null,function(val,next){ next.cotaSup=""; next.cotaInf=""; return next;},true),
+    {id:"cotaSup",type:"number",label:"Cota Superior (msnm)",placeholder:"Ej: 2811",seq:true,visible:no("COTA"),
+     info:function(ctx){return ctx.d.fundCotas?null:{label:"Cota Superior",value:"VARIABLE"};},
+     valid:function(ctx){return !ctx.d.fundCotas||!!ctx.f.cotaSup;}},
+    {id:"cotaInf",type:"number",label:"Cota Inferior (msnm)",placeholder:"Ej: 2809",seq:true,visible:no("COTA"),
+     info:function(ctx){return ctx.d.fundCotas?null:{label:"Cota Inferior",value:"VARIABLE"};},
+     valid:function(ctx){return !ctx.d.fundCotas||!!ctx.f.cotaInf;}},
+    opT("FUNDACION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progFund=""; return next;},true),
+    {id:"progFund",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"_ensayoFundFijo",type:"info",infoLabel:"Ensayo",compute:function(){return "NO";},seq:true,
+     visible:no("ENS"),required:function(){return false;}},
+    {id:"protFund",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaFund+" m²":null;},
+    function(ctx){return ctx.d.L("COTA")==="N"?null:(ctx.d.fundCotas?"COTA SUP.: "+ctx.f.cotaSup:"COTA: VARIABLE");},
+    function(ctx){return ctx.d.fundCotas?"COTA INF.: "+ctx.f.cotaInf:null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progFund:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: NO":null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protFund:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+SCHEMAS.EVALUACION = {
+  fields:camposDetParc().concat([
+    {id:"materialEval",type:"select",label:"Material",
+     options:function(){return cfg.materialesEval;}},
+    opT("EVALUACION","AREA","¿Ingresar área?",null,null,true),
+    {id:"areaEval",type:"number",label:"Área (m²)",placeholder:"Ej: 691.515",seq:true,visible:si("AREA")},
+    opT("EVALUACION","PROG","¿Ingresar progresiva?",null,function(val,next){ next.progEval=""; return next;},true),
+    {id:"progEval",type:"progresiva",label:"Progresiva",seq:true,visible:si("PROG")},
+    {id:"ensayoEval",type:"toggle",label:"¿Aplica Ensayo?",seq:true,visible:no("ENS")},
+    {id:"protEval",type:"toggle",label:"Protocolo",seq:true,visible:no("PROT")},
+    supervisorField(null,true)
+  ]),
+  output:[
+    function(ctx){return ctx.d.L("MAT")!=="N"?"MATERIAL: "+ctx.f.materialEval:null;},
+    function(ctx){return ctx.d.on("AREA")?"ÁREA: "+ctx.f.areaEval+" m²":null;},
+    function(ctx){return ctx.d.on("PROG")?"PROGRESIVA: "+ctx.f.progEval:null;},
+    function(ctx){return ctx.d.L("ENS")!=="N"?"ENSAYO: "+ctx.f.ensayoEval:null;},
+    function(ctx){return ctx.d.L("PROT")!=="N"?"PROTOCOLO: "+ctx.f.protEval:null;},
+    function(ctx){return "SUPERVISOR CQC: "+ctx.d.sup;}
+  ]
+};
+
+var INITIAL_FORM = {
+  material:"",procedencia:"",espesorM:"",capa:"",capasBP:"",cota:"",area:"",ensayo:"",protocolo:"",
+  bpTipo:"",parcial:"NO",parcialTexto:"",nroEnsayoChk:"NO",nroEnsayo:"",progresiva:"",
+  detalleRell:"",sinDetalleRell:"SÍ",progFillBP:"NO",bermaPos:"",detalleBerma:"",
+  capaTxt:"",espVar:"",detalle:"",sinDetalle:"SÍ",
+  subtipo:"",tuberia:"",longTub:"",longTub2:"",grava:"",areaSub:"",linea:"",ensayoSub:"NO",protSub:"",
+  areaFund:"",cotaSup:"",cotaInf:"",protFund:"",detalleFund:"",sinDetalleFund:"SÍ",
+  cotasFill:"NO",progFill:"NO",progFund:"",
+  materialEval:"",areaEval:"",progEval:"",ensayoEval:"SÍ",protEval:"",
+  areaOver:"",ensayoOver:"SÍ",protOver:"",
+  subtipoCol:"",diamCol:"",longCol:"",areaCol:"",ensayoCol:"NO",protCol:"",espOver:"",
+  opProc:"NO",opCapa:"NO",opEsp:"NO",opArea:"NO",opCota:"NO",opProg:"NO",opLinea:"NO",opLong:"NO",opGrava:"NO",
+  supervisor:""
+};
+var RESET_DEFAULTS = {ensayoSub:"NO",parcial:"NO",cotasFill:"NO",progFill:"NO",nroEnsayoChk:"NO",progFillBP:"NO",
+  opProc:"NO",opCapa:"NO",opEsp:"NO",opArea:"NO",opCota:"NO",opProg:"NO",opLinea:"NO",opLong:"NO",opGrava:"NO"};
+
+/* qué campos se ven: condición propia + (seq) todo lo anterior completo */
+function visibilidad(schema,ctx){
+  var ok = true;
+  return schema.fields.map(function(field){
+    var vis = field.visible ? !!field.visible(ctx) : true;
+    if(vis && field.seq && !ok) vis = false;
+    if(vis){
+      var req = field.required ? field.required(ctx) : true;
+      if(req && !(field.valid ? field.valid(ctx) : !!ctx.f[field.id])) ok = false;
+    }
+    return vis;
+  });
+}
+function validForm(schema,ctx){
+  var vis = visibilidad(schema,ctx);
+  return schema.fields.every(function(field,i){
+    if(!vis[i]) return true;
+    var req = field.required?field.required(ctx):true;
+    if(!req) return true;
+    return field.valid?field.valid(ctx):!!ctx.f[field.id];
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ESTADO
+   ════════════════════════════════════════════════════════════════ */
+var state = { view:"main", estructura:"", tipo:"", form:clone(INITIAL_FORM), flash:"", foto:null, subida:null, dia:"",
+              turno:"", copiados:{}, origen:"", fechaManual:"" };
+var progUI = {};
+var ed = null; // borrador de configuración
+
+function resetForm(){
+  state.form = clone(INITIAL_FORM);
+  progUI = {};
+  state.foto = null; state.subida = null; state.copiados = {}; state.origen = "";
+  var frR = getFrente(state.estructura);
+  if(state.tipo==="OVERLINER" && frR && frR.overliner && frR.overliner.espModo==="MANUAL") state.form.espOver = frR.overliner.espesor;
+  if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)>=0) state.form.supervisor = prefs.supervisor;
+}
+
+function setField(field,value){
+  state.form[field.id] = value;
+  delete state.copiados[field.id];
+  if(field.resets) field.resets.forEach(function(id){
+    state.form[id] = RESET_DEFAULTS.hasOwnProperty(id)?RESET_DEFAULTS[id]:"";
+    delete progUI[id];
+  });
+  if(field.afterChange) state.form = field.afterChange(value,state.form,{estructura:state.estructura,tipo:state.tipo});
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HELPERS UI
+   ════════════════════════════════════════════════════════════════ */
+function el(tag,attrs,children){
+  var n = document.createElement(tag);
+  if(attrs) Object.keys(attrs).forEach(function(k){
+    if(k==="class") n.className=attrs[k];
+    else if(k.slice(0,2)==="on") n.addEventListener(k.slice(2).toLowerCase(),attrs[k]);
+    else if(k==="disabled"){ if(attrs[k]) n.setAttribute(k,""); }
+    else n.setAttribute(k,attrs[k]);
+  });
+  (children||[]).forEach(function(c){ if(c==null) return;
+    n.appendChild(typeof c==="string"?document.createTextNode(c):c); });
+  return n;
+}
+function numFilter(v){
+  v = String(v).replace(/[^0-9.]/g,"");
+  var i = v.indexOf(".");
+  if(i!==-1) v = v.slice(0,i+1)+v.slice(i+1).replace(/\./g,"");
+  return v;
+}
+function fieldWrap(label,control,desc){
+  return el("div",{class:"fld"},[el("label",null,[label]),control,desc?el("div",{class:"fdesc"},[desc]):null]);
+}
+function infoBox(label,value){
+  return el("div",{class:"info"},[el("b",null,[label+":"]),document.createTextNode(" "+(value||"—"))]);
+}
+function optsCtl(value,options,onChange,opt){
+  opt = opt || {};
+  var lbl = function(o){ return opt.labelFn?opt.labelFn(o):o; };
+  var maxLen = 0;
+  options.forEach(function(o){ maxLen = Math.max(maxLen, String(lbl(o)).length); });
+  var cls = "opts";
+  if(maxLen > 24) cls += " wide";
+  else if(maxLen > 13) cls += " half";
+  var w = el("div",{class:cls});
+  options.forEach(function(o){
+    w.appendChild(el("button",{class:value===o?"on"+(opt.cp?" cp":""):"",type:"button",
+      onclick:function(){
+        if(value===o){ if(opt.allowUnset) onChange(""); return; }
+        onChange(o);
+      }},[lbl(o)]));
+  });
+  return w;
+}
+function multiCtl(selected,options,labelFn,onToggle){
+  var w = el("div",{class:"opts half"});
+  options.forEach(function(o){
+    w.appendChild(el("button",{type:"button",class:selected.indexOf(o)>=0?"on":"",
+      onclick:function(){ onToggle(o); }},[labelFn(o)]));
+  });
+  return w;
+}
+function toggleCtl(value,onChange){ return optsCtl(value,["SÍ","NO"],onChange,{}); }
+function textCtl(value,placeholder,numeric,onChange){
+  var i = el("input",{type:"text",value:value||"",placeholder:placeholder||"",
+    class:numeric?"":"up",inputmode:numeric?"decimal":"text"});
+  i.addEventListener("input",function(e){
+    var raw = e.target.value;
+    var v = numeric?numFilter(raw):raw.toUpperCase();
+    var pos = e.target.selectionStart;
+    if(v!==raw){ e.target.value = v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    onChange(v);
+  });
+  return i;
+}
+function progresivaCtl(id,value,onChange){
+  function fmt(v){ v=v.replace(/[^0-9+.]/g,""); return v||"0+"; }
+  function lleno(v){ return /\+\s*\d/.test(v); }
+  var st = progUI[id];
+  // si el formulario se reinició pero la UI conserva valores, se sincroniza
+  if(!st && value && value.indexOf(" - ")>0){ var pv=value.split(" - "); st = progUI[id] = {d:pv[0],h:pv[1]}; }
+  if(!st || (!value && lleno(st.d) && lleno(st.h))) st = progUI[id] = {d:"0+",h:"0+"};
+  function upd(){ onChange(lleno(st.d)&&lleno(st.h)?st.d+" - "+st.h:""); }
+  var a = el("input",{type:"text",value:st.d,placeholder:"0+135.80",inputmode:"decimal","data-fk":id+"__d"});
+  var b = el("input",{type:"text",value:st.h,placeholder:"0+244.00",inputmode:"decimal","data-fk":id+"__h"});
+  a.addEventListener("input",function(e){ st.d=fmt(e.target.value); e.target.value=st.d; upd(); });
+  b.addEventListener("input",function(e){ st.h=fmt(e.target.value); e.target.value=st.h; upd(); });
+  return el("div",{class:"row"},[a,el("span",{class:"dash"},["—"]),b]);
+}
+/* detalle opcional: el botón SIN DETALLE está activo exactamente cuando no hay texto */
+function detalleOpcCtl(field,value,onChange){
+  var i = el("input",{type:"text",value:value||"",placeholder:field.placeholder,class:"up","data-fk":field.id});
+  var b = el("button",{class:"sinbtn"+(value?"":" on"),type:"button"},["SIN DETALLE"]);
+  i.addEventListener("input",function(e){
+    var raw=e.target.value, v=raw.toUpperCase(), pos=e.target.selectionStart;
+    if(v!==raw){ e.target.value=v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    b.className = "sinbtn"+(v?"":" on");
+    onChange(v);
+  });
+  b.addEventListener("click",function(){ i.value=""; b.className="sinbtn on"; onChange(""); });
+  return el("div",{class:"row"},[i,b]);
+}
+function iconBtn(txt,cls,fn,disabled){
+  return el("button",{class:"ib "+(cls||""),type:"button",disabled:!!disabled,onclick:fn},[txt]);
+}
+function noteBox(lines,kind){
+  var n = el("div",{class:"note"+(kind?" "+kind:"")});
+  if(lines.length===1) n.appendChild(document.createTextNode(lines[0]));
+  else n.appendChild(el("ul",null,lines.map(function(l){return el("li",null,[l]);})));
+  return n;
+}
+
+/* copiar al portapapeles (primero de forma síncrona para no perder el gesto del usuario) */
+function execCopy(text){
+  var ok=false;
+  try{
+    var ta=document.createElement("textarea");
+    ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.top="0"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,text.length);
+    ok=document.execCommand("copy"); document.body.removeChild(ta);
+  }catch(e){}
+  return ok;
+}
+function copyText(text,cb){
+  if(execCopy(text)) return cb(true);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){cb(true);},function(){cb(false);});
+  } else cb(false);
+}
+function seleccionar(node){
+  try{ var r=document.createRange(); r.selectNodeContents(node); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){}
+}
+function flashBtn(btn,ok,txtOk,txtBase,clsBase){
+  btn.textContent = ok?txtOk:"⚠ No se pudo copiar";
+  btn.className = ok?"b-ok":"b-warn";
+  setTimeout(function(){ btn.textContent=txtBase; btn.className=clsBase; },2500);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VISTA PRINCIPAL
+   ════════════════════════════════════════════════════════════════ */
+function buildCtx(){
+  return {estructura:state.estructura,tipo:state.tipo,f:state.form,
+          d:derive(state.form,state.estructura,state.tipo)};
+}
+function renderSchema(schema,ctx,container){
+  var n = 2;
+  var vis = visibilidad(schema,ctx);
+  schema.fields.forEach(function(field,fi){
+    if(!vis[fi]) return;
+    var info = null;
+    if(field.type==="info"){
+      var lb = typeof field.infoLabel==="function"?field.infoLabel(ctx):field.infoLabel;
+      info = {label:lb,value:field.compute(ctx)};
+    } else if(field.info) info = field.info(ctx);
+    if(info){ container.appendChild(infoBox(info.label,info.value)); return; }
+    n++;
+    var label = (typeof field.label==="function"?field.label(ctx):field.label);
+    var val = ctx.f[field.id]||"";
+    var cp = !!state.copiados[field.id];
+    var ctl;
+    if(field.type==="select" || field.type==="btns"){
+      var opts = typeof field.options==="function"?field.options(ctx):(field.options||[]);
+      ctl = optsCtl(val,opts,function(v){setField(field,v);},{allowUnset:field.type==="btns",cp:cp});
+    } else if(field.type==="toggle"){
+      ctl = optsCtl(val,["SÍ","NO"],function(v){setField(field,v);},{cp:cp});
+    } else if(field.type==="progresiva"){
+      ctl = progresivaCtl(field.id,val,function(v){ state.form[field.id]=v; delete state.copiados[field.id]; updateOutput(); renderIfNeeded(); });
+    } else if(field.type==="detalleOpc"){
+      ctl = detalleOpcCtl(field,val,function(v){
+        state.form[field.id]=v; state.form[field.sinId]=v?"":"SÍ"; delete state.copiados[field.id];
+        updateOutput(); renderIfNeeded(); });
+    } else if(field.type==="capa"){
+      ctl = capaCtl(field,ctx,val);
+    } else if(field.type==="espesor"){
+      ctl = espesorCtl(field,ctx,val);
+    } else {
+      ctl = textCtl(val,field.placeholder,field.type==="number",
+        function(v){ state.form[field.id]=v; delete state.copiados[field.id];
+          if(field.afterChange) state.form=field.afterChange(v,state.form,{estructura:state.estructura,tipo:state.tipo});
+          syncInputs(); updateOutput(); renderIfNeeded(); });
+      ctl.setAttribute("data-fid",field.id);
+      ctl.setAttribute("data-fk",field.id);
+    }
+    if(cp && field.type!=="select" && field.type!=="btns" && field.type!=="toggle"){
+      var ins = ctl.tagName==="INPUT"?[ctl]:[].slice.call(ctl.querySelectorAll("input"));
+      ins.forEach(function(i){ i.classList.add("cp"); i.addEventListener("input",function(){ ins.forEach(function(x){x.classList.remove("cp");}); }); });
+    }
+    container.appendChild(fieldWrap(n+". "+label,ctl));
+  });
+}
+
+/* capa: número, o texto libre con el botón OTRO (ej. NIVELANTE 01) */
+function aplicarTexto(field,v){
+  state.form[field.id]=v; delete state.copiados[field.id];
+  if(field.afterChange) state.form=field.afterChange(v,state.form,{estructura:state.estructura,tipo:state.tipo});
+  syncInputs(); updateOutput(); renderIfNeeded();
+}
+function capaCtl(field,ctx,val){
+  var txt = ctx.f.capaTxt==="SÍ";
+  var i = textCtl(val,txt?"Ej: NIVELANTE 01":field.placeholder,!txt,function(v){ aplicarTexto(field,v); });
+  i.setAttribute("data-fid",field.id); i.setAttribute("data-fk",field.id);
+  var b = el("button",{class:"sinbtn"+(txt?" on":""),type:"button",title:txt?"Volver a número de capa":"Escribir otra cosa, ej. NIVELANTE 01"},[txt?"N°":"OTRO"]);
+  b.addEventListener("click",function(){
+    state.form.capaTxt = txt?"":"SÍ"; delete state.copiados.capaTxt;
+    state.form.capa = ""; delete state.copiados[field.id];
+    if(field.afterChange) state.form = field.afterChange("",state.form,{estructura:state.estructura,tipo:state.tipo});
+    render();
+    var n = document.querySelector('[data-fk="'+field.id+'"]'); if(n) n.focus();
+  });
+  return el("div",{class:"row"},[i,b]);
+}
+/* espesor: fijo del material o escrito, con el botón VARIABLE */
+function espesorCtl(field,ctx,val){
+  var esVar = ctx.f.espVar==="SÍ", campo;
+  if(esVar) campo = el("div",{class:"fijo"},["VARIABLE"]);
+  else if(ctx.d.espesorManualNeeded){
+    campo = textCtl(val,field.placeholder,false,function(v){ aplicarTexto(field,v); });
+    campo.setAttribute("data-fid",field.id); campo.setAttribute("data-fk",field.id);
+  } else campo = el("div",{class:"fijo"},[ctx.d.espesorAuto||"—"]);
+  var b = el("button",{class:"sinbtn"+(esVar?" on":""),type:"button"},["VARIABLE"]);
+  b.addEventListener("click",function(){
+    state.form.espVar = esVar?"":"SÍ"; delete state.copiados.espVar; delete state.copiados[field.id]; render();
+  });
+  return el("div",{class:"row"},[campo,b]);
+}
+
+function syncInputs(){
+  var nodes = document.querySelectorAll("[data-fid]");
+  for(var i=0;i<nodes.length;i++){
+    var n = nodes[i];
+    if(n===document.activeElement) continue;
+    var id = n.getAttribute("data-fid");
+    var v = state.form[id]==null?"":state.form[id];
+    if(n.value!==v) n.value = v;
+  }
+}
+
+/* Firma de lo que se ve: solo cambia cuando hay que redibujar.
+   No incluye el valor de los campos de texto, así escribir no reconstruye el formulario. */
+var lastVisibleSig = "";
+function visibleSignature(){
+  var schema = SCHEMAS[state.tipo];
+  if(!schema) return "";
+  var ctx = buildCtx();
+  var visArr = visibilidad(schema,ctx);
+  return schema.fields.map(function(f,fi){
+    var vis = visArr[fi];
+    var parts = [f.id, vis?"1":"0"];
+    if(vis){
+      if(f.type==="info"){
+        parts.push(typeof f.infoLabel==="function"?f.infoLabel(ctx):f.infoLabel, String(f.compute(ctx)));
+      } else {
+        var inf = f.info?f.info(ctx):null;
+        parts.push(inf?("i:"+inf.label+"="+inf.value):"f");
+        if(typeof f.label==="function") parts.push(f.label(ctx));
+        if(f.type==="select"||f.type==="btns")
+          parts.push((typeof f.options==="function"?f.options(ctx):f.options||[]).join("|"), String(ctx.f[f.id]||""));
+        if(f.type==="toggle") parts.push(String(ctx.f[f.id]||""));
+        if(f.type==="capa") parts.push(String(ctx.f.capaTxt));
+        if(f.type==="espesor") parts.push(String(ctx.f.espVar), ctx.d.espesorManualNeeded?"m":ctx.d.espesorAuto);
+      }
+    }
+    return parts.join("~");
+  }).join(",");
+}
+function renderIfNeeded(){ if(visibleSignature()!==lastVisibleSig) render(); }
+
+function computeTexto(){
+  var schema = SCHEMAS[state.tipo];
+  var fr = getFrente(state.estructura);
+  if(!schema || !fr) return null;
+  var ctx = buildCtx();
+  if(!validForm(schema,ctx)) return null;
+  var tipoTexto = cfg.tipos[state.tipo].largo;
+  if(ctx.d.showZanja && state.form.bpTipo){
+    var parts = [state.form.bpTipo];
+    if(ctx.d.esBanqueta){
+      if(state.form.bermaPos) parts.push(state.form.bermaPos);
+      if(state.form.detalleBerma) parts.push(state.form.detalleBerma);
+    } else if(ctx.d.L("DET")==="O" && state.form.detalleRell){
+      parts.push(state.form.detalleRell);
+    }
+    tipoTexto += " ("+parts.join(" - ")+")";
+  } else {
+    var det = state.form[DETID[state.tipo]||"detalle"];
+    if(ctx.d.L("DET")==="O" && det) tipoTexto += " ("+det+")";
+  }
+  if(ctx.d.esParcial) tipoTexto += " - PARCIAL ("+state.form.parcialTexto+")";
+  var lines = ["TIPO DE LIBERACIÓN: "+tipoTexto,"ESTRUCTURA: "+fr.nombre];
+  schema.output.forEach(function(fn){ var l=fn(ctx); if(l) lines.push(l); });
+  return lines.join("\n");
+}
+
+function buildOutBox(texto){
+  var pre = el("pre",null,[texto]);
+  var out = el("div",{class:"card",id:"outbox"},[el("div",{class:"out-t"},["Texto Generado"]),pre]);
+  var bCopy = el("button",{class:"b-pri",type:"button"},["📋 Copiar"]);
+  bCopy.addEventListener("click",function(){
+    copyText(computeTexto()||"",function(ok){
+      if(!ok) seleccionar(out.querySelector("pre"));
+      flashBtn(bCopy,ok,"✓ Copiado","📋 Copiar","b-pri");
+    });
+  });
+  var bCam = el("button",{class:"icn",type:"button",title:"Tomar foto","aria-label":"Tomar foto",
+    onclick:function(){ abrirFoto("inCam"); }},["📷"]);
+  var bGal = el("button",{class:"icn",type:"button",title:"Elegir de la galería","aria-label":"Elegir de la galería",
+    onclick:function(){ abrirFoto("inGal"); }},["🖼️"]);
+  out.appendChild(el("div",{class:"btns"},[bCopy,bCam,bGal]));
+
+  if(state.foto){
+    out.appendChild(el("div",{class:"foto"},[
+      el("img",{src:state.foto.url,alt:"Foto adjunta"}),
+      el("span",null,["Foto adjunta"]),
+      iconBtn("✕","del",function(){ state.foto=null; updateOutput(); })
+    ]));
+  }
+
+  var sig = firmaSubida(texto);
+  var sub = state.subida && state.subida.sig===sig ? state.subida : null;
+  var bUp = el("button",{class:"b-ok",type:"button",disabled:!!(sub&&sub.estado!=="error")},[
+    !sub?"⬆ Subir liberación":
+    sub.estado==="subiendo"?"Subiendo…":
+    sub.estado==="ok"?"✓ Subida":
+    sub.estado==="cola"?"✓ En cola":"⬆ Reintentar"]);
+  bUp.addEventListener("click",subirLiberacion);
+  var bClear = el("button",{class:"b-sec",type:"button"},["Nueva liberación"]);
+  bClear.addEventListener("click",function(){ resetForm(); render(); window.scrollTo(0,0); });
+  out.appendChild(el("div",{class:"btns"},[bUp,bClear]));
+
+  if(sub){
+    var msg = sub.estado==="subiendo"?["", "Enviando al sistema del equipo…"]:
+              sub.estado==="ok"?["ok","Registrada como "+sub.id+(state.foto?" con foto":"")+"."]:
+              sub.estado==="cola"?["warn","Sin señal: se guardó en el celular y se subirá sola."]:
+              ["err",sub.msg||"No se pudo subir."];
+    out.appendChild(el("div",{class:"stat "+msg[0]},[msg[1]]));
+  } else if(!conectado()){
+    out.appendChild(el("div",{class:"stat"},["Para subir, conecta la app al sistema del equipo en ⚙ Ajustes."]));
+  }
+  return out;
+}
+
+/* ── foto ── */
+function abrirFoto(id){
+  var inp = document.getElementById(id);
+  inp.value = "";
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    if(!f) return;
+    comprimir(f,function(err,foto){
+      if(err){ alert(err.message); return; }
+      state.foto = foto; updateOutput();
+    });
+  };
+  inp.click();
+}
+function comprimir(file,cb){
+  var url = URL.createObjectURL(file), img = new Image();
+  img.onload = function(){
+    var max=1600, w=img.naturalWidth, h=img.naturalHeight, s=Math.min(1,max/Math.max(w,h));
+    var cv=document.createElement("canvas"); cv.width=Math.round(w*s); cv.height=Math.round(h*s);
+    cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);
+    var d = cv.toDataURL("image/jpeg",0.8);
+    cb(null,{url:d,data:d.split(",")[1],mime:"image/jpeg"});
+  };
+  img.onerror = function(){ URL.revokeObjectURL(url); cb(new Error("No se pudo leer la imagen.")); };
+  img.src = url;
+}
+
+/* ── subir ── */
+function firmaSubida(texto){ return texto+"|"+state.turno+"|"+(state.foto?state.foto.data.length+state.foto.data.slice(-24):""); }
+function camposDeTexto(texto){
+  return texto.split("\n").map(function(l){ var i=l.indexOf(": "); return i>0?[l.slice(0,i).trim(),l.slice(i+2).trim()]:null; })
+    .filter(function(x){return !!x;});
+}
+function nombreFoto(){
+  var fr = getFrente(state.estructura), f = state.form, ctx = buildCtx();
+  var p = [cfg.tipos[state.tipo].corto];
+  if(state.tipo==="RELLENO"){
+    if(f.material) p.push(f.material);
+    if(ctx.d.capaFinal && ctx.d.capaFinal!=="UNICA") p.push(/^\d+(\.\d+)?$/.test(ctx.d.capaFinal)?"CAPA "+ctx.d.capaFinal:ctx.d.capaFinal);
+    if(f.bpTipo) p.push(f.bpTipo);
+  } else if(state.tipo==="COLECCION" && f.subtipoCol) p.push(f.subtipoCol+(f.diamCol?" Ø"+f.diamCol:""));
+  else if(f.subtipo) p.push(f.subtipo);
+  p.push(fr?(fr.corto||fr.nombre):"");
+  return p.filter(Boolean).join(" - ");
+}
+function subirLiberacion(){
+  var texto = computeTexto();
+  if(!texto) return;
+  if(!conectado()){
+    state.subida = {sig:firmaSubida(texto),estado:"error",msg:"Primero conecta la app al sistema del equipo en ⚙ Ajustes."};
+    updateOutput(); return;
+  }
+  var sig = firmaSubida(texto);
+  var it = {uid:newId(),texto:texto,campos:camposDeTexto(texto),nombreFoto:nombreFoto(),
+            foto:state.foto?{data:state.foto.data,mime:state.foto.mime}:null,creado:Date.now(),
+            turno:state.turno,fecha:fechaActual(),form:JSON.stringify({v:1,estructura:state.estructura,tipo:state.tipo,form:state.form})};
+  prefs.turno = state.turno; savePrefs();
+  state.subida = {sig:sig,estado:"subiendo"}; updateOutput();
+  enviarItem(it).then(function(j){
+    agregarReciente({id:j.id,fecha:it.fecha,hora:("0"+new Date().getHours()).slice(-2)+":"+("0"+new Date().getMinutes()).slice(-2),
+                     texto:it.texto,turno:it.turno,form:it.form});
+    if(state.subida && state.subida.sig===sig) state.subida = {sig:sig,estado:"ok",id:j.id};
+    updateOutput();
+  },function(e){
+    if(e.server){ state.subida = {sig:sig,estado:"error",msg:"No se pudo subir: "+e.message}; }
+    else {
+      cola.push(it);
+      if(!guardarCola()){ cola.pop(); state.subida = {sig:sig,estado:"error",msg:"Sin señal y sin espacio para guardarla en el celular. Inténtalo con señal."}; }
+      else state.subida = {sig:sig,estado:"cola"};
+    }
+    render();
+  });
+}
+
+function updateOutput(){
+  var box = document.getElementById("outbox");
+  var hint = document.getElementById("hintbox");
+  var t = computeTexto();
+  if(t){
+    if(hint && hint.parentNode) hint.parentNode.removeChild(hint);
+    if(box){ box.parentNode.replaceChild(buildOutBox(t),box); }
+    else { document.getElementById("app").appendChild(buildOutBox(t)); }
+  } else {
+    if(box && box.parentNode) box.parentNode.removeChild(box);
+    if(!hint && state.tipo)
+      document.getElementById("app").appendChild(el("div",{class:"hint",id:"hintbox"},["Completa todos los campos para generar el texto"]));
+  }
+}
+
+/* ── turno día / noche ── */
+var SVG_SOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+var SVG_LUNA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+function turnoInicial(){
+  if(prefs.turno==="DÍA"||prefs.turno==="NOCHE") return prefs.turno;
+  var h = new Date().getHours(); return (h>=7&&h<19)?"DÍA":"NOCHE";
+}
+/* fecha de la liberación: la del turno (noche conserva la fecha de inicio) o la que elija el usuario */
+var SVG_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+var DIAS_CORTOS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+function fechaActual(){ return state.fechaManual || fechaTurno(state.turno); }
+function fechaBtn(){
+  var f = fechaActual(), p = f.split("-"), d = new Date(+p[0],+p[1]-1,+p[2]);
+  var manual = !!state.fechaManual;
+  var w = el("label",{class:"fechabtn"+(manual?" manual":""),title:manual?"Fecha cambiada a mano":"Fecha del turno · toca para cambiarla"});
+  w.innerHTML = SVG_CAL+"<span>"+DIAS_CORTOS[d.getDay()]+" "+p[2]+"/"+p[1]+"</span>";
+  var i = el("input",{type:"date",value:f,max:hoyStr(),"aria-label":"Fecha de la liberación"});
+  i.addEventListener("click",function(e){ try{ if(i.showPicker){ e.preventDefault(); i.showPicker(); } }catch(err){} });
+  i.addEventListener("change",function(){
+    var v = i.value;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+    state.fechaManual = (v===fechaTurno(state.turno)) ? "" : v;   // elegir la fecha del turno vuelve a automático
+    render();
+  });
+  w.appendChild(i);
+  return w;
+}
+function turnoBtn(){
+  var esDia = state.turno!=="NOCHE";
+  var b = el("button",{class:"turno "+(esDia?"dia":"noche"),type:"button","aria-label":"Cambiar de turno"});
+  b.innerHTML = (esDia?SVG_SOL:SVG_LUNA)+"<span>Turno "+(esDia?"día":"noche")+"</span>";
+  b.addEventListener("click",function(){ state.turno = esDia?"NOCHE":"DÍA"; render(); });
+  return b;
+}
+
+function renderMain(app){
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["HERRAMIENTA CQC"]),el("div",{class:"t"},["Generador de Liberación"])]),
+    el("div",{class:"hgrp"},[
+      el("button",{class:"hbtn",type:"button",onclick:abrirConfig,"aria-label":"Ajustes"},["⚙"])
+    ])
+  ]));
+  if(state.flash){ app.appendChild(noteBox([state.flash],"ok")); state.flash=""; }
+  var av = avisoCola(); if(av) app.appendChild(av);
+
+  var card = el("div",{class:"card"});
+  var hayCopia = Object.keys(state.copiados).length>0;
+  card.appendChild(el("div",{class:"trow"},[
+    hayCopia?el("div",{class:"copia"},[el("i"),el("span",null,["Copiado"+(state.origen?" de "+state.origen:"")+" · lo resaltado aún no se modifica"]),
+      el("button",{type:"button","aria-label":"Quitar resaltado",onclick:function(){ state.copiados={}; state.origen=""; render(); }},["✕"])]):null,
+    fechaBtn(), turnoBtn()
+  ]));
+  if(!state.tipo){ var rec = bloqueRecientes(); if(rec) card.appendChild(rec); }
+  card.appendChild(fieldWrap("1. Frente",
+    optsCtl(state.estructura,cfg.frentes.map(function(f){return f.id;}),function(v){
+      state.estructura=v; state.tipo=""; prefs.frente=v; savePrefs(); resetForm(); render();
+    },{labelFn:function(id){ var f=getFrente(id); return f?(f.corto||f.nombre):id; },cp:!!state.copiados.__frente})));
+
+  var fr = getFrente(state.estructura);
+  if(fr){
+    card.appendChild(fieldWrap("2. Tipo de Liberación",
+      optsCtl(state.tipo,fr.tipos,function(v){ state.tipo=v; resetForm(); render(); },
+        {labelFn:function(k){return cfg.tipos[k].corto;},cp:!!state.copiados.__tipo})));
+  }
+  var schema = SCHEMAS[state.tipo];
+  if(schema) renderSchema(schema,buildCtx(),card);
+  app.appendChild(card);
+
+  var texto = computeTexto();
+  if(texto) app.appendChild(buildOutBox(texto));
+  else if(state.tipo) app.appendChild(el("div",{class:"hint",id:"hintbox"},["Completa todos los campos para generar el texto"]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN
+   ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   LIBERACIONES DEL DÍA (compartidas)
+   ════════════════════════════════════════════════════════════════ */
+var dia = {fecha:"",estado:"",items:[],hoja:"",msg:""};
+function hoyStr(off){
+  var d = new Date(); if(off) d.setDate(d.getDate()+off);
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+function moverDia(n){
+  var p = dia.fecha.split("-"), d = new Date(+p[0],+p[1]-1,+p[2]+n);
+  cargarDia(d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2));
+}
+function fechaTurno(turno){ return (turno==="NOCHE" && new Date().getHours()<12) ? hoyStr(-1) : hoyStr(); }
+function abrirDia(){ state.view="hoy"; cargarDia(fechaActual()); window.scrollTo(0,0); }
+function cargarDia(f){
+  dia.fecha=f; dia.estado="cargando"; dia.items=[]; render();
+  api("listLibs",{fecha:f}).then(function(j){
+    if(dia.fecha!==f) return;
+    dia.estado="ok"; dia.items=j.items||[]; dia.hoja=j.hoja||""; render();
+  },function(e){ if(dia.fecha!==f) return; dia.estado="error"; dia.msg=e.message; render(); });
+}
+function idDrive(url){ var m=/\/d\/([\w-]+)/.exec(url||"")||/[?&]id=([\w-]+)/.exec(url||""); return m?m[1]:""; }
+function lineaDe(texto,clave){
+  var l = (texto||"").split("\n").filter(function(x){return x.indexOf(clave+": ")===0;})[0];
+  return l?l.slice(clave.length+2):"";
+}
+/* ── últimas liberaciones (pantalla de inicio) ── */
+var SVG_IMAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"/><path d="m5 8 4 4"/><path d="m12 15 4 4"/></svg>';
+function botonIman(it){
+  var b = el("button",{class:"iman",type:"button",title:"Copiar datos a una nueva liberación","aria-label":"Copiar datos"});
+  b.innerHTML = SVG_IMAN;
+  b.addEventListener("click",function(){ duplicar(it); });
+  return b;
+}
+/* ✕ eliminar: solo en modo editor */
+function botonBorrar(it,pendiente){
+  if(!editor || !conectado()) return null;
+  var b = el("button",{class:"borrar",type:"button",title:"Eliminar liberación","aria-label":"Eliminar liberación"},["✕"]);
+  b.addEventListener("click",function(){ eliminarLib(it,pendiente,b); });
+  return b;
+}
+function quitarDeListas(id){
+  function f(a){ return a.filter(function(x){ return x.id!==id; }); }
+  recientes.items = f(recientes.items); guardarRecientes();
+  dia.items = f(dia.items); busq.items = f(busq.items);
+}
+function eliminarLib(it,pendiente,btn){
+  var quien = resumenLib(it.texto);
+  if(pendiente){
+    if(!confirm("¿Quitar esta liberación que aún no se sube?\n\n"+quien)) return;
+    cola = cola.filter(function(x){ return x.uid!==it.uid; }); guardarCola(); render(); return;
+  }
+  if(!confirm("¿Eliminar esta liberación para todo el equipo?\n\n"+(it.id?it.id+" · ":"")+quien+"\n\nSu foto pasa a la papelera de Drive.")) return;
+  btn.disabled = true; btn.textContent = "…";
+  api("delLib",{pin:editor.pin,id:it.id}).then(function(){
+    quitarDeListas(it.id);
+    state.flash = "Liberación "+(it.id||"")+" eliminada.";
+    render();
+  },function(e){
+    btn.disabled = false; btn.textContent = "✕";
+    alert(/desconocida/i.test(e.message) ? "Para eliminar hay que actualizar el servidor (Code.gs)." : "No se pudo eliminar: "+e.message);
+  });
+}
+/* "PAD 2E SUR, SUELO DE BAJA PERMEABILIDAD, ZANJA CAPA 2, PROG: 0+100 - 0+200" */
+function resumenLib(texto){
+  var c = camposMapa(texto), tl = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
+  var fr = findBy(cfg.frentes,"nombre",est), key = null, pt = {det:"",parcial:null};
+  TIPO_KEYS.forEach(function(k){ if(!key && tl.indexOf(cfg.tipos[k].largo)===0){ key=k; pt=partesTipo(tl,cfg.tipos[k].largo); } });
+  var p = [fr?(fr.corto||fr.nombre):est];
+  if(key==="EVALUACION") p.push("EVALUACIÓN"+(c["MATERIAL"]?" "+c["MATERIAL"]:""));
+  else if(c["MATERIAL"] && key!=="OVERLINER") p.push(c["MATERIAL"]);
+  else p.push(key?cfg.tipos[key].corto:tl);
+  var det = pt.det.replace("ZANJA DE ANCLAJE","ZANJA").replace("BERMA PERIMETRAL","BERMA").replace(/ - /g," ");
+  var capa = c["CAPA"] && c["CAPA"]!=="UNICA" ? (isNaN(c["CAPA"])?c["CAPA"]:"CAPA "+c["CAPA"]) : "";
+  var t3 = [det,capa].filter(Boolean).join(" "); if(t3) p.push(t3);
+  if(pt.parcial!=null) p.push("PARCIAL"+(pt.parcial?" "+pt.parcial:""));
+  var diams = Object.keys(c).filter(function(k){return k.indexOf("LONG. TUB")===0;})
+    .map(function(k){ var m=/Ø\s*([\d\/]+)/.exec(k); return m?"Ø"+m[1]:""; }).filter(Boolean);
+  if(diams.length) p.push(diams.join(" + "));
+  if(c["LÍNEA"]) p.push(c["LÍNEA"]);
+  if(c["PROGRESIVA"]) p.push("PROG: "+c["PROGRESIVA"]);
+  else if(c["COTA"] && c["COTA"]!=="VARIABLE") p.push("COTA: "+sinUnidad(c["COTA"]));
+  else if(c["ÁREA"]) p.push("ÁREA: "+c["ÁREA"]);
+  return p.join(", ");
+}
+var recientes = {items:lsJson(STORE_REC,[]), t:0, cargando:false};
+function guardarRecientes(){ lsSet(STORE_REC,JSON.stringify(recientes.items.map(function(x){
+  return {id:x.id,fecha:x.fecha,hora:x.hora,texto:x.texto,turno:x.turno,form:x.form}; }))); }
+function cargarRecientes(forzar){
+  if(!conectado() || recientes.cargando) return;
+  if(!forzar && Date.now()-recientes.t<60000) return;
+  recientes.cargando = true; recientes.t = Date.now();
+  api("ultimasLibs",{n:3}).catch(function(e){
+    // servidor sin actualizar: usa las del día
+    if(e.server && /desconocida/i.test(e.message))
+      return api("listLibs",{fecha:fechaActual()}).then(function(j){ return {items:(j.items||[]).slice(-3).reverse()}; });
+    throw e;
+  }).then(function(j){
+    recientes.cargando = false;
+    recientes.items = (j.items||[]).slice(0,3); guardarRecientes();
+    if(state.view==="main" && !state.tipo) render();
+  },function(){ recientes.cargando = false; });
+}
+function agregarReciente(it){
+  recientes.items = [it].concat(recientes.items.filter(function(x){ return x.id!==it.id; })).slice(0,3);
+  guardarRecientes();
+}
+function cuandoFue(it){
+  var f = it.fecha||"", t = f===hoyStr()?"Hoy":f===hoyStr(-1)?"Ayer":fechaCorta(f);
+  var tu = it.turno==="NOCHE"?"Noche":it.turno==="DÍA"?"Día":"";
+  return [[t,it.hora].filter(Boolean).join(" "),tu].filter(Boolean).join(" · ");
+}
+function bloqueRecientes(){
+  if(!conectado()){
+    return el("div",{class:"recientes"},[el("div",{class:"stat",style:"margin:0"},
+      ["Este celular no está conectado al sistema del equipo. Conéctalo en ⚙ para subir y ver las últimas liberaciones."])]);
+  }
+  cargarRecientes(false);
+  var w = el("div",{class:"recientes"},[el("label",null,["Últimas liberaciones"])]);
+  var lista = cola.slice().reverse().map(function(it){ return {it:it,pend:true}; })
+    .concat(recientes.items.map(function(it){ return {it:it,pend:false}; })).slice(0,3);
+  if(!lista.length) w.appendChild(el("div",{class:"stat",style:"margin:2px 0 0;text-align:left"},
+    [recientes.cargando?"Cargando…":"Aún no hay liberaciones registradas."]));
+  lista.forEach(function(x){
+    w.appendChild(el("div",{class:"rec"},[
+      el("div",{class:"tx"},[el("b",null,[resumenLib(x.it.texto),x.pend?el("span",{class:"tag"},["POR SUBIR"]):null]),
+        el("span",null,[x.pend?"Guardada en este celular":cuandoFue(x.it)])]),
+      el("div",{class:"acc"},[botonIman(x.it),botonBorrar(x.it,x.pend)])
+    ]));
+  });
+  w.appendChild(el("button",{class:"mas",type:"button",onclick:abrirDia},["Más liberaciones y fechas anteriores ›"]));
+  return w;
+}
+
+function fechaCorta(f){ var p=String(f||"").split("-"); return p.length===3?p[2]+"/"+p[1]:""; }
+function tarjetaLib(it,sub,pendiente){
+  var texto = it.texto;
+  var tipo = lineaDe(texto,"TIPO DE LIBERACIÓN"), est = lineaDe(texto,"ESTRUCTURA");
+  var turno = it.turno==="NOCHE"?"☾ Noche":it.turno==="DÍA"?"☀ Día":"";
+  var tx = el("div",{class:"tx"},[
+    el("b",null,[resumenLib(texto),pendiente?el("span",{class:"tag"},["POR SUBIR"]):null]),
+    el("span",null,[[sub,turno].filter(Boolean).join(" · ")]),
+    el("div",{class:"acc"},[botonIman(it),botonBorrar(it,pendiente)]),
+    el("details",null,[el("summary",null,["Ver texto"]),el("pre",null,[texto])])
+  ]);
+  var kids = [tx];
+  var id = idDrive(it.foto);
+  if(id) kids.push(el("a",{href:it.foto,target:"_blank",rel:"noopener"},[
+    el("img",{src:"https://drive.google.com/thumbnail?id="+id+"&sz=w200",alt:"Foto",loading:"lazy"})]));
+  return el("div",{class:"lib"},kids);
+}
+
+/* ── búsqueda (todos los días) ── */
+var busq = {q:"",estado:"",items:[],msg:""}, tBusq = null;
+function normTxt(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+function coincide(texto,q){ var t=normTxt(texto); return normTxt(q).split(/\s+/).filter(Boolean).every(function(w){ return t.indexOf(w)>=0; }); }
+function buscar(q){
+  busq.q = q; clearTimeout(tBusq);
+  var antes = busq.estado;
+  if(q.trim().length<2){ busq.estado=""; if(antes) render(); return; }
+  busq.estado = "cargando"; if(antes!=="cargando") render();
+  tBusq = setTimeout(function(){
+    api("searchLibs",{q:q}).then(function(j){
+      if(busq.q!==q) return; busq.estado="ok"; busq.items=j.items||[]; render();
+    },function(e){
+      if(busq.q!==q) return; busq.estado="error";
+      busq.msg = /desconocida/i.test(e.message)?"Para buscar en días anteriores hay que actualizar el servidor (Code.gs).":e.message;
+      render();
+    });
+  },450);
+}
+
+/* ── copiar los datos de una liberación al formulario ── */
+function duplicar(it){
+  var datos = null;
+  try{ datos = it.form ? (typeof it.form==="string"?JSON.parse(it.form):it.form) : null; }catch(e){}
+  var est = "", tipo = "";
+  if(datos && getFrente(datos.estructura) && getFrente(datos.estructura).tipos.indexOf(datos.tipo)>=0){
+    est = datos.estructura; tipo = datos.tipo;
+  } else {
+    datos = null;
+    var c = camposMapa(it.texto), fr = findBy(cfg.frentes,"nombre",c["ESTRUCTURA"]||"");
+    var tl = c["TIPO DE LIBERACIÓN"]||"";
+    if(fr) TIPO_KEYS.forEach(function(k){ if(!tipo && fr.tipos.indexOf(k)>=0 && tl.indexOf(cfg.tipos[k].largo)===0) tipo=k; });
+    est = fr?fr.id:"";
+  }
+  if(!est || !tipo){ alert("Esta liberación es de un frente o tipo que ya no está en los ajustes."); return; }
+  state.estructura = est; state.tipo = tipo; prefs.frente = est; savePrefs();
+  resetForm();
+  if(datos){
+    Object.keys(INITIAL_FORM).forEach(function(k){ if(datos.form && datos.form[k]!=null) state.form[k] = datos.form[k]; });
+  } else {
+    var vals = valsDesdeTexto(it.texto,tipo,est);
+    SCHEMAS[tipo].fields.forEach(function(f){
+      if(!vals.hasOwnProperty(f.id)) return;
+      state.form[f.id] = vals[f.id];
+      if(f.resets) f.resets.forEach(function(id){ if(!vals.hasOwnProperty(id)) state.form[id] = RESET_DEFAULTS.hasOwnProperty(id)?RESET_DEFAULTS[id]:""; });
+      if(f.afterChange) state.form = f.afterChange(vals[f.id],state.form,{estructura:est,tipo:tipo});
+    });
+    state.form.sinDetalleRell = state.form.detalleRell?"":"SÍ";
+    state.form.sinDetalleFund = state.form.detalleFund?"":"SÍ";
+    state.form.sinDetalle = state.form.detalle?"":"SÍ";
+    if(vals.capaTxt) state.form.capaTxt = vals.capaTxt;
+    if(vals.espVar) state.form.espVar = vals.espVar;
+  }
+  if(prefs.supervisor && !state.form.supervisor) state.form.supervisor = prefs.supervisor;
+  state.copiados = {__frente:1,__tipo:1};
+  Object.keys(state.form).forEach(function(k){ if(state.form[k]) state.copiados[k] = 1; });
+  state.origen = it.id || "";
+  state.view = "main"; render(); window.scrollTo(0,0);
+}
+/* separa "TIPO (DETALLE) - PARCIAL (X)" en sus partes */
+function partesTipo(tl, base){
+  var ex = tl.indexOf(base)===0 ? tl.slice(base.length).trim() : "";
+  var parcial = null, m = /\s*-\s*PARCIAL\s*\((.*)\)\s*$/.exec(ex);
+  if(m){ parcial = m[1]; ex = ex.slice(0,m.index).trim(); }
+  var d = /^\((.*)\)$/.exec(ex);
+  return {det:d?d[1]:"", parcial:parcial};
+}
+/* reconstruye los campos a partir del texto (liberaciones subidas antes de esta versión) */
+function valsDesdeTexto(texto,tipo,frId){
+  var c = camposMapa(texto), v = {};
+  var tl = c["TIPO DE LIBERACIÓN"]||"", base = cfg.tipos[tipo].largo;
+  var ex = partesTipo(tl, base), par = ex.det!==""?[null,ex.det]:null, parc = ex.parcial;
+  function u(k){ return c[k]!=null ? sinUnidad(c[k]) : undefined; }
+  function set(id,val){ if(val!=null && val!=="") v[id]=val; }
+  var sup = (c["SUPERVISOR CQC"]||"").toUpperCase();
+  cfg.supervisores.forEach(function(x){ if(x.toUpperCase()===sup) v.supervisor = x; });
+  var longs = Object.keys(c).filter(function(k){ return k.indexOf("LONG. TUB")===0; });
+  function diam(k){ var m=/Ø\s*(\d+)/.exec(k||""); return m?m[1]:""; }
+  switch(tipo){
+    case "RELLENO":
+      set("material",c["MATERIAL"]);
+      if(par){
+        var p = par[1].split(" - ");
+        var estP = findBy(cfg.estructuras,"nombre",p[0]);
+        if(estP){
+          v.bpTipo = p.shift();
+          if(estP.ubicaciones.length){
+            if(estP.ubicaciones.indexOf(p[0])>=0) v.bermaPos = p.shift();
+            if(p.length) v.detalleBerma = p.join(" - ");
+          } else if(p.length) v.detalleRell = p.join(" - ");
+        } else v.detalleRell = par[1];
+      }
+      if(c["CAPA"] && c["CAPA"]!=="UNICA"){
+        v.capa = c["CAPA"]; v.capasBP = c["CAPA"];
+        if(isNaN(c["CAPA"])) v.capaTxt = "SÍ";
+      }
+      if(c["ESPESOR"]==="VARIABLE") v.espVar = "SÍ"; else set("espesorM",c["ESPESOR"]);
+      set("procedencia",c["PROCEDENCIA"]);
+      if(c["COTA"] && c["COTA"]!=="VARIABLE") v.cota = u("COTA");
+      set("area",u("ÁREA"));
+      v.progFillBP = c["PROGRESIVA"]?"SÍ":"NO"; set("progresiva",c["PROGRESIVA"]);
+      set("ensayo",c["ENSAYO"]);
+      v.nroEnsayoChk = c["N° ENSAYO"]?"SÍ":"NO"; set("nroEnsayo",c["N° ENSAYO"]);
+      set("protocolo",c["PROTOCOLO"]);
+      break;
+    case "FUNDACION":
+      set("areaFund",u("ÁREA"));
+      v.cotasFill = c["COTA SUP."]?"SÍ":"NO"; set("cotaSup",u("COTA SUP.")); set("cotaInf",u("COTA INF."));
+      v.progFill = c["PROGRESIVA"]?"SÍ":"NO"; set("progFund",c["PROGRESIVA"]);
+      set("protFund",c["PROTOCOLO"]);
+      break;
+    case "EVALUACION":
+      set("materialEval",c["MATERIAL"]); set("areaEval",u("ÁREA")); set("progEval",c["PROGRESIVA"]);
+      set("ensayoEval",c["ENSAYO"]); set("protEval",c["PROTOCOLO"]);
+      break;
+    case "OVERLINER":
+      set("espOver",c["ESPESOR"]); set("areaOver",u("ÁREA")); set("ensayoOver",c["ENSAYO"]); set("protOver",c["PROTOCOLO"]);
+      break;
+    case "SUBDRENES":
+      v.subtipo = longs.length?SUBTIPO.TOTAL:SUBTIPO.SOLO_FUND;
+      var lm = /-(\d{3})-/.exec(c["LÍNEA"]||"");
+      set("tuberia",diam(longs[0])||(lm?lm[1]:""));
+      set("progresiva",c["PROGRESIVA"]); set("grava",u("ÁREA")); set("linea",c["LÍNEA"]);
+      set("ensayoSub",c["ENSAYO"]); set("protSub",c["PROTOCOLO"]);
+      break;
+    case "COLECCION":
+      v.subtipoCol = c["ÁREA"]!=null ? SUBCOL.OVER : SUBCOL.TUB;
+      if(longs.length){ set("diamCol",diam(longs[0])); v.longCol = u(longs[0]); }
+      set("areaCol",u("ÁREA")); set("progresiva",c["PROGRESIVA"]);
+      set("ensayoCol",c["ENSAYO"]); set("protCol",c["PROTOCOLO"]);
+      break;
+    case "SIST_SUBD":
+      v.subtipo = !longs.length?SUBTIPO.SOLO_FUND:(c["FUNDACIÓN"]!=null?SUBTIPO.FUND_TUB:SUBTIPO.TOTAL);
+      if(longs.length===2){ v.tuberia = DIAM_DOBLE; v.longTub = u(longs[0]); v.longTub2 = u(longs[1]); }
+      else if(longs.length===1){ set("tuberia",diam(longs[0])); v.longTub = u(longs[0]); }
+      set("areaSub",u("ÁREA")); set("grava",u("FUNDACIÓN")||u("GRAVA Y GEOTEXTIL"));
+      set("ensayoSub",c["ENSAYO"]); set("protSub",c["PROTOCOLO"]);
+      break;
+  }
+  if(par && tipo!=="RELLENO") v[DETID[tipo]||"detalle"] = par[1];
+  if(parc!=null){ v.parcial = "SÍ"; v.parcialTexto = parc; }
+  var fr = getFrente(frId), presente = {PROC:["PROCEDENCIA"],CAPA:["CAPA"],ESP:["ESPESOR"],AREA:["ÁREA"],COTA:["COTA"],
+    PROG:["PROGRESIVA"],LINEA:["LÍNEA"],LONG:["LONG. TUB"],GRAVA:["GRAVA Y GEOTEXTIL","FUNDACIÓN","GRAVA"]};
+  Object.keys(OPID[tipo]||{}).forEach(function(k){
+    var op = OPID[tipo][k];
+    if(op in v || estadoLinea(fr,tipo,k)!=="O" || !presente[k]) return;
+    v[op] = Object.keys(c).some(function(t){ return presente[k].some(function(x){ return t.indexOf(x)===0; }); })?"SÍ":"NO";
+  });
+  return v;
+}
+function renderDia(app){
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["EQUIPO CQC"]),el("div",{class:"t"},["Liberaciones"])]),
+    el("button",{class:"hbtn",type:"button",onclick:function(){ state.view="main"; render(); window.scrollTo(0,0); }},["← Volver"])
+  ]));
+  var av = avisoCola(); if(av) app.appendChild(av);
+  var p = dia.fecha.split("-");
+  var qIn = el("input",{type:"search",placeholder:"Buscar liberación (ej. capa 16, zanja)","data-fk":"q_buscar",
+    enterkeyhint:"search",autocomplete:"off"});
+  qIn.value = busq.q;
+  qIn.addEventListener("input",function(e){ buscar(e.target.value); });
+  var card = el("div",{class:"card"},[el("div",{class:"buscar"},[qIn])]);
+  if(busq.q.trim().length>=2){
+    cola.filter(function(it){ return coincide(it.texto,busq.q); }).forEach(function(it){
+      card.appendChild(tarjetaLib(it,"guardada en este celular",true));
+    });
+    if(busq.estado==="cargando") card.appendChild(el("div",{class:"stat"},["Buscando…"]));
+    else if(busq.estado==="error") card.appendChild(el("div",{class:"stat err"},[busq.msg]));
+    else if(!busq.items.length) card.appendChild(el("div",{class:"stat"},["Sin resultados."]));
+    busq.items.forEach(function(it){ card.appendChild(tarjetaLib(it,[fechaCorta(it.fecha),it.hora,it.id].filter(Boolean).join(" · "),false)); });
+    if(busq.estado==="ok" && busq.items.length>=30) card.appendChild(el("div",{class:"stat"},["Se muestran las 30 más recientes; agrega más palabras para afinar."]));
+    app.appendChild(card);
+    return;
+  }
+  card.appendChild(el("div",{class:"dnav"},[
+    iconBtn("‹","",function(){ moverDia(-1); }),
+    el("b",null,[(dia.fecha===hoyStr()?"Hoy · ":"")+p[2]+"/"+p[1]+"/"+p[0]]),
+    iconBtn("›","",function(){ moverDia(1); },dia.fecha>=hoyStr()),
+    iconBtn("↻","",function(){ cargarDia(dia.fecha); })
+  ]));
+  cola.filter(function(it){ return (it.fecha||hoyStr())===dia.fecha; }).forEach(function(it){
+    card.appendChild(tarjetaLib(it,"guardada en este celular",true));
+  });
+  if(dia.estado==="cargando") card.appendChild(el("div",{class:"stat"},["Cargando…"]));
+  else if(dia.estado==="error") card.appendChild(el("div",{class:"stat err"},[dia.msg]));
+  else if(!dia.items.length) card.appendChild(el("div",{class:"stat"},["No hay liberaciones registradas este día."]));
+  dia.items.slice().reverse().forEach(function(it){
+    card.appendChild(tarjetaLib(it,[it.hora,it.id].filter(Boolean).join(" · "),false));
+  });
+  if(dia.estado==="ok") card.appendChild(el("div",{class:"stat"},[dia.items.length+(dia.items.length===1?" liberación":" liberaciones")+" registrada"+(dia.items.length===1?"":"s")]));
+  if(dia.estado==="ok" && dia.items.length){
+    var bRep = el("button",{class:"b-pri",type:"button"},["⬇ Reporte diario (.xlsx)"]);
+    bRep.addEventListener("click",function(){ generarReporte(dia.fecha,bRep); });
+    card.appendChild(el("div",{class:"btns"},[bRep]));
+    if(cola.some(function(it){ return (it.fecha||hoyStr())===dia.fecha; }))
+      card.appendChild(el("div",{class:"stat warn"},["Las liberaciones por subir no entrarán al reporte hasta que se suban."]));
+  }
+  app.appendChild(card);
+  if(dia.hoja) app.appendChild(el("a",{class:"lnk",href:dia.hoja,target:"_blank",rel:"noopener"},["Abrir la hoja de cálculo completa ↗"]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   REPORTE DIARIO (.xlsx) — hojas R.D. y P. FOTOG.
+   ════════════════════════════════════════════════════════════════ */
+function cargarScript(src){
+  return new Promise(function(ok,mal){
+    if(window.ExcelJS) return ok();
+    var s=document.createElement("script"); s.src=src; s.onload=function(){ok();};
+    s.onerror=function(){ mal(new Error("No se pudo cargar el generador de Excel (exceljs.min.js).")); };
+    document.head.appendChild(s);
+  });
+}
+function generarReporte(fecha,btn){
+  var base = btn.textContent;
+  function estado(t){ btn.textContent=t; }
+  btn.disabled = true; estado("Preparando…");
+  cargarScript("exceljs.min.js").then(function(){
+    estado("Descargando fotos…");
+    return api("listLibs",{fecha:fecha,fotos:true},180000);
+  }).then(function(j){
+    estado("Armando Excel…");
+    return armarReporte(fecha,j.items||[]);
+  }).then(function(res){
+    var a=document.createElement("a"); a.href=URL.createObjectURL(res.blob); a.download=res.nombre;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+    btn.disabled=false; btn.className="b-ok"; estado("✓ Descargado");
+    setTimeout(function(){ btn.className="b-pri"; estado(base); },3000);
+  }).catch(function(e){
+    btn.disabled=false; btn.className="b-warn"; estado("⚠ "+e.message);
+    setTimeout(function(){ btn.className="b-pri"; estado(base); },6000);
+  });
+}
+
+/* ── interpretar cada liberación a partir de su texto ── */
+function camposMapa(texto){ var m={}; camposDeTexto(texto).forEach(function(c){ if(!(c[0] in m)) m[c[0]]=c[1]; }); return m; }
+function oracion(s){ s=String(s||"").toLowerCase(); return s.charAt(0).toUpperCase()+s.slice(1); }
+function nombrePropio(s){ return String(s||"").toLowerCase().replace(/(^|\s)(\S)/g,function(a,b,c){return b+c.toUpperCase();}); }
+function numero(s){ var m=/-?\d+(\.\d+)?/.exec(String(s||"").replace(/,/g,"")); return m?Number(m[0]):null; }
+function sinUnidad(s){ return String(s||"").replace(/\s*(m²|m2|msnm|m)\s*$/i,"").trim(); }
+
+function interpretarLib(it){
+  var c = camposMapa(it.texto);
+  var tipoTxt = c["TIPO DE LIBERACIÓN"]||"", est = c["ESTRUCTURA"]||"";
+  var key = null, detalle = "", parcial = null;
+  TIPO_KEYS.forEach(function(k){
+    var l = cfg.tipos[k].largo;
+    if(!key && tipoTxt.indexOf(l)===0){ key=k; var pt=partesTipo(tipoTxt,l); detalle=pt.det; parcial=pt.parcial; }
+  });
+  var fr = findBy(cfg.frentes,"nombre",est);
+  var mat = c["MATERIAL"]||"";
+  var cat;
+  if(key==="RELLENO"){
+    var md = fr?getMat(fr,mat):null;
+    if(/BAJA PERMEABILIDAD/.test(mat)) cat="SBP";
+    else if(/SOBRERREVEST/.test(mat)) cat="SOBRE";
+    else cat="RELLENO";
+  } else if(key==="OVERLINER") cat="SOBRE";
+  else if(key==="FUNDACION") cat="FUND";
+  else if(key==="EVALUACION") cat="EVAL";
+  else if(key==="COLECCION") cat="COL";
+  else if(key==="SUBDRENES"||key==="SIST_SUBD")
+    cat = Object.keys(c).some(function(k){return k.indexOf("LONG. TUB")===0;})?"SSUB":"FSUB";
+  else cat="OTRO";
+
+  var h = parseInt(String(it.hora||"").split(":")[0],10);
+  var longs = Object.keys(c).filter(function(k){return k.indexOf("LONG. TUB")===0;});
+  var diam = longs.map(function(k){ var m=/Ø\s*([\d\/]+)/.exec(k); return m?m[1]:""; }).filter(Boolean).join(" / ");
+  var cota = c["COTA SUP."]? sinUnidad(c["COTA SUP."])+" - "+sinUnidad(c["COTA INF."]) :
+             c["COTA"]? (c["COTA"]==="VARIABLE"?"Variable":sinUnidad(c["COTA"])) : "";
+  var sec = /SECTOR\s+(\S+)/.exec(est), fase = /FASE\s+(\S+)/.exec(est);
+  var esp = c["ESPESOR"] && c["ESPESOR"]!=="VARIABLE" ? numero(c["ESPESOR"]) : null;
+  var area = c["ÁREA"]||c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||"";
+
+  var desc = descripcionLib(cat,key,c,mat,detalle,parcial,longs,diam);
+  return {
+    id:it.id, cat:cat, frente:fr, estructura:est, desc:desc, texto:it.texto,
+    turno: it.turno==="NOCHE"?"Noche":it.turno==="DÍA"?"Día":(isNaN(h)?"":(h>=7&&h<19?"Día":"Noche")),
+    capa: c["CAPA"]?(c["CAPA"]==="UNICA"?"Única":c["CAPA"]):"-",
+    sector: sec?oracion(sec[1]):"-", fase: fase?fase[1]:"-",
+    cantera: c["PROCEDENCIA"]?nombrePropio(c["PROCEDENCIA"]):"-",
+    area: numero(area), espesor: c["ESPESOR"]==="VARIABLE"?"Variable":(esp!=null?Math.round(esp*1000):null),
+    longitud: longs.map(function(k){return sinUnidad(c[k]);}).join(" / "),
+    diametro: diam, grava: numero(c["GRAVA Y GEOTEXTIL"]||c["GRAVA"]||c["FUNDACIÓN"]||""),
+    progCota: c["PROGRESIVA"]||cota||"-",
+    supervisor: nombrePropio(c["SUPERVISOR CQC"]||""),
+    foto: it.fotoData||null
+  };
+}
+
+/* "Liberación [parcial] de <qué> [en/, detalle][, capa N]" — el mismo texto va en la tabla y en la foto */
+function descripcionLib(cat,key,c,mat,detalle,parcial,longs,diam){
+  function low(s){ return String(s||"").toLowerCase(); }
+  var det = low(detalle).replace(/ - /g,", ");
+  var diamTxt = diam ? diam.replace(/\s*\/\s*/g," y ")+" mm" : "";
+  var capa = c["CAPA"] && c["CAPA"]!=="UNICA" ? (/^\d+(\.\d+)?$/.test(c["CAPA"])?"capa "+c["CAPA"]:low(c["CAPA"])) : "";
+  var obj, detUsado = false;
+  switch(cat){
+    case "RELLENO": obj = low(mat); break;
+    case "SBP":     obj = "suelo de baja permeabilidad"+(det?" en "+det:""); detUsado = true; break;
+    case "SOBRE":   obj = "colocación de "+low(mat||"OVERLINER"); break;
+    case "FUND":    obj = "terreno de fundación"; break;
+    case "EVAL":    obj = "evaluación de material"+(mat?" "+low(mat):""); break;
+    case "COL":
+      obj = (c["ÁREA"]!=null?"overliner y tubería del ":"")+"sistema de colección de solución"+(diamTxt?" de "+diamTxt:"");
+      break;
+    case "SSUB": case "FSUB":
+      if(key==="SIST_SUBD")
+        obj = longs.length ? (c["FUNDACIÓN"]!=null?"fundación y tubería del ":"")+"sistema de subdrenaje"+(diamTxt?" de "+diamTxt:"")
+                           : "fundación del sistema de subdrenaje";
+      else obj = longs.length ? "instalación de subdren"+(diamTxt?" de "+diamTxt:"") : "fundación de subdren";
+      if(c["LÍNEA"]) obj += ", línea "+c["LÍNEA"];
+      break;
+    default: obj = low(c["TIPO DE LIBERACIÓN"]);
+  }
+  var d = "Liberación"+(parcial!=null?" parcial"+(parcial?" ("+low(parcial)+")":""):"")+" de "+obj;
+  if(det && !detUsado) d += ", "+det;
+  if(capa && (cat==="RELLENO"||cat==="SBP"||cat==="SOBRE")) d += ", "+capa;
+  return d;
+}
+
+/* ── definición de tablas, igual que el formato RD ── */
+var REP_TABLAS = [
+  {cat:"EVAL",    titulo:"EVALUACIÓN DE MATERIAL", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["FASE","G","G","fase"],["SECTOR","H","H","sector"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"FUND",    titulo:"ACEPTACIÓN DE FUNDACIÓN", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["FASE","G","G","fase"],["SECTOR","H","H","sector"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"RELLENO", titulo:"ACEPTACIÓN DE RELLENO", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"SBP",     titulo:"ACEPTACIÓN DE SUELO DE BAJA PERMEABILIDAD", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"SOBRE",   titulo:"SOBRERREVESTIMIENTO", cols:[["TURNO","C","C","turno"],["CAPA N°","D","D","capa"],["DESCRIPCIÓN","E","F","desc"],["SECTOR","G","G","sector"],["CANTERA","H","H","cantera"],["ÁREA (m2)","I","I","area"],["ESPESOR(mm)","J","J","espesor"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"FSUB",    titulo:"FUNDACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["SECTOR","G","G","sector"],["LONGITUD","H","H","longitud"],["ÁREA (m2)","I","I","area"],["PROGRESIVA / COTA","J","L","progCota"]]},
+  {cat:"SSUB",    titulo:"ACEPTACIÓN DEL SISTEMA DE SUBDRENAJE", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["DIÁMETRO DE TUBERÍA (mm)","G","G","diametro"],["SECTOR","H","H","sector"],["LONGITUD","I","I","longitud"],["GRAVA Y GEOTEXTIL (m2)","J","J","grava"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"COL",     titulo:"ACEPTACIÓN DEL SISTEMA DE COLECCIÓN", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","F","desc"],["DIÁMETRO DE TUBERÍA (mm)","G","G","diametro"],["SECTOR","H","H","sector"],["LONGITUD","I","I","longitud"],["ÁREA (m2)","J","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]},
+  {cat:"OTRO",    titulo:"OTRAS LIBERACIONES", cols:[["TURNO","C","C","turno"],["DESCRIPCIÓN","D","H","desc"],["ÁREA (m2)","I","J","area"],["PROGRESIVA / COTA","K","L","progCota"]]}
+];
+var COLW_RD = {A:2,B:4.4,C:9.4,D:12.4,E:13.4,F:12.4,G:13.6,H:12.6,I:11.4,J:13.4,K:11.6,L:21.6,M:3.6,N:21.4};
+var COLW_PF = {A:2,B:2.4,C:9.6,D:13.6,E:11.4,F:11.4,G:6.6,H:9.6,I:13.6,J:11.4,K:11.4,L:2.4};
+var AZUL = "FF1F3864", CELESTE = "FFDDEBF7", FUENTE = "Aptos Narrow";
+var BORDE = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+function colN(l){ return l.charCodeAt(0)-64; }
+function pxCol(w){ return Math.floor(w*7+5); }
+
+function semana(d){ var ini=new Date(d.getFullYear(),0,1), yday=Math.round((d-ini)/864e5), wd=(d.getDay()+6)%7; return Math.floor((yday+7-wd)/7); }
+function fechaDe(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+
+function armarReporte(fecha,items){
+  var R = cfg.reporte, d = fechaDe(fecha);
+  var dif = Math.round((d-fechaDe(R.fechaRef||fecha))/864e5);
+  var numRep = (Number(R.numRef)||0)+dif;
+  var dd = ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+String(d.getFullYear()).slice(-2);
+  var libs = items.map(interpretarLib);
+
+  // agrupar por frente, en el orden de Ajustes
+  var orden = cfg.frentes.map(function(f){return f.nombre;});
+  var grupos = {};
+  libs.forEach(function(l){ (grupos[l.estructura]=grupos[l.estructura]||[]).push(l); });
+  var nombres = Object.keys(grupos).sort(function(a,b){
+    var ia=orden.indexOf(a), ib=orden.indexOf(b); return (ia<0?999:ia)-(ib<0?999:ib); });
+
+  // numerar fotos en el mismo orden en que aparecen en las tablas
+  var nFoto = 0;
+  nombres.forEach(function(n){
+    REP_TABLAS.forEach(function(t){
+      grupos[n].filter(function(l){return l.cat===t.cat;}).forEach(function(l){
+        if(l.foto){ nFoto++; l.nFoto=nFoto; }
+      });
+    });
+  });
+
+  var wb = new ExcelJS.Workbook();
+  wb.creator = "Generador de Liberaciones CQC";
+  var dims = libs.filter(function(l){return l.foto;}).map(function(l){
+    return new Promise(function(ok){ var im=new Image();
+      im.onload=function(){ l.fw=im.naturalWidth; l.fh=im.naturalHeight; ok(); };
+      im.onerror=function(){ l.foto=null; ok(); };
+      im.src="data:image/jpeg;base64,"+l.foto; });
+  });
+  return Promise.all(dims).then(function(){
+    return Promise.all([traerImg("logo-izq.jpg"),traerImg("logo-der.png")]);
+  }).then(function(logos){
+    var L1 = logos[0]?wb.addImage({base64:logos[0],extension:"jpeg"}):null;
+    var L2 = logos[1]?wb.addImage({base64:logos[1],extension:"png"}):null;
+    hojaRD(wb,{L1:L1,L2:L2,R:R,numRep:numRep,dd:dd,d:d,libs:libs,grupos:grupos,nombres:nombres});
+    hojaFotos(wb,{L1:L1,L2:L2,grupos:grupos,nombres:nombres});
+    return wb.xlsx.writeBuffer();
+  }).then(function(buf){
+    return {blob:new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),
+            nombre:R.codigo+"-"+numRep+"_"+fecha+".xlsx"};
+  });
+}
+function traerImg(url){
+  return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){
+    return new Promise(function(ok){ var fr=new FileReader(); fr.onload=function(){ ok(String(fr.result).split(",")[1]); }; fr.readAsDataURL(b); });
+  }).catch(function(){ return null; });
+}
+
+function estilo(cell,o){
+  o=o||{};
+  cell.font = {name:FUENTE,size:o.size||11,bold:!!o.bold,color:o.color?{argb:o.color}:undefined};
+  cell.alignment = {horizontal:o.h||"center",vertical:o.v||"middle",wrapText:o.wrap!==false};
+  if(o.fill) cell.fill = {type:"pattern",pattern:"solid",fgColor:{argb:o.fill}};
+  if(o.border) cell.border = BORDE;
+}
+function celda(ws,ref,valor,o){
+  var p = ref.split(":"); if(p.length>1) ws.mergeCells(ref);
+  var c = ws.getCell(p[0]); c.value = valor; estilo(c,o);
+  if(o && o.border && p.length>1){
+    var a=ws.getCell(p[0]), b=ws.getCell(p[1]);
+    for(var r=a.row;r<=b.row;r++) for(var k=a.col;k<=b.col;k++) ws.getCell(r,k).border = BORDE;
+  }
+  return c;
+}
+function encabezadoLogos(ws,L1,L2,colDer){
+  if(L1!=null) ws.addImage(L1,{tl:{col:2,row:0.15},ext:{width:180,height:46}});
+  if(L2!=null) ws.addImage(L2,{tl:{col:colDer,row:0.3},ext:{width:170,height:35}});
+}
+function pagina(ws,ultimaCol,ultimaFila){
+  ws.pageSetup = {paperSize:9,orientation:"portrait",fitToPage:true,fitToWidth:1,fitToHeight:0,
+    horizontalCentered:true,printArea:"B1:"+ultimaCol+ultimaFila,
+    margins:{left:0.39,right:0.39,top:0.59,bottom:0.59,header:0.3,footer:0.3}};
+  ws.headerFooter.oddFooter = "&CPágina &P";
+}
+
+function hojaRD(wb,x){
+  var ws = wb.addWorksheet("R.D.",{views:[{showGridLines:false}]});
+  Object.keys(COLW_RD).forEach(function(k){ ws.getColumn(k).width = COLW_RD[k]; });
+  ws.getRow(1).height=20; ws.getRow(2).height=20;
+  encabezadoLogos(ws,x.L1,x.L2,10);
+  var R = x.R;
+  celda(ws,"F3:J3","REPORTE DIARIO DE CONTROL DE CALIDAD",{size:12,bold:true});
+  celda(ws,"C5:L5",R.codigo+"-"+x.numRep,{h:"left",bold:true});
+  celda(ws,"C6:E6","CONTRATISTA: "+R.contratista,{h:"left",bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+  celda(ws,"F6:L6","ÁREA: "+R.area,{bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+  celda(ws,"C7:E7","CLIENTE: "+R.cliente,{h:"left",border:true});
+  [["F7","TURNO"],["G7","DESDE"],["H7","HASTA"],["I7:L7","TOTAL HH"]].forEach(function(p){ celda(ws,p[0],p[1],{bold:true,fill:CELESTE,border:true}); });
+  celda(ws,"C8:E8","UNIDAD MINERA: "+R.unidad,{h:"left",border:true});
+  celda(ws,"F8","Día (TD)\nNoche (TN)",{border:true}); celda(ws,"G8","07:00\n19:00",{border:true});
+  celda(ws,"H8","18:00\n06:00",{border:true}); celda(ws,"I8:L8","11:00\n11:00",{border:true});
+  celda(ws,"C9:E9","SUPERVISIÓN CQA: "+R.cqa,{h:"left",border:true});
+  celda(ws,"F9:G9","FECHA: "+x.dd,{h:"left",border:true});
+  celda(ws,"H9","SEMANA: "+semana(x.d),{border:true});
+  celda(ws,"I9:L9",["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"][x.d.getDay()],{border:true});
+  ws.getRow(7).height=30; ws.getRow(8).height=30; ws.getRow(9).height=28;
+  celda(ws,"C10:E10","RESPONSABLE DE CALIDAD STRACON",{bold:true,h:"left",fill:CELESTE,border:true});
+  celda(ws,"F10:H10","SUPERVISORES RESPONSABLES",{bold:true,fill:CELESTE,border:true});
+  celda(ws,"I10","TD",{bold:true,fill:CELESTE,border:true}); celda(ws,"J10","TN",{bold:true,fill:CELESTE,border:true});
+  celda(ws,"K10:L10","DL",{bold:true,fill:CELESTE,border:true});
+
+  var sups = {};
+  x.libs.forEach(function(l){ if(!l.supervisor) return; sups[l.supervisor]=sups[l.supervisor]||{}; sups[l.supervisor][l.turno]=1; });
+  var lista = Object.keys(sups); if(!lista.length) lista=[""];
+  var r = 11;
+  lista.forEach(function(s,i){
+    celda(ws,"C"+r+":E"+r,i===0?R.responsable:"",{h:"left",border:true});
+    celda(ws,"F"+r+":H"+r,s,{h:"left",border:true});
+    celda(ws,"I"+r,sups[s]&&sups[s]["Día"]?"X":"",{border:true});
+    celda(ws,"J"+r,sups[s]&&sups[s]["Noche"]?"X":"",{border:true});
+    celda(ws,"K"+r+":L"+r,"",{border:true});
+    r++;
+  });
+
+  r += 1;
+  celda(ws,"C"+r,"4. CONTROL DE CALIDAD DE LA CONSTRUCCIÓN (CQC)",{bold:true,h:"left",wrap:false}); r++;
+  celda(ws,"C"+r,"    4.1 LIBERACIONES DE CAMPO",{bold:true,h:"left",wrap:false}); r+=2;
+
+  if(!x.nombres.length){ celda(ws,"C"+r,"No se realizaron liberaciones.",{h:"left",wrap:false}); r++; }
+  x.nombres.forEach(function(n){
+    celda(ws,"C"+r,"• "+n,{bold:true,h:"left",wrap:false}); r+=2;
+    REP_TABLAS.forEach(function(t){
+      var filas = x.grupos[n].filter(function(l){return l.cat===t.cat;});
+      if(!filas.length) return;
+      celda(ws,"C"+r+":L"+r,t.titulo,{bold:true,fill:AZUL,color:"FFFFFFFF",border:true});
+      celda(ws,"N"+r+":N"+(r+1),"SUPERVISOR",{bold:true,fill:CELESTE,border:true});
+      ws.getRow(r).height=17; r++;
+      var alto = 17;
+      t.cols.forEach(function(cl){ celda(ws,cl[1]+r+(cl[2]!==cl[1]?":"+cl[2]+r:""),cl[0],{bold:true,fill:CELESTE,border:true,size:10});
+        if(cl[1]===cl[2]) alto=Math.max(alto,cl[0].length>20?42:cl[0].length>12?30:17); });
+      ws.getRow(r).height=alto; r++;
+      filas.forEach(function(l){
+        var maxLin = 1;
+        t.cols.forEach(function(cl){
+          var v = l[cl[3]]; if(v==null||v==="") v="-";
+          var c = celda(ws,cl[1]+r+(cl[2]!==cl[1]?":"+cl[2]+r:""),v,{border:true});
+          if(typeof v==="number") c.numFmt = cl[3]==="espesor"?"0":"#,##0.00";
+          var w = 0; for(var k=colN(cl[1]);k<=colN(cl[2]);k++) w += COLW_RD[String.fromCharCode(64+k)];
+          maxLin = Math.max(maxLin, Math.ceil(String(v).length/(w*0.85)));
+        });
+        celda(ws,"N"+r,l.supervisor||"-",{border:true});
+        ws.getRow(r).height = Math.max(16,maxLin*14.5+3);
+        r++;
+      });
+      r++;
+    });
+  });
+  ws.getRow(6).height=30;
+  pagina(ws,"N",r);
+}
+
+function hojaFotos(wb,x){
+  var ws = wb.addWorksheet("P. FOTOG.",{views:[{showGridLines:false}]});
+  Object.keys(COLW_PF).forEach(function(k){ ws.getColumn(k).width = COLW_PF[k]; });
+  ws.getRow(1).height=20; ws.getRow(2).height=20;
+  encabezadoLogos(ws,x.L1,x.L2,9);
+  celda(ws,"E3:I3","REPORTE DIARIO DE CONTROL DE CALIDAD",{size:12,bold:true});
+  celda(ws,"C4:F4","6. PANEL FOTOGRÁFICO:",{bold:true,h:"left",wrap:false});
+  var FILA = 14.45, r = 5, enPagina = 5, POR_PAGINA = 54;
+  function saltoSi(n){
+    if(enPagina+n > POR_PAGINA){ ws.getRow(r-1).addPageBreak(); enPagina = 0; }
+    enPagina += n;
+  }
+  var hay = false;
+  x.nombres.forEach(function(n){
+    var fotos = [];
+    REP_TABLAS.forEach(function(t){ x.grupos[n].forEach(function(l){ if(l.cat===t.cat && l.foto) fotos.push(l); }); });
+    if(!fotos.length) return;
+    hay = true;
+    saltoSi(2+17);
+    celda(ws,"C"+r+":K"+r,n,{size:14,bold:true}); ws.getRow(r).height=18.6; r+=2;
+    for(var i=0;i<fotos.length;i+=2){
+      if(i>0) saltoSi(17);
+      [fotos[i],fotos[i+1]].forEach(function(l,lado){
+        if(!l) return;
+        var c1 = lado?"H":"C", c2 = lado?"K":"F";
+        celda(ws,c1+r+":"+c2+(r+13),"",{border:true});
+        celda(ws,c1+(r+14)+":"+c2+(r+15),l.desc,{v:"top",h:"left",border:true,size:10});
+        ponerFoto(wb,ws,l,c1,c2,r,r+13,FILA);
+      });
+      for(var k=r;k<r+16;k++) ws.getRow(k).height = FILA;
+      // alto del pie según el texto más largo del par (≈ 50 caracteres por línea)
+      var lin = Math.max.apply(null,[fotos[i],fotos[i+1]].filter(Boolean).map(function(l){ return Math.ceil(l.desc.length/50); }));
+      if(lin>2){ ws.getRow(r+14).height = FILA*lin/2; ws.getRow(r+15).height = FILA*lin/2; }
+      r += 17;
+    }
+  });
+  if(!hay) celda(ws,"C"+(r+1)+":K"+(r+1),"No se registraron fotos de liberaciones este día.",{h:"left"});
+  pagina(ws,"L",Math.max(r,8));
+}
+
+function ponerFoto(wb,ws,l,c1,c2,r1,r2,filaPt){
+  var anchos = []; for(var k=colN(c1);k<=colN(c2);k++) anchos.push(pxCol(COLW_PF[String.fromCharCode(64+k)]));
+  var boxW = anchos.reduce(function(a,b){return a+b;},0), filaPx = filaPt*96/72, boxH = (r2-r1+1)*filaPx;
+  var iw = l.fw||4, ih = l.fh||3;
+  var m = 6, s = Math.min((boxW-2*m)/iw,(boxH-2*m)/ih), w = iw*s, h = ih*s;
+  var offX = (boxW-w)/2, offY = (boxH-h)/2;
+  var col = colN(c1)-1, rest = offX, i = 0;
+  while(i<anchos.length && rest>anchos[i]){ rest-=anchos[i]; col++; i++; }
+  var id = wb.addImage({base64:l.foto,extension:"jpeg"});
+  ws.addImage(id,{tl:{col:col+rest/anchos[i],row:(r1-1)+offY/filaPx},ext:{width:w,height:h},editAs:"oneCell"});
+}
+
+function abrirConfig(){
+  ed = {cfg:clone(cfg),dirty:false,fi:-1,fr:null,frDirty:false,msg:null,msgKind:""};
+  state.view="config"; render(); window.scrollTo(0,0);
+}
+function setMsg(lines,kind){ ed.msg=lines; ed.msgKind=kind||""; }
+function touch(){
+  if(state.view==="config"){ ed.dirty=true; updateSavebar(); }
+  else if(state.view==="frente"||state.view==="lineas") ed.frDirty=true;
+  else if(state.view==="material") ed.matDirty=true;
+}
+function markDirty(){ ed.dirty=true; }
+function updateSavebar(){
+  var s = document.getElementById("savemsg");
+  if(s) s.textContent = ed.dirty?"Cambios sin guardar":"Sin cambios";
+}
+function mover(arr,i,d){
+  var j=i+d; if(j<0||j>=arr.length) return;
+  var t=arr[i]; arr[i]=arr[j]; arr[j]=t;
+  if(state.view==="config") markDirty(); else ed.frDirty=true;
+  render();
+}
+function cfgInput(value,ph,fk,onIn,opt){
+  opt=opt||{};
+  var i=el("input",{type:"text",value:value==null?"":String(value),placeholder:ph||"",
+    class:opt.up?"up":"",inputmode:opt.num?"decimal":"text","data-fk":fk});
+  i.addEventListener("input",function(e){
+    var raw=e.target.value, v=raw, pos=e.target.selectionStart;
+    if(opt.num) v=numFilter(v); else if(opt.up) v=v.toUpperCase();
+    if(v!==raw){ e.target.value=v; try{ e.target.setSelectionRange(pos,pos); }catch(err){} }
+    onIn(v); touch();
+  });
+  return i;
+}
+function cfgArea(arr,ph,fk,onIn,opt){
+  opt=opt||{};
+  var t=el("textarea",{placeholder:ph||"",class:opt.up?"up":"","data-fk":fk,
+    rows:String(Math.max(3,Math.min(8,arr.length+1)))});
+  t.value=arr.join("\n");
+  t.addEventListener("input",function(e){
+    var v=e.target.value, pos=e.target.selectionStart;
+    if(opt.up){ var u=v.toUpperCase(); if(u!==v){ e.target.value=u; try{ e.target.setSelectionRange(pos,pos); }catch(err){} } v=u; }
+    onIn(v.split("\n").map(function(x){return x.trim();}).filter(function(x){return !!x;}));
+    touch();
+  });
+  return t;
+}
+/* sección de Ajustes plegada por defecto; se abre al tocar el título */
+function secPleg(key,title,resumen,desc,children){
+  ed.abiertos = ed.abiertos||{};
+  var abierta = !!ed.abiertos[key];
+  var c = el("div",{class:"card pleg"+(abierta?" abierta":"")});
+  c.appendChild(el("div",{class:"pleg-h",role:"button","aria-expanded":abierta?"true":"false",onclick:function(){
+    ed.abiertos[key] = !abierta; render(); }},[
+    el("div",{class:"sec-t"},[title]), el("div",{class:"res"},[abierta?"":(resumen||"")]),
+    el("div",{class:"chev"},[abierta?"Cerrar ▴":"Editar ▾"])
+  ]));
+  if(abierta){
+    if(desc) c.appendChild(el("div",{class:"sec-d"},[desc]));
+    children.forEach(function(ch){ if(ch) c.appendChild(ch); });
+  }
+  return c;
+}
+function secCard(title,desc,children){
+  var c=el("div",{class:"card"},[el("div",{class:"sec-t"},[title]),desc?el("div",{class:"sec-d"},[desc]):null]);
+  children.forEach(function(ch){ if(ch) c.appendChild(ch); });
+  return c;
+}
+
+function renderConfig(app){
+  var C = ed.cfg;
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN"]),el("div",{class:"t"},["Ajustes del generador"])]),
+    el("button",{class:"hbtn",type:"button",onclick:salirConfig},["← Volver"])
+  ]));
+  if(!storageOk) app.appendChild(noteBox(["Este navegador no permite guardar datos: los cambios durarán solo hasta cerrar la app. Respáldalos con “Copiar configuración”."],""));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg=null;
+
+  /* Conexión y modo editor */
+  app.appendChild(cardConexion());
+  if(conectado() && !editor)
+    app.appendChild(noteBox(["Modo lectura: puedes revisar los ajustes del equipo, pero para guardar cambios necesitas un PIN de editor."],""));
+
+  function resumenLista(a,n){ a = a||[]; return a.length ? a.slice(0,n||3).join(", ")+(a.length>(n||3)?"…":"") : "vacío"; }
+
+  /* Frentes */
+  var lista = el("div");
+  C.frentes.forEach(function(f,i){
+    var tipos = f.tipos.map(function(k){return C.tipos[k].corto;}).join(" · ");
+    lista.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[f.corto||f.nombre||"(sin nombre)"]),el("span",null,[tipos||"Sin liberaciones"])]),
+      iconBtn("↑","",function(){mover(C.frentes,i,-1);},i===0),
+      iconBtn("↓","",function(){mover(C.frentes,i,1);},i===C.frentes.length-1),
+      iconBtn("Editar","",function(){editarFrente(i);}),
+      iconBtn("⧉","",function(){duplicarFrente(i);}),
+      iconBtn("✕","del",function(){
+        if(confirm("¿Eliminar el frente “"+(f.corto||f.nombre)+"”?")){ C.frentes.splice(i,1); markDirty(); render(); }
+      })
+    ]));
+  });
+  app.appendChild(secPleg("frentes","Frentes",C.frentes.length+" frente"+(C.frentes.length===1?"":"s"),
+    "Editar ›: liberaciones del frente y, en Capa de relleno, cada material con sus propias procedencias, capas, espesor y cota. ⧉ duplica el frente con otro nombre.",[
+    lista, el("button",{class:"add",type:"button",onclick:function(){editarFrente(-1);}},["+ Agregar frente"])
+  ]));
+
+  app.appendChild(secPleg("materiales","Materiales",resumenLista(C.materiales.map(function(m){return m.nombre;}),2),
+    "Catálogo de nombres. Las procedencias, capas, espesor y cota de cada material se definen dentro de cada frente.",[
+    listaMateriales(C), el("button",{class:"add",type:"button",onclick:function(){editarMaterial(-1);}},["+ Agregar material"])
+  ]));
+  app.appendChild(secPleg("procedencias","Procedencias",resumenLista(C.procedencias,3),
+    "Lista para elegir rápido, una por línea. Cada material, dentro de cada frente, marca las suyas (o agrega una nueva desde ahí).",[
+    cfgArea(C.procedencias,"PROPIO","c_procs",function(a){C.procedencias=a;},{up:true})
+  ]));
+  var estW = el("div");
+  C.estructuras.forEach(function(e,i){
+    var usos = 0;
+    C.frentes.forEach(function(f){ f.materiales.forEach(function(x){ if(x.ests.some(function(q){return q.est===e.id;})) usos++; }); });
+    estW.appendChild(el("div",{class:"sub"},[
+      el("div",{class:"sub-h"},[el("div",{class:"n"},[(e.nombre||"Estructura "+(i+1))+(usos?" · en "+usos+" material"+(usos>1?"es":""):"")]),
+        iconBtn("✕","del",function(){
+          if(!confirm(usos?"La usan "+usos+" material(es) en los frentes; se quitará de ellos. ¿Eliminar?":"¿Eliminar esta estructura?")) return;
+          C.estructuras.splice(i,1);
+          C.frentes.forEach(function(f){ f.materiales.forEach(function(x){ x.ests = x.ests.filter(function(q){ return q.est!==e.id; }); }); });
+          markDirty(); render();
+        })]),
+      fieldWrap("Nombre",cfgInput(e.nombre,"Ej: ZANJA DE ANCLAJE","c_en"+i,function(v){e.nombre=v;},{up:true})),
+      fieldWrap("Ubicaciones (opcional)",cfgArea(e.ubicaciones,"Una por línea, ej. INFERIOR","c_eu"+i,function(a){e.ubicaciones=a;},{up:true}),
+        "Si tiene ubicaciones, al liberar se elige una (como en la banqueta).")
+    ]));
+  });
+  app.appendChild(secPleg("estructuras","Estructuras",resumenLista(C.estructuras.map(function(e){return e.nombre;}),2),
+    "Lista general (zanja, berma, banqueta, plataforma…). En cada frente, cada material elige las suyas.",[
+    estW, el("button",{class:"add",type:"button",onclick:function(){
+      C.estructuras.push({id:newId(),nombre:"",ubicaciones:[]}); markDirty(); render(); }},["+ Agregar estructura"])
+  ]));
+  app.appendChild(secPleg("supervisores","Supervisores CQC",resumenLista(C.supervisores,2),"Uno por línea. El que elijas al liberar queda recordado.",[
+    cfgArea(C.supervisores,"Nombre Apellido","c_sup",function(a){C.supervisores=a;})
+  ]));
+
+  /* Tipos de liberación */
+  var tiposWrap = el("div");
+  TIPO_KEYS.forEach(function(k){
+    var t = C.tipos[k];
+    tiposWrap.appendChild(el("div",{class:"sub"},[
+      el("div",{class:"sub-h"},[el("div",{class:"n"},[k.replace("_"," ")])]),
+      fieldWrap("Texto en el reporte",cfgInput(t.largo,"","c_tl_"+k,function(v){t.largo=v;},{up:true})),
+      fieldWrap("Texto del botón",cfgInput(t.corto,"","c_tc_"+k,function(v){t.corto=v;},{up:true}))
+    ]));
+  });
+  app.appendChild(secPleg("tipos","Tipos de liberación",TIPO_KEYS.length+" tipos","Los campos de cada tipo son fijos; aquí cambias cómo se llaman. Qué tipos tiene cada frente se elige al editar el frente.",[tiposWrap]));
+
+  app.appendChild(secPleg("diametros","Diámetros de tubería",resumenLista(C.diametros.map(function(x){return "Ø"+x;}),4),
+    "Lista general en mm, uno por línea. En cada frente, subdrenes, subdrenaje y colección eligen los suyos.",[
+    cfgArea(C.diametros,"450","c_diam",function(a){
+      C.diametros = a.map(function(x){ return x.replace(/[^\d.]/g,""); }).filter(function(x,i,l){ return !!x && l.indexOf(x)===i; })
+        .sort(function(x,y){ return parseFloat(x)-parseFloat(y); });
+      C.diametros.forEach(function(x){ if(!C.lineas[x]) C.lineas[x] = []; });
+    })
+  ]));
+  var linW = el("div");
+  C.diametros.forEach(function(x){
+    C.lineas[x] = C.lineas[x]||[];
+    linW.appendChild(fieldWrap("Tubería Ø"+x,cfgArea(C.lineas[x],"TB-PD-P-"+x+"-01","c_l"+x,function(a){C.lineas[x]=a;},{up:true})));
+  });
+  var nLin = 0; Object.keys(C.lineas).forEach(function(k){ nLin += (C.lineas[k]||[]).length; });
+  app.appendChild(secPleg("lineasSub","Líneas de subdren",nLin+" línea"+(nLin===1?"":"s"),"Una por línea, según el diámetro de tubería (para instalación de subdrenes).",[linW]));
+  app.appendChild(secPleg("eval","Materiales de evaluación",resumenLista(C.materialesEval,3),"Uno por línea.",[
+    cfgArea(C.materialesEval,"ADECUADO","c_meval",function(a){C.materialesEval=a;},{up:true})
+  ]));
+
+  /* Reporte diario */
+  var repWrap = el("div");
+  REP_CAMPOS.forEach(function(f){
+    repWrap.appendChild(fieldWrap(f[1],cfgInput(C.reporte[f[0]],f[2],"c_rep_"+f[0],function(v){C.reporte[f[0]]=v;},
+      {num:f[0]==="numRef"})));
+  });
+  app.appendChild(secPleg("reporte","Reporte diario",C.reporte.codigo,"Datos del encabezado del Excel. El N° del reporte avanza solo: N° de referencia + días desde su fecha.",[repWrap]));
+
+  /* Respaldo */
+  var bCopy = el("button",{class:"b-pri",type:"button"},["Copiar configuración"]);
+  bCopy.addEventListener("click",function(){
+    copyText(JSON.stringify(ed.cfg,null,1),function(ok){ flashBtn(bCopy,ok,"✓ Copiada","Copiar configuración","b-pri"); });
+  });
+  var bDown = el("button",{class:"b-sec",type:"button",onclick:function(){
+    try{
+      var blob=new Blob([JSON.stringify(ed.cfg,null,1)],{type:"application/json"});
+      var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="config-liberaciones.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+    }catch(e){ alert("No se pudo descargar. Usa “Copiar configuración”."); }
+  }},["Descargar .json"]);
+  var ta = el("textarea",{placeholder:"Pega aquí una configuración copiada…","data-fk":"c_imp",rows:"3"});
+  var file = el("input",{type:"file",accept:".json,application/json,text/plain",style:"display:none"});
+  file.addEventListener("change",function(){
+    var f=file.files&&file.files[0]; if(!f) return;
+    var rd=new FileReader(); rd.onload=function(){ importar(String(rd.result)); }; rd.readAsText(f);
+  });
+  app.appendChild(secPleg("respaldo","Respaldo","copiar, importar, restaurar","Copia o descarga la configuración para pasarla a otro celular o guardarla. Al importar, revisa y pulsa Guardar.",[
+    el("div",{class:"btns",style:"margin-top:0"},[bCopy,bDown]),
+    el("div",{style:"height:14px"}),
+    ta,
+    el("div",{class:"btns"},[
+      el("button",{class:"b-sec",type:"button",onclick:function(){ importar(ta.value); }},["Importar texto pegado"]),
+      el("button",{class:"b-sec",type:"button",onclick:function(){ file.click(); }},["Importar archivo"])
+    ]),
+    file,
+    el("div",{class:"btns"},[el("button",{class:"b-dng",type:"button",onclick:function(){
+      if(confirm("¿Restaurar todos los frentes, materiales y listas a los valores de fábrica?")){
+        ed.cfg=defaultConfig(); markDirty(); setMsg(["Valores de fábrica cargados. Pulsa Guardar para aplicarlos."],"ok");
+        render(); window.scrollTo(0,0); }
+    }},["Restaurar valores de fábrica"])])
+  ]));
+
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",{id:"savemsg"},[ed.dirty?"Cambios sin guardar":"Sin cambios"]),
+    el("button",{class:"b-sec",type:"button",onclick:salirConfig},["Salir"]),
+    el("button",{class:"b-pri",type:"button",onclick:guardarConfig},[conectado()&&editor?"Guardar para todos":"Guardar"])
+  ]));
+}
+
+function cardConexion(){
+  var kids = [];
+  if(conectado()){
+    kids.push(el("div",{class:"info"},[el("b",null,["Conectado:"]),document.createTextNode(
+      cfgMeta.version?" configuración v"+cfgMeta.version+(cfgMeta.fecha?" · "+cfgMeta.fecha:"")+(cfgMeta.por?" · "+cfgMeta.por:"")
+                     :" el servidor aún no tiene configuración; un editor debe pulsar Guardar para publicarla.")]));
+    var bLink = el("button",{class:"b-pri",type:"button"},["Copiar enlace para el equipo"]);
+    bLink.addEventListener("click",function(){
+      copyText(enlaceConexion(),function(ok){ flashBtn(bLink,ok,"✓ Enlace copiado","Copiar enlace para el equipo","b-pri"); });
+    });
+    kids.push(el("div",{class:"btns",style:"margin-top:0"},[bLink,
+      el("button",{class:"b-sec",type:"button",onclick:function(){
+        if(confirm("¿Desconectar este celular del sistema del equipo?")){
+          conexion=null; editor=null; lsSet(STORE_CONN,"null"); lsSet(STORE_EDITOR,"null"); render(); }
+      }},["Desconectar"])]));
+    kids.push(el("div",{class:"fdesc"},["Envía el enlace por WhatsApp: al abrirlo, el celular queda conectado."]));
+
+    // modo editor
+    var editorBox = el("div",{style:"margin-top:16px"});
+    if(editor){
+      editorBox.appendChild(el("div",{class:"item"},[
+        el("div",{class:"nm"},[el("b",null,["Editor: "+editor.nombre]),el("span",null,["Tus cambios en Ajustes se guardan para todo el equipo."])]),
+        iconBtn("Salir","",function(){ editor=null; lsSet(STORE_EDITOR,"null"); render(); })
+      ]));
+    } else {
+      var pin = el("input",{type:"text",placeholder:"PIN de editor",inputmode:"numeric","data-fk":"c_pin",autocomplete:"off"});
+      var bPin = el("button",{class:"ib",type:"button"},["Activar"]);
+      bPin.addEventListener("click",function(){
+        var v = pin.value.trim(); if(!v) return;
+        bPin.textContent="…";
+        api("checkPin",{pin:v}).then(function(j){
+          editor={pin:v,nombre:j.nombre}; lsSet(STORE_EDITOR,JSON.stringify(editor));
+          setMsg(["Modo editor activo: "+j.nombre+"."],"ok"); render();
+        },function(e){ setMsg([e.message],"err"); render(); });
+      });
+      editorBox.appendChild(fieldWrap("Modo editor",el("div",{class:"row"},[pin,bPin]),"Solo para quienes pueden cambiar los ajustes del equipo."));
+    }
+    kids.push(editorBox);
+  } else {
+    var url = el("input",{type:"text",placeholder:"https://script.google.com/macros/s/…/exec","data-fk":"c_url"});
+    var key = el("input",{type:"text",placeholder:"Clave de equipo","data-fk":"c_key",autocomplete:"off"});
+    var bOk = el("button",{class:"b-pri",type:"button"},["Conectar"]);
+    bOk.addEventListener("click",function(){
+      var u = url.value.trim(), k = key.value.trim();
+      if(!/^https:\/\//.test(u) || !k){ setMsg(["Completa la dirección del servidor y la clave de equipo."],"err"); render(); return; }
+      bOk.textContent = "Probando…";
+      var prev = conexion; conexion = {url:u,key:k};
+      api("ping").then(function(){
+        lsSet(STORE_CONN,JSON.stringify(conexion));
+        return syncConfig(true).then(function(){
+          if(!ed.dirty) ed.cfg = clone(cfg);
+          setMsg(["Conectado al sistema del equipo."],"ok"); render(); procesarCola();
+        });
+      },function(e){ conexion = prev; setMsg(["No se pudo conectar: "+e.message],"err"); render(); });
+    });
+    kids.push(el("div",{class:"sec-d"},["Sin conectar: la configuración y las liberaciones solo quedan en este celular. Lo más fácil es abrir el enlace que te envíe tu administrador."]));
+    kids.push(fieldWrap("Dirección del servidor",url));
+    kids.push(fieldWrap("Clave de equipo",key));
+    kids.push(el("div",{class:"btns",style:"margin-top:0"},[bOk]));
+  }
+  return secCard("Sistema del equipo",null,kids);
+}
+
+function importar(texto){
+  try{
+    var obj = JSON.parse(texto);
+    if(!obj || !Array.isArray(obj.frentes)) throw new Error("x");
+    ed.cfg = sanitizeCfg(obj); markDirty();
+    setMsg(["Configuración importada. Revísala y pulsa Guardar."],"ok");
+  }catch(e){
+    setMsg(["El texto o archivo no es una configuración válida."],"err");
+  }
+  render(); window.scrollTo(0,0);
+}
+function guardarConfig(){
+  var publicarInicial = conectado() && editor && !cfgMeta.version;
+  if(!ed.dirty && !publicarInicial){ salirConfig(); return; }
+  var errs = validateCfg(ed.cfg);
+  if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
+  var nueva = sanitizeCfg(clone(ed.cfg));
+  if(!conectado()){ cerrarConGuardado(nueva,lsSet(STORE_CFG,JSON.stringify(nueva)),"Configuración guardada en este celular."); return; }
+  if(!editor){
+    setMsg(["Para guardar cambios para todo el equipo activa el modo editor con tu PIN (arriba)."],"err");
+    render(); window.scrollTo(0,0); return;
+  }
+  var bar = document.querySelector(".savebar .b-pri"); if(bar){ bar.textContent="Guardando…"; bar.disabled=true; }
+  function enviar(force){
+    api("saveConfig",{pin:editor.pin,config:nueva,baseVersion:cfgMeta.version,force:!!force}).then(function(j){
+      if(j.conflict){
+        var msg = "Otro editor"+(j.por?" ("+j.por+")":"")+" guardó la versión "+j.version+" mientras editabas.\n\n"+
+                  "Aceptar: guardar tus cambios encima.\nCancelar: descartar los tuyos y cargar la suya.";
+        if(confirm(msg)) return enviar(true);
+        ultimaSync = 0;
+        return syncConfig(true).then(function(){ ed=null; state.view="main"; state.flash="Se cargó la versión más reciente del equipo."; render(); });
+      }
+      cfgMeta = {version:j.version,fecha:j.fecha,por:j.por}; lsSet(STORE_META,JSON.stringify(cfgMeta));
+      cerrarConGuardado(nueva,lsSet(STORE_CFG,JSON.stringify(nueva)),"Configuración v"+j.version+" guardada para todo el equipo.");
+    },function(e){
+      if(/PIN/i.test(e.message)){ editor=null; lsSet(STORE_EDITOR,"null"); }
+      setMsg(["No se pudo guardar en el sistema: "+e.message+(e.server?"":". Revisa la señal e inténtalo de nuevo.")],"err");
+      render(); window.scrollTo(0,0);
+    });
+  }
+  enviar(false);
+}
+function cerrarConGuardado(nueva,ok,texto){
+  cfg = nueva;
+  ed = null; state.view = "main";
+  var fr = getFrente(state.estructura);
+  if(!fr){ state.estructura=""; state.tipo=""; }
+  else if(fr.tipos.indexOf(state.tipo)<0) state.tipo="";
+  if(prefs.supervisor && cfg.supervisores.indexOf(prefs.supervisor)<0){ prefs.supervisor=""; savePrefs(); }
+  resetForm();
+  state.flash = ok?texto:"Configuración aplicada, pero este navegador no permitió guardarla en el celular.";
+  render(); window.scrollTo(0,0);
+}
+function salirConfig(){
+  if(ed && ed.dirty && !confirm("Hay cambios sin guardar. ¿Descartarlos?")) return;
+  ed = null; state.view = "main"; render(); window.scrollTo(0,0);
+}
+
+/* ── editor de un frente ── */
+/* copia un frente con otro nombre; se agrega al pulsar Aplicar */
+function duplicarFrente(i){
+  var o = ed.cfg.frentes[i];
+  var nombre = prompt("Nombre completo del nuevo frente:", o.nombre+" (COPIA)");
+  if(nombre==null) return;
+  nombre = nombre.trim().toUpperCase();
+  if(!nombre) return;
+  if(ed.cfg.frentes.some(function(f){ return f.nombre===nombre; })){ alert("Ya existe un frente con ese nombre."); return; }
+  var corto = prompt("Nombre corto (texto del botón):", o.corto?o.corto+" COPIA":"");
+  var c = clone(o);
+  c.id = newId(); c.nombre = nombre; c.corto = (corto||"").trim().toUpperCase();
+  ed.fi = -1; ed.fr = c; ed.frDirty = true; ed.msg = null; ed.dup = true;
+  setMsg(["Copia de “"+(o.corto||o.nombre)+"”: revisa lo que haga falta y pulsa Aplicar."],"ok");
+  state.view = "frente"; render(); window.scrollTo(0,0);
+}
+function editarFrente(i){
+  ed.fi = i; ed.dup = false;
+  ed.fr = i<0 ? {id:newId(),nombre:"",corto:"",tipos:["RELLENO"],materiales:[],lineas:{},
+                  overliner:{espModo:"FIJO",espesor:"0.7 m"},diams:clone(DIAMS_TIPO)}
+              : clone(ed.cfg.frentes[i]);
+  ed.frDirty = false; ed.msg = null;
+  state.view = "frente"; render(); window.scrollTo(0,0);
+}
+function aplicarFrente(){
+  var f = ed.fr;
+  f.nombre = f.nombre.trim(); f.corto = (f.corto||"").trim();
+  f.materiales.forEach(function(x){ x.espesor=(x.espesor||"").trim(); });
+  f.lineas = sanLineas(f.lineas);
+  var errs = validateFrente(f, ed.fi<0?ed.cfg.frentes.length:ed.fi);
+  if(f.nombre && ed.cfg.frentes.some(function(o,j){ return j!==ed.fi && o.nombre===f.nombre; }))
+    errs.push("Ya existe otro frente llamado “"+f.nombre+"”.");
+  if(errs.length){ setMsg(errs,"err"); render(); window.scrollTo(0,0); return; }
+  if(ed.fi<0) ed.cfg.frentes.push(f); else ed.cfg.frentes[ed.fi] = f;
+  ed.fr = null; markDirty();
+  setMsg(["Frente “"+(f.corto||f.nombre)+"” listo. Pulsa Guardar para aplicar los cambios."],"ok");
+  state.view = "config"; render(); window.scrollTo(0,0);
+}
+function cancelarFrente(){
+  if(ed.frDirty && !confirm("¿Descartar los cambios de este frente?")) return;
+  ed.fr = null; state.view = "config"; render(); window.scrollTo(0,0);
+}
+function renderFrente(app){
+  var f = ed.fr, C = ed.cfg;
+  function chg(){ ed.frDirty=true; render(); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN · FRENTE"]),el("div",{class:"t"},[ed.fi<0?(ed.dup?"Copia de frente":"Nuevo frente"):"Editar frente"])]),
+    el("button",{class:"hbtn",type:"button",onclick:cancelarFrente},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+
+  app.appendChild(secCard("Datos del frente",null,[
+    fieldWrap("Nombre completo",cfgInput(f.nombre,"Ej: PAD DE LIXIVIACIÓN 2 FASE 2G","fe_nom",function(v){f.nombre=v;},{up:true}),
+      "Así aparece en la línea ESTRUCTURA del texto."),
+    fieldWrap("Nombre corto",cfgInput(f.corto,"Ej: PAD 2G","fe_cor",function(v){f.corto=v;},{up:true}),
+      "Texto del botón. Si queda vacío se usa el nombre completo."),
+    fieldWrap("Tipos de liberación",multiCtl(f.tipos,TIPO_KEYS,function(k){return C.tipos[k].corto;},function(k){
+      var on = f.tipos.indexOf(k)>=0;
+      f.tipos = TIPO_KEYS.filter(function(x){ return x===k?!on:f.tipos.indexOf(x)>=0; });
+      chg();
+    }))
+  ]));
+  app.appendChild(secCard("Liberaciones del frente","Entra a cada una para elegir sus materiales, cotas y las líneas que salen en el texto.",[listaLineas(f)]));
+
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,["Edición de frente"]),
+    el("button",{class:"b-sec",type:"button",onclick:cancelarFrente},["Cancelar"]),
+    el("button",{class:"b-pri",type:"button",onclick:aplicarFrente},["Aplicar"])
+  ]));
+}
+
+/* ── catálogo de materiales ── */
+function usosMaterial(C,id){
+  return C.frentes.filter(function(f){ return f.materiales.some(function(x){ return x.mat===id; }); })
+    .map(function(f){ return f.corto||f.nombre; });
+}
+function listaMateriales(C){
+  var w = el("div");
+  if(!C.materiales.length) w.appendChild(el("div",{class:"sec-d"},["Aún no hay materiales."]));
+  C.materiales.forEach(function(m,i){
+    w.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[m.nombre||"(sin nombre)"]),
+        el("span",null,[(function(u){ return u.length?"Lo usan: "+u.join(", "):"Ningún frente lo usa"; })(usosMaterial(C,m.id))])]),
+      iconBtn("Editar","",function(){ editarMaterial(i); }),
+      iconBtn("✕","del",function(){
+        var u = usosMaterial(C,m.id);
+        if(!confirm("¿Eliminar el material “"+m.nombre+"”?"+(u.length?"\n\nSe quitará de: "+u.join(", "):""))) return;
+        C.materiales.splice(i,1);
+        C.frentes.forEach(function(f){ f.materiales = f.materiales.filter(function(x){ return x.mat!==m.id; }); });
+        markDirty(); render();
+      })
+    ]));
+  });
+  return w;
+}
+function editarMaterial(i){
+  ed.mi = i;
+  ed.mat = i<0 ? {id:newId(),nombre:""} : clone(ed.cfg.materiales[i]);
+  ed.matDirty = false; ed.msg = null;
+  state.view = "material"; render(); window.scrollTo(0,0);
+}
+function cancelarMaterial(){
+  if(ed.matDirty && !confirm("¿Descartar los cambios de este material?")) return;
+  ed.mat = null; state.view = "config"; render(); window.scrollTo(0,0);
+}
+function aplicarMaterial(){
+  var m = ed.mat, C = ed.cfg;
+  m.nombre = m.nombre.trim().toUpperCase();
+  var e = [];
+  if(!m.nombre) e.push("Falta el nombre del material.");
+  else if(C.materiales.some(function(o,j){ return j!==ed.mi && o.nombre===m.nombre; })) e.push("Ya existe un material llamado “"+m.nombre+"”.");
+  if(e.length){ setMsg(e,"err"); render(); window.scrollTo(0,0); return; }
+  if(ed.mi<0) C.materiales.push(m); else C.materiales[ed.mi] = m;
+  ed.mat = null; markDirty();
+  setMsg(["Material “"+m.nombre+"” listo. Pulsa Guardar para aplicar los cambios."],"ok");
+  state.view = "config"; render(); window.scrollTo(0,0);
+}
+function renderMaterial(app){
+  var m = ed.mat, C = ed.cfg;
+  function chg(){ ed.matDirty = true; render(); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},["CONFIGURACIÓN · MATERIAL"]),el("div",{class:"t"},[ed.mi<0?"Nuevo material":"Editar material"])]),
+    el("button",{class:"hbtn",type:"button",onclick:cancelarMaterial},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+  var kids = [
+    fieldWrap("Nombre",cfgInput(m.nombre,"Ej: RELLENO ESTRUCTURAL","ma_nom",function(v){m.nombre=v;ed.matDirty=true;},{up:true}),
+      "Así aparece en la línea MATERIAL del texto."),
+  ];
+  var u = usosMaterial(C,m.id);
+  kids.push(el("div",{class:"sec-d",style:"margin:4px 0 0"},[u.length?"Lo usan: "+u.join(", "):"Ningún frente lo usa todavía."]));
+  app.appendChild(secCard("Material",null,kids));
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,["Edición de material"]),
+    el("button",{class:"b-sec",type:"button",onclick:cancelarMaterial},["Cancelar"]),
+    el("button",{class:"b-pri",type:"button",onclick:aplicarMaterial},["Aplicar"])
+  ]));
+}
+
+/* comportamiento propuesto al agregar un material a un frente: el que ya tiene en otros frentes, o por su nombre */
+/* ── overliner del frente: material OVERLINER, espesor fijo o escrito al liberar ── */
+function seccionOverliner(f){
+  function chg(){ ed.frDirty = true; render(); }
+  f.overliner = f.overliner||{espModo:"FIJO",espesor:""};
+  var o = f.overliner;
+  return secCard("Overliner",'El material sale como “OVERLINER”.',[
+    fieldWrap("Espesor",optsCtl(o.espModo,["FIJO","MANUAL"],function(v){o.espModo=v;chg();},{labelFn:function(k){return TXT_ESP[k];}})),
+    fieldWrap(o.espModo==="FIJO"?"Espesor fijo":"Valor propuesto (opcional)",cfgInput(o.espesor,"Ej: 0.7 m","ov_esp",function(v){o.espesor=v;}),
+      o.espModo==="FIJO"?null:"Aparece escrito al liberar y se puede cambiar.")
+  ]);
+}
+/* ── diámetros de tubería que usa esta liberación en el frente ── */
+function seccionDiametros(f,k){
+  var C = ed.cfg;
+  f.diams = f.diams||{};
+  f.diams[k] = f.diams[k]||[];
+  var sel = f.diams[k];
+  var kids = [];
+  if(!C.diametros.length) kids.push(el("div",{class:"sec-d"},["Primero agrega diámetros en Ajustes › Diámetros de tubería."]));
+  else kids.push(multiCtl(sel,C.diametros,function(x){return "Ø"+x+" mm";},function(x){
+    var i = sel.indexOf(x); if(i>=0) sel.splice(i,1); else sel.push(x);
+    f.diams[k] = C.diametros.filter(function(q){ return sel.indexOf(q)>=0; });
+    ed.frDirty = true; render();
+  }));
+  if(k==="SIST_SUBD") kids.push(el("div",{class:"fdesc"},["Con Ø100 y Ø450 marcados aparece también la opción “100 y 450”."]));
+  return secCard("Diámetros de tubería","Al liberar aparecen como botones.",kids);
+}
+
+/* ── materiales de la capa de relleno en este frente ── */
+/* al agregar un material a un frente: copia cómo está configurado en otro frente, o empieza en blanco */
+function fmInicial(C,id){
+  var g = findBy(C.materiales,"id",id), base = null;
+  C.frentes.forEach(function(f){ f.materiales.forEach(function(x){ if(!base && x.mat===id) base = x; }); });
+  if(base) return clone(base);
+  return {mat:id,procs:[],parcial:false,capas:capasDe("ILIM"),
+          esp:{modo:"MANUAL",valor:"",formula:""},cota:{modo:"MANUAL",base:"",capaBase:"",paso:"",tabla:[]},ests:[]};
+}
+function controlCapas(c,p,permiteIgual,chg){
+  var w = el("div");
+  w.appendChild(optsCtl(c.modo,(permiteIgual?[""]:[]).concat(MODOS_CAPA),function(v){ c.modo=v; chg(); },
+    {labelFn:function(k){return TXT_CAPA[k];}}));
+  if(c.modo==="RANGO") w.appendChild(el("div",{class:"row",style:"margin-top:8px"},[
+    el("span",{class:"dash"},["De"]),cfgInput(c.min,"1",p+"mn",function(v){c.min=v;},{num:true}),
+    el("span",{class:"dash"},["a"]),cfgInput(c.max,"3",p+"mx",function(v){c.max=v;},{num:true})]));
+  return w;
+}
+function vistaPatron(fx){
+  if(!RE_FORMULA.test(fx||"")) return "Escribe una fórmula con c (la capa). Ej: (c-6)%3==2 ? 4 : 3";
+  var t = [];
+  for(var c=1;c<=9;c++){ var v = evalFormula(fx,c); t.push(c+": "+(isNaN(v)?"?":Math.round(v*1000)/1000)); }
+  return "Capa → espesor (m)  ·  "+t.join("  ·  ");
+}
+function seccionMateriales(f){
+  var C = ed.cfg;
+  function chg(){ ed.frDirty = true; render(); }
+  var kids = [];
+  if(!C.materiales.length){
+    kids.push(el("div",{class:"sec-d"},["Primero agrega materiales en Ajustes › Materiales."]));
+    return secCard("Materiales",null,kids);
+  }
+  kids.push(fieldWrap("Materiales que usa este frente",multiCtl(f.materiales.map(function(x){return x.mat;}),
+    C.materiales.map(function(m){return m.id;}),
+    function(id){ return findBy(C.materiales,"id",id).nombre; },
+    function(id){
+      var i = -1; f.materiales.forEach(function(x,j){ if(x.mat===id) i=j; });
+      if(i>=0){
+        if(!confirm("¿Quitar este material del frente? Se pierde su configuración en este frente.")) return;
+        f.materiales.splice(i,1);
+      } else f.materiales.push(fmInicial(C,id));
+      chg();
+    })));
+  f.materiales.forEach(function(x,j){
+    var g = findBy(C.materiales,"id",x.mat); if(!g) return;
+    var p = "lm"+j+"_";
+    var sub = el("div",{class:"sub"});
+    sub.appendChild(el("div",{class:"sub-h"},[
+      el("div",{class:"n"},[g.nombre]),
+      iconBtn("↑","",function(){mover(f.materiales,j,-1);},j===0),
+      iconBtn("↓","",function(){mover(f.materiales,j,1);},j===f.materiales.length-1)
+    ]));
+    /* procedencias: propias de este material en este frente */
+    var pool = C.procedencias.filter(Boolean);
+    x.procs.forEach(function(q){ if(pool.indexOf(q)<0) pool.push(q); });
+    sub.appendChild(fieldWrap("Procedencias",pool.length
+        ? multiCtl(x.procs,pool,function(v){return v;},function(v){
+            var i = x.procs.indexOf(v); if(i>=0) x.procs.splice(i,1); else x.procs.push(v);
+            x.procs = pool.filter(function(q){ return x.procs.indexOf(q)>=0; });
+            chg(); })
+        : el("div",{class:"sec-d"},["Aún no hay procedencias en la lista."]),
+      x.procs.length===1?"Con una sola, sale fija sin preguntar.":(x.procs.length?"Solo para este material en este frente.":"Sin procedencias: no se pregunta ni sale en el texto.")));
+    var np = el("input",{type:"text",placeholder:"Otra procedencia",class:"up","data-fk":p+"np"});
+    var bNp = el("button",{class:"ib",type:"button"},["Agregar"]);
+    bNp.addEventListener("click",function(){
+      var v = np.value.trim().toUpperCase(); if(!v) return;
+      if(C.procedencias.indexOf(v)<0) C.procedencias.push(v);
+      if(x.procs.indexOf(v)<0) x.procs.push(v);
+      chg();
+    });
+    sub.appendChild(el("div",{class:"fld"},[el("div",{class:"row"},[np,bNp])]));
+    /* estructuras */
+    if(C.estructuras.length){
+      sub.appendChild(fieldWrap("Estructuras",multiCtl(x.ests.map(function(q){return q.est;}),C.estructuras.map(function(e){return e.id;}),
+        function(id){ return findBy(C.estructuras,"id",id).nombre||"(sin nombre)"; },
+        function(id){
+          var i = -1; x.ests.forEach(function(q,k){ if(q.est===id) i=k; });
+          if(i>=0) x.ests.splice(i,1); else x.ests.push({est:id,capas:clone(x.capas),espModo:x.esp.modo==="FIJO"?"FIJO":"MANUAL",espesor:x.esp.modo==="PATRON"?"":x.esp.valor,prog:false});
+          chg();
+        }),x.ests.length?"Al liberar este material primero se elige la estructura; las capas se definen en cada una.":"Opcional: zanja, berma, banqueta, plataforma… Sin estructuras, las capas se definen abajo para el material."));
+      x.ests.forEach(function(q,k){
+        var e = findBy(C.estructuras,"id",q.est); if(!e) return;
+        var pe = p+"e"+k+"_";
+        sub.appendChild(el("div",{class:"sub",style:"background:#fff"},[
+          el("div",{class:"sub-h",style:"margin-bottom:8px"},[el("div",{class:"n"},[e.nombre])]),
+          fieldWrap("Capas",controlCapas(q.capas,pe,false,chg)),
+          fieldWrap("Espesor",optsCtl(q.espModo||"MANUAL",["FIJO","MANUAL"],function(v){q.espModo=v;chg();},{labelFn:function(k){return TXT_ESP[k];}})),
+          fieldWrap(q.espModo==="FIJO"?"Espesor fijo":"Valor propuesto (opcional)",cfgInput(q.espesor,"Ej: 0.2 m",pe+"es",function(v){q.espesor=v;}),
+            q.espModo==="FIJO"?null:"Aparece escrito al liberar y se puede cambiar."),
+          fieldWrap("Pide progresiva siempre",toggleCtl(q.prog?"SÍ":"NO",function(v){q.prog=(v==="SÍ");chg();}))
+        ]));
+      });
+    }
+    /* capas */
+    if(!x.ests.length) sub.appendChild(fieldWrap("Capas",controlCapas(x.capas,p+"c",false,chg),
+      x.capas.modo==="RANGO"?"Al liberar se elige la capa con botones dentro de ese rango.":
+      x.capas.modo==="UNICA"?"Sale CAPA: UNICA sin preguntar.":"Se escribe el número de capa (o OTRO, ej. NIVELANTE 01)."));
+    /* espesor: con estructuras se define en cada una */
+    if(!x.ests.length){
+    sub.appendChild(fieldWrap("Espesor",optsCtl(x.esp.modo,MODOS_ESP,function(v){x.esp.modo=v;chg();},{labelFn:function(k){return TXT_ESP[k];}})));
+    if(x.esp.modo==="FIJO")
+      sub.appendChild(fieldWrap("Espesor fijo",cfgInput(x.esp.valor,"Ej: 0.5 m",p+"ev",function(v){x.esp.valor=v;})));
+    else if(x.esp.modo==="MANUAL")
+      sub.appendChild(fieldWrap("Valor propuesto (opcional)",cfgInput(x.esp.valor,"Ej: 0.3 m",p+"ev",function(v){x.esp.valor=v;}),
+        "Aparece escrito al liberar y se puede cambiar."));
+    else {
+      var prev = el("div",{class:"fdesc"},[vistaPatron(x.esp.formula)]);
+      var fi = cfgInput(x.esp.formula,"(c-6)%3==2 ? 4 : 3",p+"ef",function(v){ x.esp.formula=v; prev.textContent = vistaPatron(v); });
+      sub.appendChild(el("div",{class:"fld"},[el("label",null,["Fórmula del espesor (m) según la capa c"]),fi,prev,
+        el("div",{class:"fdesc"},["Operadores: + − * / % ( ), comparaciones (== != < >) y condición ? a : b. Ej: (c-6)%3==2 ? 4 : 3 → 4 m cada tres capas, 3 m en las demás."])]));
+    }
+    }
+    /* cota */
+    sub.appendChild(fieldWrap("Cota",optsCtl(x.cota.modo,MODOS_COTA,function(v){x.cota.modo=v;chg();},{labelFn:function(k){return TXT_COTA[k];}})));
+    if(x.cota.modo==="CALC"){
+      sub.appendChild(el("div",{class:"grid3",style:"margin-bottom:6px"},[
+        el("div",{class:"fld"},[el("label",null,["Cota base"]),cfgInput(x.cota.base,"2810.5",p+"cb",function(v){x.cota.base=v;},{num:true})]),
+        el("div",{class:"fld"},[el("label",null,["En la capa"]),cfgInput(x.cota.capaBase,"15",p+"cc",function(v){x.cota.capaBase=v;},{num:true})]),
+        el("div",{class:"fld"},[el("label",null,["Sube por capa (m)"]),cfgInput(x.cota.paso,"vacío",p+"cp",function(v){x.cota.paso=v;},{num:true})])
+      ]));
+      sub.appendChild(el("div",{class:"fdesc",style:"margin:0 0 14px"},["Si “sube por capa” queda vacío, se suma el espesor de cada capa (sirve para patrones como 3/4 m)."]));
+    }
+    if(x.cota.modo!=="VARIABLE")
+      sub.appendChild(fieldWrap("Cotas por capa",cfgArea(x.cota.tabla,"16 = 2811\nNIVELANTE 01 = 2810.5",p+"t",function(a){x.cota.tabla=a;},{up:true}),
+        "Una por línea: capa = cota. Tienen prioridad sobre el cálculo."));
+    sub.appendChild(fieldWrap("Permite liberación parcial",toggleCtl(x.parcial?"SÍ":"NO",function(v){x.parcial=(v==="SÍ");chg();}),
+      "Si “Liberación parcial” está sin elegir en las líneas, solo se pregunta en los materiales con SÍ."));
+    kids.push(sub);
+  });
+  return secCard("Materiales",null,kids);
+}
+
+/* ── líneas del texto por liberación ── */
+function resumenLineas(f,k){
+  var o = (f.lineas&&f.lineas[k])||{}, por = {O:[],N:[],S:[]};
+  (LINEAS[k]||[]).forEach(function(d){
+    var v = o[d[0]]; if(!v || v===(d[3]||"S")) return;
+    por[v].push(d[1].replace(/\s*\(.*\)$/,""));
+  });
+  var t = [];
+  if(por.N.length) t.push("No: "+por.N.join(", "));
+  if(por.O.length) t.push("Pregunta: "+por.O.join(", "));
+  if(por.S.length) t.push("Siempre: "+por.S.join(", "));
+  return t.join(" · ")||"Como viene por defecto";
+}
+function listaLineas(f){
+  var w = el("div");
+  if(!f.tipos.length) w.appendChild(el("div",{class:"sec-d"},["Elige primero los tipos de liberación."]));
+  f.tipos.forEach(function(k){
+    w.appendChild(el("div",{class:"item"},[
+      el("div",{class:"nm"},[el("b",null,[ed.cfg.tipos[k].corto]),el("span",null,[resumenLineas(f,k)])]),
+      iconBtn("Configurar ›","",function(){ ed.lt = k; ed.copiaSel = []; state.view = "lineas"; render(); window.scrollTo(0,0); })
+    ]));
+  });
+  return w;
+}
+function renderLineas(app){
+  var f = ed.fr, k = ed.lt, defs = LINEAS[k]||[];
+  f.lineas = f.lineas||{};
+  var cur = f.lineas[k]||{};
+  function volver(){ state.view="frente"; render(); window.scrollTo(0,0); }
+  app.appendChild(el("div",{class:"hdr"},[
+    el("div",null,[el("div",{class:"k"},[(f.corto||f.nombre||"FRENTE").toUpperCase()]),el("div",{class:"t"},[ed.cfg.tipos[k].corto])]),
+    el("button",{class:"hbtn",type:"button",onclick:volver},["← Volver"])
+  ]));
+  if(ed.msg) app.appendChild(noteBox(ed.msg,ed.msgKind));
+  ed.msg = null;
+
+  if(k==="RELLENO") app.appendChild(seccionMateriales(f));
+  if(k==="OVERLINER") app.appendChild(seccionOverliner(f));
+  if(DIAMS_TIPO[k]) app.appendChild(seccionDiametros(f,k));
+  var kids = [el("div",{class:"sec-d"},["Siempre: se pide y sale en el texto. Opcional: la app pregunta “¿Ingresar…?”. Nunca: no se pide ni sale. TIPO DE LIBERACIÓN, ESTRUCTURA y SUPERVISOR CQC salen siempre."])];
+  defs.forEach(function(d){
+    var v = cur[d[0]] || (d[3]==="AUTO"?"":(d[3]||"S"));
+    kids.push(fieldWrap(d[1],optsCtl(v,d[2],function(nv){
+      f.lineas[k] = f.lineas[k]||{};
+      if(!nv || (nv===(d[3]||"S") && d[3]!=="AUTO")) delete f.lineas[k][d[0]];
+      else f.lineas[k][d[0]] = nv;
+      if(!Object.keys(f.lineas[k]).length) delete f.lineas[k];
+      ed.frDirty = true; render();
+    },{labelFn:function(x){return (d[0]==="DET"||d[0]==="PARC"?ESTADO_SINO:ESTADO_TXT)[x];},allowUnset:d[3]==="AUTO"}),
+      d[3]==="AUTO"&&!cur[d[0]]?d[4]:(d[4]&&v===d[3]?d[4]:null)));
+  });
+  kids.push(el("div",{class:"btns",style:"margin-top:4px"},[
+    el("button",{class:"b-sec",type:"button",onclick:function(){ delete f.lineas[k]; ed.frDirty=true; render(); }},["Restablecer"])
+  ]));
+  app.appendChild(secCard("Líneas del texto",null,kids));
+
+  var otros = ed.cfg.frentes.filter(function(o){ return o.id!==f.id && o.tipos.indexOf(k)>=0; });
+  if(otros.length){
+    ed.copiaSel = (ed.copiaSel||[]).filter(function(id){ return !!findBy(otros,"id",id); });
+    var bCp = el("button",{class:"b-pri",type:"button",disabled:!ed.copiaSel.length},
+      [ed.copiaSel.length?"Copiar a "+ed.copiaSel.length+" frente"+(ed.copiaSel.length>1?"s":""):"Elige frentes"]);
+    bCp.addEventListener("click",function(){
+      var n = 0;
+      ed.copiaSel.forEach(function(id){
+        var o = findBy(ed.cfg.frentes,"id",id); if(!o) return;
+        o.lineas = o.lineas||{};
+        if(f.lineas[k]) o.lineas[k] = clone(f.lineas[k]); else delete o.lineas[k];
+        n++;
+      });
+      ed.copiaSel = []; ed.dirty = true; ed.frDirty = true;
+      setMsg(["Configuración de “"+ed.cfg.tipos[k].corto+"” copiada a "+n+" frente"+(n>1?"s":"")+". Pulsa Aplicar y luego Guardar."],"ok");
+      render(); window.scrollTo(0,0);
+    });
+    app.appendChild(secCard("Copiar líneas a otros frentes","Aplica esta misma configuración de líneas en otros frentes que tienen esta liberación.",[
+      multiCtl(ed.copiaSel,otros.map(function(o){return o.id;}),function(id){ var o=findBy(otros,"id",id); return o.corto||o.nombre; },
+        function(id){ var i=ed.copiaSel.indexOf(id); if(i>=0) ed.copiaSel.splice(i,1); else ed.copiaSel.push(id); render(); }),
+      el("div",{class:"btns"},[bCp])
+    ]));
+  }
+  app.appendChild(el("div",{class:"savebar"},[
+    el("span",null,[ed.cfg.tipos[k].corto.charAt(0)+ed.cfg.tipos[k].corto.slice(1).toLowerCase()]),
+    el("button",{class:"b-pri",type:"button",onclick:volver},["Listo"])
+  ]));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER GENERAL
+   ════════════════════════════════════════════════════════════════ */
+function render(){
+  var ae = document.activeElement;
+  var keepId = (ae && ae.getAttribute) ? ae.getAttribute("data-fk") : null;
+  var keepPos = null;
+  if(keepId){ try{ keepPos = ae.selectionStart; }catch(e){} }
+
+  var app = document.getElementById("app");
+  app.innerHTML = "";
+  if(state.view==="config") renderConfig(app);
+  else if(state.view==="frente") renderFrente(app);
+  else if(state.view==="lineas") renderLineas(app);
+  else if(state.view==="material") renderMaterial(app);
+  else if(state.view==="hoy") renderDia(app);
+  else { lastVisibleSig = visibleSignature(); renderMain(app); }
+
+  if(keepId){
+    var back = document.querySelector('[data-fk="'+keepId+'"]');
+    if(back){ back.focus(); if(keepPos!=null){ try{ back.setSelectionRange(keepPos,keepPos); }catch(e){} } }
+  }
+}
+
+/* arranque: recuerda el último frente usado */
+var recienConectado = leerEnlace();
+state.turno = turnoInicial();
+if(prefs.frente && getFrente(prefs.frente)) state.estructura = prefs.frente;
+resetForm();
+if(recienConectado) state.flash = "Celular conectado al sistema del equipo.";
+render();
+
+/* sincronización con el equipo */
+syncConfig(true).then(procesarCola);
+window.addEventListener("online",function(){ syncConfig(true); procesarCola(); });
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"){ syncConfig(false); procesarCola(); }
+});
+setInterval(function(){ if(cola.length) procesarCola(); },60000);
+
+/* instalación como app (solo cuando se sirve por http/https) */
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
+</body>
+</html>
